@@ -112,9 +112,18 @@ class mom_symm_block_base:
                 if ops[0] not in self.map_TI_to_elements.keys():
                     self.map_TI_to_elements[ops[0]]=[]
                 self.map_TI_to_elements[ops[0]]+=[(self.G_variables[g_key][i],coeff, g_key,i)]
-        
-            if len(ops)>1:
-                print("errpr")
+                # double check this
+                for o in ops:
+                    
+                    self.map_TI[o]=ops[0]
+                    
+            
+           # if len(ops)>1:
+                
+            #    print("errpr")
+             #   for o in ops:
+              #      print(o.sym)
+               # print("end")
         return 
 class mom_symm_block_zero(mom_symm_block_base): 
 
