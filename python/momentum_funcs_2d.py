@@ -99,6 +99,7 @@ class mom_symm_block_base:
                 op_new_index=nf
             all_T=generate_all_translations(op_new_index,self.L,class_name=self.class_name,**self.kwargs)
             ops=list(set(all_T)& set(self.map_TI.values()))
+            
             if len(ops)==0:
                 self.map_TI[nf]=nf
                 if nf not in self.map_TI_to_elements.keys():
@@ -109,7 +110,7 @@ class mom_symm_block_base:
                 if ops[0] not in self.map_TI_to_elements.keys():
                     self.map_TI_to_elements[ops[0]]=[]
                 self.map_TI_to_elements[ops[0]]+=[(self.G_variables[g_key][i],coeff, g_key,i)]
-        
+            print(ops)
             if len(ops)>1:
                 print("errpr")
         return 

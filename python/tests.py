@@ -339,7 +339,7 @@ def test_xxz_highO():
         shapes[k]=Ms[k].shape
     PB=True
     J=1
-    Delta=0
+    Delta=1
     # h=4
     Is=npa_hams.get_xxz_npa(normal_forms=basis.total_nfs, J=J, Delta=Delta,shapes=shapes,L=L, PB=PB)
     Is_picos={}
@@ -356,7 +356,7 @@ def test_xxz_highO():
     return
 #test_make_normalform_vector()
 #test_make_set_up_momenMatrix()
-test_tfi()
+#test_tfi()
 #test_xxz()
-#test_xxz_highO()
+test_xxz_highO()
 #test_xxz_2()
