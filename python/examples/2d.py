@@ -132,6 +132,43 @@ def get_moments_1(Lx,Ly):
         ops3+=[op]
         op=spin_class.op_list([spin_class_2d.spin_op_2d(s2,[mn,0], Lx=Lx),spin_class_2d.spin_op_2d(s1,[mx,0], Lx=Lx)])
         ops3+=[op]
+    for i in range(Ly):
+        mn=min(i,(i+2)%Ly)
+        mx=max(i,(i+2)%Ly)
+        s1="x"
+        s2="y"
+      
+        op=spin_class.op_list([spin_class_2d.spin_op_2d(s1,[i,0], Lx=Lx),spin_class_2d.spin_op_2d(s2,[i,2], Lx=Lx)])
+        ops1+=[op]
+        op=spin_class.op_list([spin_class_2d.spin_op_2d(s1,[mn,0], Lx=Lx),spin_class_2d.spin_op_2d(s2,[mx,0], Lx=Lx)])
+        ops1+=[op]
+        
+        op=spin_class.op_list([spin_class_2d.spin_op_2d(s2,[i,0], Lx=Lx),spin_class_2d.spin_op_2d(s1,[i,2], Lx=Lx)])
+        ops1+=[op]
+        op=spin_class.op_list([spin_class_2d.spin_op_2d(s2,[mn,0], Lx=Lx),spin_class_2d.spin_op_2d(s1,[mx,0], Lx=Lx)])
+        ops1+=[op]
+        s1="y"
+        s2="z"
+        op=spin_class.op_list([spin_class_2d.spin_op_2d(s1,[i,0], Lx=Lx),spin_class_2d.spin_op_2d(s2,[i,2], Lx=Lx)])
+        ops2+=[op]
+        op=spin_class.op_list([spin_class_2d.spin_op_2d(s1,[mn,0], Lx=Lx),spin_class_2d.spin_op_2d(s2,[mx,0], Lx=Lx)])
+        ops2+=[op]
+        
+        op=spin_class.op_list([spin_class_2d.spin_op_2d(s2,[i,0], Lx=Lx),spin_class_2d.spin_op_2d(s1,[i,2], Lx=Lx)])
+        ops2+=[op]
+        op=spin_class.op_list([spin_class_2d.spin_op_2d(s2,[mn,0], Lx=Lx),spin_class_2d.spin_op_2d(s1,[mx,0], Lx=Lx)])
+        ops2+=[op]
+        s1="x"
+        s2="z"
+        op=spin_class.op_list([spin_class_2d.spin_op_2d(s1,[i,0], Lx=Lx),spin_class_2d.spin_op_2d(s2,[i,2], Lx=Lx)])
+        ops3+=[op]
+        op=spin_class.op_list([spin_class_2d.spin_op_2d(s1,[mn,0], Lx=Lx),spin_class_2d.spin_op_2d(s2,[mx,0], Lx=Lx)])
+        ops3+=[op]
+        
+        op=spin_class.op_list([spin_class_2d.spin_op_2d(s2,[i,0], Lx=Lx),spin_class_2d.spin_op_2d(s1,[i,2], Lx=Lx)])
+        ops3+=[op]
+        op=spin_class.op_list([spin_class_2d.spin_op_2d(s2,[mn,0], Lx=Lx),spin_class_2d.spin_op_2d(s1,[mx,0], Lx=Lx)])
+        ops3+=[op]
     operators={(1,1): ops0,(1,-1): ops1,(-1,1): ops2,(-1,-1): ops3}
     return operators
 def get_moments_2(Lx,Ly):
@@ -281,11 +318,18 @@ def get_moments_3(Lx,Ly):
     operators={(1,1): ops0}
     return operators
 #     # ops contains spin list and list of symmetry sector
-Lx=8
-Ly=8
-Delta=.0
-J=1
-Moms=2
+Lx=4
+Ly=4
+Delta=-1.
+J=0.
+Moms=0
+kwargs={"Lx":Lx}
+
+#x=spin_class.op_list([spin_class_2d.spin_op_2d("z",[0,0], Lx=Lx),spin_class_2d.spin_op_2d("x",[3,1], Lx=Lx),spin_class_2d.spin_op_2d("y",[3,3], Lx=Lx)])
+#print("start ", x.sym)
+#all_T=mfuncs.generate_all_translations(x,Lx,class_name=spin_class_2d,**kwargs)
+#for t in all_T:
+#    print(t.sym)
 if Moms==0:
     operators=get_moments_1(Lx,Ly)
 elif Moms==1:
@@ -306,17 +350,17 @@ kwargs={"Lx":Lx}
 basis=mfuncs.momentum_basis( operators, Lx, P, spin_class_2d.spin_op_2d,**kwargs)
 
 
-Is=Is=get_xxz2d(basis.sectors[(1,1)], J=J, Delta=Delta,Ly=Ly, Lx=Lx)
-#print(Is)
-Is_picos={}
-#print(P)
-Is_picos=picos.Constant("H{0}".format(0), Is)
+# Is=Is=get_xxz2d(basis.sectors[(1,1)], J=J, Delta=Delta,Ly=Ly, Lx=Lx)
+# #print(Is)
+# Is_picos={}
+# #print(P)
+# Is_picos=picos.Constant("H{0}".format(0), Is)
 
-P.set_objective("min",(basis.sectors[(1,1)].blocks[0] | Is_picos))
+# P.set_objective("min",(basis.sectors[(1,1)].blocks[0] | Is_picos))
 
-P.solve(solver="mosek")
-E=np.array([(basis.sectors[(1,1)].blocks[0] | Is_picos).np/(Ly*np.sqrt(Lx))])
-B0=(basis.sectors[(1,1)].blocks[0]).np
-#np.save(dn+"/E"  ,E)
-#np.save(dn+"/B0",B0 )
-print((basis.sectors[(1,1)].blocks[0] | Is_picos).np/(Ly*np.sqrt(Lx)))
+# P.solve(solver="mosek", verbose=True)
+# E=np.array([(basis.sectors[(1,1)].blocks[0] | Is_picos).np/(Ly*np.sqrt(Lx))])
+# B0=(basis.sectors[(1,1)].blocks[0]).np
+# #np.save(dn+"/E"  ,E)
+# #np.save(dn+"/B0",B0 )
+# print((basis.sectors[(1,1)].blocks[0] | Is_picos).np/(Ly*np.sqrt(Lx)))

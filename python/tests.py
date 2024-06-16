@@ -306,28 +306,28 @@ def test_xxz_highO():
         op=spin_class.op_list([spin_class.spin_op(s,i)])
         ops[(-1,-1)]+=[op]
         
-    # for i in range(L):
-    #     mn=min(i,(i+1)%L)
-    #     mx=max(i,(i+1)%L)
-    #     s1="x"
-    #     s2="y"
-    #     op=spin_class.op_list([spin_class.spin_op(s1,mn),spin_class.spin_op(s2,mx)])
-    #     ops[(1,-1)]+=[op]
+    for i in range(L):
+        mn=min(i,(i+1)%L)
+        mx=max(i,(i+1)%L)
+        s1="x"
+        s2="y"
+        op=spin_class.op_list([spin_class.spin_op(s1,mn),spin_class.spin_op(s2,mx)])
+        ops[(1,-1)]+=[op]
         
-    #     op=spin_class.op_list([spin_class.spin_op(s2,mn),spin_class.spin_op(s1,mx)])
-    #     ops[(1,-1)]+=[op]
-    #     s1="y"
-    #     s2="z"
-    #     op=spin_class.op_list([spin_class.spin_op(s1,mn),spin_class.spin_op(s2,mx)])
-    #     ops[(-1,1)]+=[op]
-    #     op=spin_class.op_list([spin_class.spin_op(s2,mn),spin_class.spin_op(s1,mx)])
-    #     ops[(-1,1)]+=[op]
-    #     s1="x"
-    #     s2="z"
-    #     op=spin_class.op_list([spin_class.spin_op(s1,mn),spin_class.spin_op(s2,mx)])
-    #     ops[(-1,-1)]+=[op]
-    #     op=spin_class.op_list([spin_class.spin_op(s2,mn),spin_class.spin_op(s1,mx)])
-    #     ops[(-1,-1)]+=[op]
+        op=spin_class.op_list([spin_class.spin_op(s2,mn),spin_class.spin_op(s1,mx)])
+        ops[(1,-1)]+=[op]
+        s1="y"
+        s2="z"
+        op=spin_class.op_list([spin_class.spin_op(s1,mn),spin_class.spin_op(s2,mx)])
+        ops[(-1,1)]+=[op]
+        op=spin_class.op_list([spin_class.spin_op(s2,mn),spin_class.spin_op(s1,mx)])
+        ops[(-1,1)]+=[op]
+        s1="x"
+        s2="z"
+        op=spin_class.op_list([spin_class.spin_op(s1,mn),spin_class.spin_op(s2,mx)])
+        ops[(-1,-1)]+=[op]
+        op=spin_class.op_list([spin_class.spin_op(s2,mn),spin_class.spin_op(s1,mx)])
+        ops[(-1,-1)]+=[op]
         
 
     basis=npa_funcs.basis(ops, spin_class.spin_op, **{})
@@ -353,10 +353,111 @@ def test_xxz_highO():
     #print([(Ms[k] | Is_picos[k]).np/L for k in Ms.keys()])
     #print(Ms[(1,1)].np)
     print(sum([(Ms[k] | Is_picos[k]).np/L for k in Ms.keys()]))
+
+    return
+def test_xxz_highO_2():
+    ops={(1,1): [],(1,-1): [], (-1,1): [], (-1,-1): []}
+    # ops contains spin list and list of symmetry sector
+    L=5
+    ops[(1,1)]+=[spin_class.op_list([])] # empty list gives unity
+    for i in range(L):
+        mn=min(i, (i+1)%L)
+        mx=max(i, (i+1)%L)
+        s="z"
+        op=spin_class.op_list([spin_class.spin_op(s,mn),spin_class.spin_op(s,mx)])
+        #print(op.sym)
+        ops[(1,1)]+=[op]
+        s="x"
+        op=spin_class.op_list([spin_class.spin_op(s,mn),spin_class.spin_op(s,mx)])
+        ops[(1,1)]+=[op]
+        s="y"
+        op=spin_class.op_list([spin_class.spin_op(s,mn),spin_class.spin_op(s,mx)])
+        ops[(1,1)]+=[op]
+    for i in range(L):
+        s="z"
+        op=spin_class.op_list([spin_class.spin_op(s,i)])
+        ops[(1,-1)]+=[op]
+        s="x"
+        op=spin_class.op_list([spin_class.spin_op(s,i)])
+        ops[(-1,1)]+=[op]
+        s="y"
+        op=spin_class.op_list([spin_class.spin_op(s,i)])
+        ops[(-1,-1)]+=[op]
+        
+    for i in range(L):
+        mn=min(i,(i+1)%L)
+        mx=max(i,(i+1)%L)
+        s1="x"
+        s2="y"
+        op=spin_class.op_list([spin_class.spin_op(s1,mn),spin_class.spin_op(s2,mx)])
+        ops[(1,-1)]+=[op]
+        
+        op=spin_class.op_list([spin_class.spin_op(s2,mn),spin_class.spin_op(s1,mx)])
+        ops[(1,-1)]+=[op]
+        s1="y"
+        s2="z"
+        op=spin_class.op_list([spin_class.spin_op(s1,mn),spin_class.spin_op(s2,mx)])
+        ops[(-1,1)]+=[op]
+        op=spin_class.op_list([spin_class.spin_op(s2,mn),spin_class.spin_op(s1,mx)])
+        ops[(-1,1)]+=[op]
+        s1="x"
+        s2="z"
+        op=spin_class.op_list([spin_class.spin_op(s1,mn),spin_class.spin_op(s2,mx)])
+        ops[(-1,-1)]+=[op]
+        op=spin_class.op_list([spin_class.spin_op(s2,mn),spin_class.spin_op(s1,mx)])
+        ops[(-1,-1)]+=[op]
+        
+    for i in range(L):
+        mn=min(i,(i+2)%L)
+        mx=max(i,(i+2)%L)
+        s1="x"
+        s2="y"
+        op=spin_class.op_list([spin_class.spin_op(s1,mn),spin_class.spin_op(s2,mx)])
+        ops[(1,-1)]+=[op]
+        
+        op=spin_class.op_list([spin_class.spin_op(s2,mn),spin_class.spin_op(s1,mx)])
+        ops[(1,-1)]+=[op]
+        # s1="y"
+        # s2="z"
+        # op=spin_class.op_list([spin_class.spin_op(s1,mn),spin_class.spin_op(s2,mx)])
+        # ops[(-1,1)]+=[op]
+        # op=spin_class.op_list([spin_class.spin_op(s2,mn),spin_class.spin_op(s1,mx)])
+        # ops[(-1,1)]+=[op]
+        # s1="x"
+        # s2="z"
+        # op=spin_class.op_list([spin_class.spin_op(s1,mn),spin_class.spin_op(s2,mx)])
+        # ops[(-1,-1)]+=[op]
+        # op=spin_class.op_list([spin_class.spin_op(s2,mn),spin_class.spin_op(s1,mx)])
+        # ops[(-1,-1)]+=[op]
+    basis=npa_funcs.basis(ops, spin_class.spin_op, **{})
+    P = picos.Problem()
+    Ms=basis.get_mom_matrix_M(P)
+    shapes={}
+    shapes={}
+    for k in Ms.keys():
+        shapes[k]=Ms[k].shape
+    PB=True
+    J=1
+    Delta=1
+    # h=4
+    Is=npa_hams.get_xxz_npa(normal_forms=basis.total_nfs, J=J, Delta=Delta,shapes=shapes,L=L, PB=PB)
+    Is_picos={}
+    for k in Is.keys():
+        Is_picos[k]=picos.Constant("H{0}".format(k), Is[k])
+    #
+
+    P.set_objective("min",sum([(Ms[k] | Is_picos[k]) for k in Ms.keys()]))
+    #print(P)
+    P.solve(solver="mosek")
+    #print([(Ms[k] | Is_picos[k]).np/L for k in Ms.keys()])
+    #print(Ms[(1,1)].np)
+    print(sum([(Ms[k] | Is_picos[k]).np/L for k in Ms.keys()]))
+
     return
 #test_make_normalform_vector()
 #test_make_set_up_momenMatrix()
 #test_tfi()
 #test_xxz()
-test_xxz_highO()
+#test_xxz_highO()
+test_xxz_highO_2()
 #test_xxz_2()

@@ -138,14 +138,14 @@ def test_find_blocks():
     P.solve(solver="mosek")
     print((M.blocks[0] | Is_picos).np/np.sqrt(L))
     #print(M.blocks[0].np[0,:])
-test_find_blocks()    
+#test_find_blocks()    
 def test_find_many_blocks():
     ops0=[] # (1,1)
     ops1=[] #(1,-1)
     ops2=[] #(-1,1)
     ops3=[] #(-1,-1)
     # ops contains spin list and list of symmetry sector
-    L=7
+    L=5
     for i in range(1):
         mn=min(i, (i+1)%L)
         mx=max(i, (i+1)%L)
@@ -200,6 +200,7 @@ def test_find_many_blocks():
     # for o in ops1:
     #     print(o.sym)
     operators={(1,1): ops0,(1,-1): ops1,(-1,1): ops2,(-1,-1): ops3}
+    #operators={(1,1): ops0,(1,-1): ops1}
     kwargs={}
     basis=mfuncs.momentum_basis( operators, L, P, spin_class.spin_op,**{})
     Is=get_xxz( basis.sectors[(1,1)], J=1, Delta=1)
@@ -214,7 +215,160 @@ def test_find_many_blocks():
 
     P.solve(solver="mosek")
     print((basis.sectors[(1,1)].blocks[0] | Is_picos).np/np.sqrt(L))
-    # print(M0.blocks[0].np[0,:])
+    # Li={}
+    # for n in (basis.sectors.keys()):
+    #     Li.update(basis.sectors[n].map_TI)
+    # for n in (basis.sectors.keys()):
+    #     Li.update(basis.sectors[n].d_vector_map)
+    #     print(basis.sectors[n].d_vector_map)
+    #     break
+    #     #=list(basis.sectors[n].map_TI.keys())
+    # #Li=set(Li)
+    
+    
+    # for n in (basis.sectors.keys()):
+    #     print(n)
+    #     for l in basis.sectors[n].G_variables.keys():
+    #         print(l)
+    #         print(np.max(np.imag(basis.sectors[n].G_variables[l].np)))
+    #         print(((basis.sectors[n].G_variables[l].np)))
+    # print("LEN",len(set(Li)))
+    #ss=[]
+    #for s in Li.keys():
+     #   ss+=[s.sym]
+      #  print(s.sym, "  ->  ", Li[s].sym)
+    #print(sorted(ss))
+      #print(M0.blocks[0].np[0,:])
+#    # print(M.blocks[0].np)
+#     #for n in M.blocks.keys():
+#     #    print(M.blocks[n].np)
+#     #for m in M.G_matrices.keys():
+#     #    print(m)
+#     #for v in M.D_vector_map.keys():
+#     #    print(v.sym)
+def test_find_many_blocks_long_range():
+    ops0=[] # (1,1)
+    ops1=[] #(1,-1)
+    ops2=[] #(-1,1)
+    ops3=[] #(-1,-1)
+    # ops contains spin list and list of symmetry sector
+    L=5
+    for i in range(1):
+        mn=min(i, (i+1)%L)
+        mx=max(i, (i+1)%L)
+        s="z"
+        op=spin_class.op_list([spin_class.spin_op(s,mn),spin_class.spin_op(s,mx)])
+        #print(op.sym)
+        ops0+=[op]
+        s="x"
+        op=spin_class.op_list([spin_class.spin_op(s,mn),spin_class.spin_op(s,mx)])
+        ops0+=[op]
+        s="y"
+        op=spin_class.op_list([spin_class.spin_op(s,mn),spin_class.spin_op(s,mx)])
+        ops0+=[op]
+    for i in range(1):
+        s="z"
+        op=spin_class.op_list([spin_class.spin_op(s,i)])
+        ops1+=[op]
+        s="x"
+        op=spin_class.op_list([spin_class.spin_op(s,i)])
+        ops2+=[op]
+        s="y"
+        op=spin_class.op_list([spin_class.spin_op(s,i)])
+        ops3+=[op]
+        
+    for i in range(1):
+        mn=min(i,(i+1)%L)
+        mx=max(i,(i+1)%L)
+        s1="x"
+        s2="y"
+        op=spin_class.op_list([spin_class.spin_op(s1,mn),spin_class.spin_op(s2,mx)])
+        ops1+=[op]
+        
+        op=spin_class.op_list([spin_class.spin_op(s2,mn),spin_class.spin_op(s1,mx)])
+        ops1+=[op]
+        s1="y"
+        s2="z"
+        op=spin_class.op_list([spin_class.spin_op(s1,mn),spin_class.spin_op(s2,mx)])
+        ops2+=[op]
+        op=spin_class.op_list([spin_class.spin_op(s2,mn),spin_class.spin_op(s1,mx)])
+        ops2+=[op]
+        s1="x"
+        s2="z"
+        op=spin_class.op_list([spin_class.spin_op(s1,mn),spin_class.spin_op(s2,mx)])
+        ops3+=[op]
+        op=spin_class.op_list([spin_class.spin_op(s2,mn),spin_class.spin_op(s1,mx)])
+        ops3+=[op]
+                
+    # for i in range(1):
+    #     mn=min(i,(i+2)%L)
+    #     mx=max(i,(i+2)%L)
+    #     s1="x"
+    #     s2="y"
+    #     op=spin_class.op_list([spin_class.spin_op(s1,mn),spin_class.spin_op(s2,mx)])
+    #     ops1+=[op]
+        
+    #     op=spin_class.op_list([spin_class.spin_op(s2,mn),spin_class.spin_op(s1,mx)])
+    #     ops1+=[op]
+        # s1="y"
+        # s2="z"
+        # op=spin_class.op_list([spin_class.spin_op(s1,mn),spin_class.spin_op(s2,mx)])
+        # ops2+=[op]
+        # op=spin_class.op_list([spin_class.spin_op(s2,mn),spin_class.spin_op(s1,mx)])
+        # ops2+=[op]
+        # s1="x"
+        # s2="z"
+        # op=spin_class.op_list([spin_class.spin_op(s1,mn),spin_class.spin_op(s2,mx)])
+        # ops3+=[op]
+        # op=spin_class.op_list([spin_class.spin_op(s2,mn),spin_class.spin_op(s1,mx)])
+        # ops3+=[op]
+        
+        
+    P = picos.Problem()
+    # for o in ops0:
+    #     print(o.sym)
+    # for o in ops1:
+    #     print(o.sym)
+    operators={(1,1): ops0,(1,-1): ops1,(-1,1): ops2,(-1,-1): ops3}
+    #operators={(1,1): ops0,(1,-1): ops1}
+    kwargs={}
+    basis=mfuncs.momentum_basis( operators, L, P, spin_class.spin_op,**{})
+    Is=get_xxz( basis.sectors[(1,1)], J=1, Delta=1)
+    
+    #print(Is)
+
+    Is_picos={}
+    #print(P)
+    Is_picos=picos.Constant("H{0}".format(0), Is)
+
+    P.set_objective("min",(basis.sectors[(1,1)].blocks[0] | Is_picos))
+
+    P.solve(solver="mosek")
+    print((basis.sectors[(1,1)].blocks[0] | Is_picos).np/np.sqrt(L))
+    # Li={}
+    # for n in (basis.sectors.keys()):
+    #     Li.update(basis.sectors[n].map_TI)
+    # for n in (basis.sectors.keys()):
+    #     Li.update(basis.sectors[n].d_vector_map)
+    #     print(basis.sectors[n].d_vector_map)
+    #     break
+    #     #=list(basis.sectors[n].map_TI.keys())
+    # #Li=set(Li)
+    
+    
+    # for n in (basis.sectors.keys()):
+    #     print(n)
+    #     for l in basis.sectors[n].G_variables.keys():
+    #         print(l)
+    #         print(np.max(np.imag(basis.sectors[n].G_variables[l].np)))
+    #         print(((basis.sectors[n].G_variables[l].np)))
+    # print("LEN",len(set(Li)))
+    #ss=[]
+    #for s in Li.keys():
+     #   ss+=[s.sym]
+      #  print(s.sym, "  ->  ", Li[s].sym)
+    #print(sorted(ss))
+      #print(M0.blocks[0].np[0,:])
 #    # print(M.blocks[0].np)
 #     #for n in M.blocks.keys():
 #     #    print(M.blocks[n].np)
@@ -224,7 +378,8 @@ def test_find_many_blocks():
 #     #    print(v.sym)
 # #test_tranlation()
 
-test_find_many_blocks()
+#test_find_many_blocks()
+test_find_many_blocks_long_range()
 
 
 

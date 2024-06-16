@@ -12,6 +12,8 @@
 #include"spin_hamiltonians_TIsym.hpp"
 using namespace mosek::fusion;
 using namespace monty;
+
+// file with test functions for using translation symmetry
 void test_translation()
 {
   int L=3;
@@ -35,39 +37,42 @@ void test_translation()
 
 void test_single_block()
 {
+  // testing translation invariance for single symmetrie sector
   int L=5;
-      basis_structure states;
-      op_vec v1={spin_op("x", {0})};
-      op_vec v2={spin_op("y", {0})};
-     op_vec v3={spin_op("z", {0})};
-    op_vec v4={spin_op("x", {0}),spin_op("x", {1})};
-     op_vec v5={spin_op("y", {0}),spin_op("y", {1})};
-     op_vec v6={spin_op("z", {0}),spin_op("z", {1})};
-     
-     op_vec v7={spin_op("x", {0}),spin_op("y", {1})};
-     op_vec v8={spin_op("y", {0}),spin_op("x", {1})};
-     op_vec v9={spin_op("y", {0}),spin_op("z", {1})};
-     op_vec v10={spin_op("z", {0}),spin_op("y", {1})};
-     op_vec v11={spin_op("x", {0}),spin_op("z", {1})};
-     op_vec v12={spin_op("z", {0}),spin_op("x", {1})};
-  //   op_vec v5={electron_op("up", {0}, false),electron_op("up", {1}, true)};
-  //   //    op_vec v5={electron_op("up", {1}, true),electron_op("up", {0}, false)};
+  basis_structure states;
+  std::vector<op_vec> v_block_0;
+  std::vector<op_vec> v_block_1;
+  std::vector<op_vec> v_block_2;
+  std::vector<op_vec> v_block_3;
+  states.insert({0, v_block_0});     
+  std::map<std::pair<int,int>, int> map_sec;
+  map_sec.insert({std::pair<int,int>(1,1), 0});
+  map_sec.insert({std::pair<int,int>(1,-1), 0});
+  map_sec.insert({std::pair<int,int>(-1,1), 0});
+  map_sec.insert({std::pair<int,int>(-1,-1), 0});
+ 
+       std::vector<std::string> dirs={"x", "y", "z"};
+       op_vec xx={};
+   for(auto s: dirs){
+	    
+	     op_vec v0={spin_op(s, {0}),spin_op(s, {1})};
+	      add_state(states, v0, map_sec);
+	   }
+	 
+   for(auto s: dirs){
+	    
+	     op_vec v0={spin_op(s, {0})};
+	      add_state(states, v0, map_sec);
+	   }
+      std::vector<string_pair> occ={string_pair("x","y"),string_pair("y","x"),string_pair("y","z"),string_pair("z","y"),string_pair("x","z"),string_pair("z","x")};
 
-    
-    std::vector<op_vec> v_tot;
-    v_tot.push_back(v1);
-    v_tot.push_back(v2);
-    v_tot.push_back(v3);
-    v_tot.push_back(v4);
-    v_tot.push_back(v5);
-    v_tot.push_back(v6);
-    v_tot.push_back(v7);
-    v_tot.push_back(v8);
-    v_tot.push_back(v9);
-    v_tot.push_back(v10);
-    v_tot.push_back(v11);
-    v_tot.push_back(v12);
-    states.insert({0, v_tot});
+      for(auto a: occ){
+	    
+	op_vec v0={spin_op(a.first, {0}),spin_op(a.second, {1})};
+	      add_state(states, v0, map_sec);
+	   }
+   
+	  
 	
   // 	auto basis=momentum_basis(L,states);
 	Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
@@ -104,45 +109,116 @@ void test_single_block()
 void test_multiple_blocks()
 {
   int L=5;
-      basis_structure states;
-      std::vector<op_vec> v_block_0;
-     std::vector<op_vec> v_block_1;
-      std::vector<op_vec> v_block_2;
+ basis_structure states;
+  std::vector<op_vec> v_block_0;
+  std::vector<op_vec> v_block_1;
+  std::vector<op_vec> v_block_2;
        std::vector<op_vec> v_block_3;
+       states.insert({0, v_block_0});
+     states.insert({1, v_block_1});
+     states.insert({2, v_block_2});
+     states.insert({3, v_block_3});
+    std::map<std::pair<int,int>, int> map_sec
+;    map_sec.insert({std::pair<int,int>(1,1), 0});
+    map_sec.insert({std::pair<int,int>(1,-1), 1});
+    map_sec.insert({std::pair<int,int>(-1,1), 2});
+    map_sec.insert({std::pair<int,int>(-1,-1), 3});
+ 
+       std::vector<std::string> dirs={"x", "y", "z"};
+       op_vec xx={};
+   for(auto s: dirs){
+	    
+	     op_vec v0={spin_op(s, {0}),spin_op(s, {1})};
+	      add_state(states, v0, map_sec);
+	   }
+	 
+   for(auto s: dirs){
+	    
+	     op_vec v0={spin_op(s, {0})};
+	      add_state(states, v0, map_sec);
+	   }
+      std::vector<string_pair> occ={string_pair("x","y"),string_pair("y","x"),string_pair("y","z"),string_pair("z","y"),string_pair("x","z"),string_pair("z","x")};
 
-     
-    op_vec v0={spin_op("x", {0}),spin_op("x", {1})};
-     op_vec v1={spin_op("y", {0}),spin_op("y", {1})};
-     op_vec v2={spin_op("z", {0}),spin_op("z", {1})};
-     v_block_0.push_back(v0);
-     v_block_0.push_back(v1);
-     v_block_0.push_back(v2);
-     op_vec v3={spin_op("z", {0})};
-      op_vec v4={spin_op("x", {0})};
-      op_vec v5={spin_op("y", {0})};
-      v_block_1.push_back(v3);
-       v_block_2.push_back(v4);
-       v_block_3.push_back(v5);
-       op_vec v6={spin_op("x", {0}),spin_op("y", {1})};
-      op_vec v7={spin_op("y", {0}),spin_op("x", {1})};
-       v_block_1.push_back(v6);
-      v_block_1.push_back(v7);
-      op_vec v8={spin_op("y", {0}),spin_op("z", {1})};
-      op_vec v9={spin_op("z", {0}),spin_op("y", {1})};
-      v_block_2.push_back(v8);
-      v_block_2.push_back(v9);
+      for(auto a: occ){
+	    
+	op_vec v0={spin_op(a.first, {0}),spin_op(a.second, {1})};
+	      add_state(states, v0, map_sec);
+	   }
+   
+	  
+    Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
+    	auto basis =momentum_basis(L,states,M);
+
+   	double J=1;
+   	double Delta=1;
+   	auto h=define_xxz1d( basis.total_refs_,basis.TI_map_, J, Delta);
+	
+         basis.M_->objective(ObjectiveSense::Minimize, h);
+	//   // 	  block.M_->dataReport();
+	//   // M->setLogHandler([=](const std::string & msg) { std::cout << msg << std::flush; } );
+	   basis.M_->solve();
+	  
+	  
+	  std::cout << "Solution : " << std::endl;
+	  std::cout<<std::setprecision(9)<<M->primalObjValue()  <<std::endl;
+	  
+	  double sol=M->primalObjValue();
+	  
+
+	   if(std::abs(sol+0.44670126)>1e-06)
+	     {std::cout<<"error, not converging properly"<<std::endl;}
+	    return;}
+void test_multiple_blocks_higher_order()
+{
+  int L=5;
+ basis_structure states;
+  std::vector<op_vec> v_block_0;
+  std::vector<op_vec> v_block_1;
+  std::vector<op_vec> v_block_2;
+       std::vector<op_vec> v_block_3;
+       states.insert({0, v_block_0});
+     states.insert({1, v_block_1});
+     states.insert({2, v_block_2});
+     states.insert({3, v_block_3});
+    std::map<std::pair<int,int>, int> map_sec
+;    map_sec.insert({std::pair<int,int>(1,1), 0});
+    map_sec.insert({std::pair<int,int>(1,-1), 1});
+    map_sec.insert({std::pair<int,int>(-1,1), 2});
+    map_sec.insert({std::pair<int,int>(-1,-1), 3});
+ 
+       std::vector<std::string> dirs={"x", "y", "z"};
+       op_vec xx={};
+   for(auto s: dirs){
+	    
+	     op_vec v0={spin_op(s, {0}),spin_op(s, {1})};
+	      add_state(states, v0, map_sec);
+	   }
+      for(auto s: dirs){
+	    
+	     op_vec v0={spin_op(s, {0}),spin_op(s, {2})};
+	      add_state(states, v0, map_sec);
+	   }
+	 
+   for(auto s: dirs){
+	    
+	     op_vec v0={spin_op(s, {0})};
+	      add_state(states, v0, map_sec);
+	   }
+      std::vector<string_pair> occ={string_pair("x","y"),string_pair("y","x"),string_pair("y","z"),string_pair("z","y"),string_pair("x","z"),string_pair("z","x")};
+
+      for(auto a: occ){
+	    
+	op_vec v0={spin_op(a.first, {0}),spin_op(a.second, {1})};
+	      add_state(states, v0, map_sec);
+	   }
+   
+      for(auto a: occ){
+	    
+	op_vec v0={spin_op(a.first, {0}),spin_op(a.second, {2})};
+	      add_state(states, v0, map_sec);
+	   }
+
       
-      op_vec v10={spin_op("x", {0}),spin_op("z", {1})};
-      op_vec v11={spin_op("z", {0}),spin_op("x", {1})};
-      v_block_3.push_back(v10);
-      v_block_3.push_back(v11);
-    
-    
-    states.insert({0, v_block_0});
-    states.insert({1, v_block_1});
-    states.insert({2, v_block_2});
-    states.insert({3, v_block_3});
-    
     Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
     	auto basis =momentum_basis(L,states,M);
 
@@ -167,10 +243,11 @@ void test_multiple_blocks()
 	  
 	  std::cout << "Solution : " << std::endl;
 	  std::cout<<std::setprecision(9)<<M->primalObjValue()  <<std::endl;
+	  std::cout<< "true ground state value "<<-0.37360679774997907<<std::endl;
 	  
 	  double sol=M->primalObjValue();
 	  
 
-	  // if(std::abs(sol+0.464015)>1e-06)
-	  //   {std::cout<<"error, not converging properly"<<std::endl;}
+	    if(std::abs(sol+0.389706358)>1e-06)
+	      {std::cout<<"error, not converging properly"<<std::endl;}
 	    return;}

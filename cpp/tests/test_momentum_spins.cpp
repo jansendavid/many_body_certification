@@ -15,6 +15,7 @@ using namespace monty;
 int main()
 {
   //     test_single_block();
-    test_multiple_blocks();
+  //    test_multiple_blocks();
+  test_multiple_blocks_higher_order();
    return 0;
 }

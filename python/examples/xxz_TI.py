@@ -37,7 +37,7 @@ def get_xxz(obj, J):
             Is[0][0,co.ind]=J/4 # plus one because it is in block [1,d,d
             Is[0][co.ind, 0]=J/4
     return Is[0]/2
-L=10
+L=5
 PB=True
 J=1
 Delta=1

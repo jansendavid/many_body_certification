@@ -44,12 +44,7 @@ def generate_all_translations(op,L,class_name, **kwargs):
         coeff,nf=spin_class.normal_form(new_state, class_name=class_name,**kwargs)
         if np.abs(coeff-1.)>1e-09:
             print("translation error")
-        
-        
-        if nf in all_T:
-            break 
-        else:
-            all_T+=[nf]
+        all_T+=[nf]
     return [op]+all_T
         
 class block():
