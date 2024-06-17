@@ -100,7 +100,7 @@ Expression::t define_xxz2d( std::map<std::string, mom_ref> refs, std::map<std::s
       ham=Expr::add(ham,Expr::mul(coeff*fac_p.real()*coeff_map_p.real()/4., el_p.var_));
 
       // transverse part part S_(0,0)S_(0,1),S_(1,0)S_(1,1)... etc
-      op_vec v_t={spin_op(term.first, {std::min(i,(i+1)%Ly),0}, Lx),spin_op(term.second, {std::max(i,(i+1)%Ly),0}, Lx)};
+      op_vec v_t={spin_op(term.first, {i,0}, Lx),spin_op(term.second, {i,1}, Lx)};
       auto [fac_t, nf_t] =get_normal_form(v_t);
       auto [ key_t,coeff_map_t]=map.at(print_op(nf_t));  
       auto el_t=refs.at(key_t);
