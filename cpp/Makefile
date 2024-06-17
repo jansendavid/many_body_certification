@@ -56,6 +56,9 @@ test_hamiltonian: src/test_hamiltonian.cpp
 test_hamiltonian_spin: src/test_hamiltonian_spin.cpp
 	g++ -std=c++11 src/test_hamiltonian_spin.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
 
+test_functions: tests/test_functions.cpp
+	g++ -std=c++11 tests/test_functions.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
+
 
 momentum_test: src/momentum_test.cpp
 	g++ -std=c++11 src/momentum_test.cpp -o bin/$@ -std=c++20 -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
