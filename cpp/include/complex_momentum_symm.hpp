@@ -217,17 +217,17 @@ public:
 	 check_if_operator_exists(vec, mat_terms);
 	   }
 
-    for(auto it2=operators_.begin(); it2!=operators_.end(); ++it2)
+    for(auto it2=it1; it2!=operators_.end(); ++it2)
       {
 
-        auto op_dagger=dagger_operator(*it2);
+        // auto op_dagger=dagger_operator(*it2);
 
-	auto [fac, vec_dagger] =get_normal_form(op_dagger);
-	if(is_zero_)
-	  {
-	check_if_operator_exists(vec_dagger, mat_terms);
-	  }
-	auto op_cp=*it1;
+	// auto [fac, vec_dagger] =get_normal_form(op_dagger);
+	// if(is_zero_)
+	//   {
+	// check_if_operator_exists(vec_dagger, mat_terms);
+	//   }
+	auto op_cp=*it2;
 	for(int n=0; n<L_;n++ )
 	  {
 
@@ -241,7 +241,7 @@ public:
 	    else{
 	      new_op=op_cp;}
 
-     auto v_x=dagger_operator(*it2);
+     auto v_x=dagger_operator(*it1);
      v_x.insert(v_x.end(), new_op.begin(),new_op.end());
 
 
@@ -327,23 +327,23 @@ public:
     int i=0;
     for(auto it1=operators_.begin(); it1!=operators_.end(); ++it1)
        {
-	 int j=0;
-	 for(auto it2=operators_.begin(); it2!=operators_.end(); ++it2)
+	 int j=i;
+	 for(auto it2=it1; it2!=operators_.end(); ++it2)
      {
       
        std::string g_key="G_"+sector_label_+"_"+std::to_string(i)+"/"+std::to_string(j);
-       //       std::string g_key_2="G_"+sector_label_+"_"+std::to_string(j)+"/"+std::to_string(i);
+       std::string g_key_2="G_"+sector_label_+"_"+std::to_string(j)+"/"+std::to_string(i);
        G_variables_real.insert({g_key+"_real", M_->variable(g_key+"_real",L_,Domain::inRange(-1., 1))});
        G_variables_imag.insert({g_key+"_imag", M_->variable(g_key+"_imag",L_,Domain::inRange(-1., 1))});
+       
        //       std::cout<< g_key << "  " << g_key_2 << std::endl;
        //       std::cout<< print_op(*it1) << "  " << print_op(*it2) << std::endl;
 
 
 			  for(int mat_pos=0; mat_pos<L_; mat_pos++)
 			    {
-			      //std::vector<Expression::t> expr_real;
-			      //std::vector<Expression::t> expr_imag;
-			      			      auto expr_real=Expr::constTerm(0.);
+		
+			      auto expr_real=Expr::constTerm(0.);
 			      auto expr_imag=Expr::constTerm(0.);
 
 			      
@@ -352,9 +352,9 @@ public:
 			      
 			      // gives the shift between real and complex components
 			      int dim=block_shifts[mat_pos];
-
+			      
 			      generate_G_elements(*it1, *it2, g_key, mat_pos);
-
+			      
 			      
 			  for(int pos=0; pos<L_; pos++)
 			    {
@@ -378,8 +378,17 @@ public:
 			  // // imaginary part
 				 
 				M_->constraint( Expr::add(blocks_[mat_pos]->index(i+shift,dim+j+shift),Expr::mul(-1.,expr_imag)), Domain::equalsTo(0.0));
-	        							
+				if(i!=j)
+				  {
+			  // real part
+			  M_->constraint( Expr::add(blocks_[mat_pos]->index(j+shift,i+shift),Expr::mul(-1.,expr_real)), Domain::equalsTo(0.0));	  
+	        
+			  // // imaginary part
+				 
+				M_->constraint( Expr::add(blocks_[mat_pos]->index(j+shift,dim+i+shift),Expr::mul(1.,expr_imag)), Domain::equalsTo(0.0));
+				  }
 			  	    }
+			  
 			  
 			  j+=1;
 			    }
@@ -454,7 +463,8 @@ public:
 
       }
      initialize_XT();
-     std::cout<< "size "<< TI_map_.size()<<std::endl;
+     std::cout<< "size TI map "<< TI_map_.size()<<std::endl;
+     std::cout<< "size total refs "<< total_refs_.size()<<std::endl;
      for(auto it=TI_map_.begin(); it!=TI_map_.end(); it++)
        {
 	 //	 std::cout<< it->first <<" --> "<<it->second.first<<std::endl;

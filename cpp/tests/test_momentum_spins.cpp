@@ -14,11 +14,11 @@ using namespace monty;
 
 int main()
 {
-  //   test_translation_2d();
-  //    test_single_block();
-   //   test_multiple_blocks();
-   // test_multiple_blocks_higher_order();
-  //   test_multiple_blocks_2d();
+     test_translation_2d();
+    test_single_block();
+    test_multiple_blocks();
+   test_multiple_blocks_higher_order();
+    test_multiple_blocks_2d();
   // test_multiple_blocks_higher_order_2d();
          return 0;
 }

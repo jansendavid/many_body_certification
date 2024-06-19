@@ -241,7 +241,7 @@ void test_multiple_blocks_higher_order()
     Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
     	auto basis =momentum_basis(L,states,M);
 
-  // 	for(auto a : block.total_refs_)
+  // // 	for(auto a : block.total_refs_)
   // 	  {
   // 	    //	    std::cout<< a.first<< "  "<<std::endl;
   // 	  }
@@ -348,11 +348,11 @@ for(int i=0; i<Ly;i++)
     std::cout << "Solution : " << std::endl;
     std::cout<<std::setprecision(9)<<M->primalObjValue()/Ly  <<std::endl;
 	  
-    // double sol=M->primalObjValue();
+     double sol=M->primalObjValue()/Ly;
 	  
 
-	  //	   if(std::abs(sol+0.44670126)>1e-06)
-	  // {std::cout<<"error, not converging properly"<<std::endl;}
+	  	   if(std::abs(sol+0.721905655)>1e-06)
+	   {std::cout<<"error, not converging properly"<<std::endl;}
 	    return;
 }
 
@@ -459,7 +459,7 @@ for(int i=0; i<Ly;i++)
     std::cout << "Solution : " << std::endl;
     std::cout<<std::setprecision(9)<<M->primalObjValue()/Ly  <<std::endl;
 	  
-    // double sol=M->primalObjValue();
+    // double sol=M->primalObjValue(); -0.720847431
 	  
 
 	  //	   if(std::abs(sol+0.44670126)>1e-06)
