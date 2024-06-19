@@ -68,7 +68,64 @@ std::vector<op_vec> generate_all_translations(op_vec op, int L)
     }
   return all_T;
 }
+  void display(char a[], int n) 
+{ 
+  for (int i = 0; i < n; i++) { 
+    std::cout << a[i] << " "; 
+  } 
+  std::cout << std::endl; 
+}
+ void findPermutations(char a[], int n) 
+{ 
+ 
+  // Sort the given array 
+  std::sort(a, a + n); 
+ 
+  // Find all possible permutations 
+  std::cout << "Possible permutations are:\n"; 
+  do { 
+    display(a, n); 
+  } while (std::next_permutation(a, a + n)); 
+} 
+std::vector<op_vec> generate_all_permutations(op_vec op)
+{
+ 
+ 
+ std::vector<op_vec> all_P;
+ all_P.push_back(op);
+ std::vector<std::map<std::string, std::string>> permutations(5);
+ permutations[0].insert({"x","x"});
+ permutations[0].insert({"y","z"});
+ permutations[0].insert({"z","y"});
 
+ permutations[1].insert({"x","y"});
+ permutations[1].insert({"y","x"});
+ permutations[1].insert({"z","z"});
+ 
+ permutations[2].insert({"x","y"});
+ permutations[2].insert({"y","z"});
+ permutations[2].insert({"z","x"});
+
+ permutations[3].insert({"x","z"});
+ permutations[3].insert({"y","x"});
+ permutations[3].insert({"z","y"});
+
+ permutations[4].insert({"x","z"});
+ permutations[4].insert({"y","y"});
+ permutations[4].insert({"z","x"});
+ 
+ for(auto& a: permutations)
+   {
+     auto new_op=op;
+     std::for_each(new_op.begin(), new_op.end(), [a](spin_op &n){
+       auto old_d=n.dir_;
+       n.dir_=a.at(old_d); });
+     all_P.push_back(new_op);
+   }
+ 
+
+  return all_P;
+}
 // desription:
 //TI_map key: operator and value is pair, containing the key in total_refs, and the value to get it (is one for commuting variables)
 // total_refs contains key: operator string, value mom_ref with variable reference, index, and op_vec
@@ -91,31 +148,7 @@ public:
 
 
   }
-  //   void connect_Gelements(){
-  //   //necissary?
-  //       for(auto key :G_variables_real )
-  // 	  {
-  // 	    for(int i=1; i<int(L_/2)+1; i++)
-  // 	      {
-  // 		M_->constraint( Expr::add(G_variables_real.at(key.first)->index(i),Expr::mul(-1.,G_variables_real.at(key.first)->index(L_-i))), Domain::equalsTo(0.0));
-		
-  // 	      }
-	      
-  // 	  }
-  // 	 for(auto key :G_variables_imag )
-  // 	  {
-  // 	    for(int i=1; i<int(L_/2)+1; i++)
-  // 	      {
-  // 		//		std::cout<< "L="<<L_<< " i="<<i<< " and "<< L_-i<<std::endl;
-	
-  // 		//				M_->constraint( Expr::add(G_variables_imag.at(key.first)->index(i),Expr::mul(-1.,G_variables_imag.at(key.first)->index(L_-i))), Domain::equalsTo(0.0));
-  // 	      }
-	      
-  // 	  }
-  //   //G_variables_real
-  //   return;
-  // }
-  
+
   // convention, total_refs contains all elements appearing with prefact 1
  void generate_G_elements(op_vec op1, op_vec op2, std::string key, int i)
   {
@@ -136,7 +169,7 @@ public:
     v_x.insert(v_x.end(), new_op.begin(),new_op.end());
      auto [fac, vec] =get_normal_form(v_x);
      auto [ti_key,ti_val]=TI_map_.at(print_op(vec));
-
+     
        auto el=total_refs_.at(ti_key);
        cpx total_fac=fac;//fac*ti_val;
        M_->constraint( Expr::add(G_variables_real.at(key+"_real")->index(i),Expr::mul(-1.*total_fac.real(),el.var_)), Domain::equalsTo(0.0));
@@ -177,7 +210,12 @@ public:
 	     
 	     // 	auto [fac, op_nf] =get_normal_form(op_t);
 	     // op_t is already in normal form
-	       auto it=mat_terms.find(print_op(op_t));
+	     // generate all permutations
+	     auto all_p=generate_all_permutations(op_t);
+	    	 for(auto op_p: all_p)
+	   { 
+	     
+	       auto it=mat_terms.find(print_op(op_p));
 	   
 	     if(it != mat_terms.end())
 	       {
@@ -187,9 +225,11 @@ public:
 		 break;
 	       }    
 	   }
+	   }
 	 if(!found){mat_terms.insert({print_op(op), op });
 	   TI_map_.insert({print_op(op), { print_op(op),1}});
 	 }}
+	    
 
 	 return;
   }
@@ -465,10 +505,10 @@ public:
      initialize_XT();
      std::cout<< "size TI map "<< TI_map_.size()<<std::endl;
      std::cout<< "size total refs "<< total_refs_.size()<<std::endl;
-     for(auto it=TI_map_.begin(); it!=TI_map_.end(); it++)
-       {
-	 //	 std::cout<< it->first <<" --> "<<it->second.first<<std::endl;
-       }
+     // for(auto it=TI_map_.begin(); it!=TI_map_.end(); it++)
+     //   {
+     // 	 //	 std::cout<< it->first <<" --> "<<it->second.first<<std::endl;
+     //   }
      auto it=sectors_.begin();
      it->second.initialize_blocks_zero();
      ++it;

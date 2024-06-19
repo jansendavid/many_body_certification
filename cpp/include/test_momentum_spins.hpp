@@ -33,6 +33,25 @@ void test_translation()
       }
     
 }
+void test_permutations()
+{
+   int L=5;
+   
+   op_vec v1={spin_op("x", {0}),spin_op("y", {1}),spin_op("x", {3}),spin_op("z", {4})};
+
+  //   //std::cout<<print_op(v1)<<std::endl;
+  //   // for(int i=0; i<=L;i++)
+  //   //   {
+  //   // 	auto O=translation(v1, i, L);
+  //   // 	//	std::cout<<print_op(O)<<std::endl;
+  //   //   }
+     auto all_P=generate_all_permutations(v1);
+     for(auto& a: all_P)
+       {
+   	std::cout<<print_op(a)<<std::endl;
+       }
+    
+}
 
 void test_translation_2d()
 {
