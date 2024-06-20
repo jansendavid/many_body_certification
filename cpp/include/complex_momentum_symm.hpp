@@ -93,27 +93,32 @@ std::vector<op_vec> generate_all_permutations(op_vec op)
  
  std::vector<op_vec> all_P;
  all_P.push_back(op);
- std::vector<std::map<std::string, std::string>> permutations(5);
- permutations[0].insert({"x","x"});
- permutations[0].insert({"y","z"});
- permutations[0].insert({"z","y"});
+ // std::vector<std::map<std::string, std::string>> permutations(5);
+ // permutations[0].insert({"x","x"});
+ // permutations[0].insert({"y","z"});
+ // permutations[0].insert({"z","y"});
 
- permutations[1].insert({"x","y"});
- permutations[1].insert({"y","x"});
- permutations[1].insert({"z","z"});
+ // permutations[1].insert({"x","y"});
+ // permutations[1].insert({"y","x"});
+ // permutations[1].insert({"z","z"});
  
- permutations[2].insert({"x","y"});
- permutations[2].insert({"y","z"});
- permutations[2].insert({"z","x"});
+ // permutations[2].insert({"x","y"});
+ // permutations[2].insert({"y","z"});
+ // permutations[2].insert({"z","x"});
 
- permutations[3].insert({"x","z"});
- permutations[3].insert({"y","x"});
- permutations[3].insert({"z","y"});
+ // permutations[3].insert({"x","z"});
+ // permutations[3].insert({"y","x"});
+ // permutations[3].insert({"z","y"});
 
- permutations[4].insert({"x","z"});
- permutations[4].insert({"y","y"});
- permutations[4].insert({"z","x"});
- 
+ // permutations[4].insert({"x","z"});
+ // permutations[4].insert({"y","y"});
+ // permutations[4].insert({"z","x"});
+
+  std::vector<std::map<std::string, std::string>> permutations(1);
+ permutations[0].insert({"x","y"});
+ permutations[0].insert({"y","x"});
+ permutations[0].insert({"z","z"});
+
  for(auto& a: permutations)
    {
      auto new_op=op;
