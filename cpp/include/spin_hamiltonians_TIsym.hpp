@@ -118,3 +118,69 @@ Expression::t define_xxz2d( std::map<std::string, mom_ref> refs, std::map<std::s
     
 
 }
+
+Expression::t define_J1J2_2d( std::map<std::string, mom_ref> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, double J1, double J2, int Ly, int Lx)
+{
+    std::vector<string_pair> dirs{string_pair("x","x"),string_pair("z","z"),string_pair("y","y")};
+  auto ham=Expr::constTerm(0.);
+  for(auto term:dirs)
+    {
+      for(int i=0; i<Ly; i++)
+	{
+	  // parallel part S_(0,0)S_(1,0),S_(1,0)S_(2,0)... etc
+      op_vec v_p={spin_op(term.first, {std::min(i,(i+1)%Ly),0}, Lx),spin_op(term.second, {std::max(i,(i+1)%Ly),0}, Lx)};
+      auto [fac_p, nf_p] =get_normal_form(v_p);
+      auto [ key_p,coeff_map_p]=map.at(print_op(nf_p));  
+      auto el_p=refs.at(key_p);
+      if(std::abs(fac_p.imag())>1e-9 or std::abs(coeff_map_p.imag())>1e-9){
+	std::cout<< "error: Hamiltonian contains complex elements "<<std::endl;
+      }
+      ham=Expr::add(ham,Expr::mul(J1*fac_p.real()*coeff_map_p.real()/4., el_p.var_));
+      op_vec v_t={spin_op(term.first, {i,0}, Lx),spin_op(term.second, {i,1}, Lx)};
+      auto [fac_t, nf_t] =get_normal_form(v_t);
+      auto [ key_t,coeff_map_t]=map.at(print_op(nf_t));  
+      auto el_t=refs.at(key_t);
+
+      
+      
+      if(std::abs(fac_t.imag())>1e-9 or std::abs(coeff_map_t.imag())>1e-9){
+	std::cout<< "error: Hamiltonian contains complex elements "<<std::endl;
+      }
+      ham=Expr::add(ham,Expr::mul(J1*fac_t.real()*coeff_map_t.real()/4., el_t.var_));
+
+    }
+    }
+    for(auto term:dirs)
+    {
+      for(int i=0; i<Ly; i++)
+	{
+	  // parallel part S_(0,0)S_(1,0),S_(1,0)S_(2,0)... etc
+      op_vec v_p={spin_op(term.first, {std::min(i,(i+2)%Ly),0}, Lx),spin_op(term.second, {std::max(i,(i+2)%Ly),0}, Lx)};
+      auto [fac_p, nf_p] =get_normal_form(v_p);
+      auto [ key_p,coeff_map_p]=map.at(print_op(nf_p));  
+      auto el_p=refs.at(key_p);
+      if(std::abs(fac_p.imag())>1e-9 or std::abs(coeff_map_p.imag())>1e-9){
+	std::cout<< "error: Hamiltonian contains complex elements "<<std::endl;
+      }
+      ham=Expr::add(ham,Expr::mul(J2*fac_p.real()*coeff_map_p.real()/4., el_p.var_));
+
+      
+      op_vec v_t={spin_op(term.first, {i,0}, Lx),spin_op(term.second, {i,2}, Lx)};
+      auto [fac_t, nf_t] =get_normal_form(v_t);
+      auto [ key_t,coeff_map_t]=map.at(print_op(nf_t));  
+      auto el_t=refs.at(key_t);
+
+      
+      
+      if(std::abs(fac_t.imag())>1e-9 or std::abs(coeff_map_t.imag())>1e-9){
+	std::cout<< "error: Hamiltonian contains complex elements "<<std::endl;
+      }
+      ham=Expr::add(ham,Expr::mul(J2*fac_t.real()*coeff_map_t.real()/4., el_t.var_));
+
+    }
+    }
+
+  return ham;
+    
+
+}

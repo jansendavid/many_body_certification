@@ -25,11 +25,11 @@ op_vec translation_y(op_vec op, int j, int L){
     }
   return vec;
 }
-std::vector<op_vec> generate_all_translations_y(op_vec op, int L)
+std::vector<op_vec> generate_all_translations_y(op_vec op, int L, int inc=1)
 {
   std::vector<op_vec> all_T;
   all_T.push_back(op);
-  for(int i=1; i<L; i++)
+  for(int i=1; i<L; i+=inc)
     {
       auto new_op=translation_y(op, i,L);
       //      auto coeff=bubbleSort(new_op, new_op.size());
@@ -87,37 +87,58 @@ std::vector<op_vec> generate_all_translations(op_vec op, int L)
     display(a, n); 
   } while (std::next_permutation(a, a + n)); 
 } 
-std::vector<op_vec> generate_all_permutations(op_vec op)
+std::vector<op_vec> generate_all_permutations_xy(op_vec op)
 {
  
  
  std::vector<op_vec> all_P;
  all_P.push_back(op);
- // std::vector<std::map<std::string, std::string>> permutations(5);
- // permutations[0].insert({"x","x"});
- // permutations[0].insert({"y","z"});
- // permutations[0].insert({"z","y"});
 
- // permutations[1].insert({"x","y"});
- // permutations[1].insert({"y","x"});
- // permutations[1].insert({"z","z"});
- 
- // permutations[2].insert({"x","y"});
- // permutations[2].insert({"y","z"});
- // permutations[2].insert({"z","x"});
-
- // permutations[3].insert({"x","z"});
- // permutations[3].insert({"y","x"});
- // permutations[3].insert({"z","y"});
-
- // permutations[4].insert({"x","z"});
- // permutations[4].insert({"y","y"});
- // permutations[4].insert({"z","x"});
 
   std::vector<std::map<std::string, std::string>> permutations(1);
  permutations[0].insert({"x","y"});
  permutations[0].insert({"y","x"});
  permutations[0].insert({"z","z"});
+
+ for(auto& a: permutations)
+   {
+     auto new_op=op;
+     std::for_each(new_op.begin(), new_op.end(), [a](spin_op &n){
+       auto old_d=n.dir_;
+       n.dir_=a.at(old_d); });
+     all_P.push_back(new_op);
+   }
+ 
+
+  return all_P;
+}
+std::vector<op_vec> generate_all_permutations_xyz(op_vec op)
+{
+ 
+ 
+ std::vector<op_vec> all_P;
+ all_P.push_back(op);
+ std::vector<std::map<std::string, std::string>> permutations(5);
+ permutations[0].insert({"x","x"});
+ permutations[0].insert({"y","z"});
+ permutations[0].insert({"z","y"});
+
+ permutations[1].insert({"x","y"});
+ permutations[1].insert({"y","x"});
+ permutations[1].insert({"z","z"});
+ 
+ permutations[2].insert({"x","y"});
+ permutations[2].insert({"y","z"});
+ permutations[2].insert({"z","x"});
+
+ permutations[3].insert({"x","z"});
+ permutations[3].insert({"y","x"});
+ permutations[3].insert({"z","y"});
+
+ permutations[4].insert({"x","z"});
+ permutations[4].insert({"y","y"});
+ permutations[4].insert({"z","x"});
+
 
  for(auto& a: permutations)
    {
@@ -143,14 +164,19 @@ public:
   Eigen::MatrixXcd& FT_;
   Model::t M_;
   std::string sector_label_;
+    std::string permuts_;
   std::vector<Variable::t> blocks_;
   std::map<std::string, Variable::t> G_variables_real;
   std::map<std::string, Variable::t> G_variables_imag;
   TI_map_type& TI_map_;
   std::map<std::string, mom_ref>& total_refs_;
-  
-  momentum_block_base(int L,std::vector<op_vec> operators, Model::t M, TI_map_type& TI_map,std::map<std::string, mom_ref>& total_refs,Eigen::MatrixXcd& FT,  std::string sector_label=""): L_(L), operators_(operators), M_(M),TI_map_(TI_map), total_refs_(total_refs), FT_(FT), sector_label_(sector_label){
 
+  
+  momentum_block_base(int L,std::vector<op_vec> operators, Model::t M, TI_map_type& TI_map,std::map<std::string, mom_ref>& total_refs,Eigen::MatrixXcd& FT,  std::string sector_label="",   std::string permuts="xyz"): L_(L), operators_(operators), M_(M),TI_map_(TI_map), total_refs_(total_refs), FT_(FT), sector_label_(sector_label), permuts_(permuts){
+    if(permuts!="xyz" and permuts!="xy")
+      {std::cout<< "permutation error"<<std::endl;}
+
+      
 
   }
 
@@ -213,10 +239,22 @@ public:
 	 for(auto op_t: all_t)
 	   {
 	     
-	     // 	auto [fac, op_nf] =get_normal_form(op_t);
-	     // op_t is already in normal form
+	     
+	     // generate all y translations, inc=1
+	     auto all_ty=generate_all_translations_y(op_t, L_,1);
+	     for(auto op_ty: all_ty)
+	       {
 	     // generate all permutations
-	     auto all_p=generate_all_permutations(op_t);
+		 std::vector<op_vec> all_p;	 
+		 if(permuts_=="xyz")
+		   {
+	      all_p=generate_all_permutations_xyz(op_ty);
+		   }
+		 else if(permuts_=="xy")
+		   {
+		     all_p=generate_all_permutations_xy(op_ty);
+		   }
+		   
 	    	 for(auto op_p: all_p)
 	   { 
 	     
@@ -229,6 +267,7 @@ public:
 		 found=true;
 		 break;
 	       }    
+	   }
 	   }
 	   }
 	 if(!found){mat_terms.insert({print_op(op), op });
@@ -247,7 +286,7 @@ public:
 
   bool is_zero_{0};
   std::vector<int> block_shifts;
-  momentum_block(int L,std::vector<op_vec> operators, Model::t M, bool is_zero, TI_map_type& TI_map,std::map<std::string, mom_ref>& total_refs, Eigen::MatrixXcd& FT, std::string sector_label=""):is_zero_(is_zero),  momentum_block_base(L, operators, M,TI_map, total_refs,FT, sector_label){
+  momentum_block(int L,std::vector<op_vec> operators, Model::t M, bool is_zero, TI_map_type& TI_map,std::map<std::string, mom_ref>& total_refs, Eigen::MatrixXcd& FT, std::string sector_label="",  std::string permuts="xyz"):is_zero_(is_zero),  momentum_block_base(L, operators, M,TI_map, total_refs,FT, sector_label, permuts){
     
   }
     void generate_TI_map(std::map<std::string, op_vec>& mat_terms){
@@ -265,13 +304,7 @@ public:
     for(auto it2=it1; it2!=operators_.end(); ++it2)
       {
 
-        // auto op_dagger=dagger_operator(*it2);
 
-	// auto [fac, vec_dagger] =get_normal_form(op_dagger);
-	// if(is_zero_)
-	//   {
-	// check_if_operator_exists(vec_dagger, mat_terms);
-	//   }
 	auto op_cp=*it2;
 	for(int n=0; n<L_;n++ )
 	  {
@@ -479,7 +512,7 @@ public:
   std::map<std::string, mom_ref> total_refs_;
   Eigen::MatrixXcd FT_;
   
-  momentum_basis(int L, basis_structure operators,Model::t M):L_(L),operators_(operators), M_(M)
+  momentum_basis(int L, basis_structure operators,Model::t M, std::string permuts="xyz"):L_(L),operators_(operators), M_(M)
   {
         FT_=Eigen::MatrixXcd(L,L);
     for(int i=0; i<L; i++)
@@ -503,7 +536,7 @@ public:
 	else{
 	    block_zero=false;
 	}
-	auto Block=momentum_block(L_,it->second,M_, block_zero,TI_map_,total_refs_, FT_, std::to_string(it->first));
+	auto Block=momentum_block(L_,it->second,M_, block_zero,TI_map_,total_refs_, FT_, std::to_string(it->first), permuts);
 	sectors_.insert({it->first, Block});
 
       }
