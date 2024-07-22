@@ -41,6 +41,25 @@ std::vector<op_vec> generate_all_translations_y(op_vec op, int L, int inc=1)
   return all_T;
 }
 
+bool is_zero_signsym(op_vec op)
+{
+
+  std::vector<std::string> dirs={"x", "y", "z"};
+    for(auto dir_: dirs)
+	{
+	  int fac=1;
+    for(auto a: op)
+    {
+      
+      if(a.dir_==dir_){fac*=-1;}
+	}
+      if(fac<0)
+	{return true;}
+    }
+    return false;
+
+}
+
 
 op_vec translation(op_vec op, int j, int L){
   op_vec vec;
@@ -74,6 +93,14 @@ std::vector<op_vec> generate_all_translations(op_vec op, int L)
     std::cout << a[i] << " "; 
   } 
   std::cout << std::endl; 
+}
+op_vec mirror(op_vec op){
+  op_vec vec;
+  for(int i=0; i<op.size(); i++)
+    {
+      vec.push_back(op[i].get_mirror());
+    }
+  return vec;
 }
  void findPermutations(char a[], int n) 
 { 
@@ -179,7 +206,47 @@ public:
       
 
   }
+struct G_el{
+    double prefac_;
+    Variable::t var_;
+    G_el(double prefac, Variable::t var ) : prefac_(prefac),var_(var) {};
+            
+  };
+  // generate G element
+    // convention, total_refs contains all elements appearing with prefact 1
+  std::pair<G_el,G_el> generate_single_G_element(op_vec op1, op_vec op2, std::string key, int i)
+  {
 
+
+    auto op_dagger=dagger_operator(op1);
+    op_vec new_op;
+
+    if(i>0)
+      {
+	new_op=translation(op2, i, L_);
+      }
+    else{
+      new_op=op2;
+    }
+    auto v_x=op_dagger;
+    
+    v_x.insert(v_x.end(), new_op.begin(),new_op.end());
+     auto [fac, vec] =get_normal_form(v_x);
+     auto [ti_key,ti_val]=TI_map_.at(print_op(vec));
+     
+       auto el=total_refs_.at(ti_key);
+       cpx total_fac=fac;//fac*ti_val;
+       //M_->constraint( Expr::add(G_variables_real.at(key+"_real")->index(i),Expr::mul(-1.*total_fac.real(),el.var_)), Domain::equalsTo(0.0));
+       auto real_val=G_el(total_fac.real(), el.var_);
+       
+       //        M_->constraint( Expr::add(G_variables_imag.at(key+"_imag")->index(i),Expr::mul(-1.*total_fac.imag(),el.var_)), Domain::equalsTo(0.0));
+	auto imag_val=G_el(total_fac.imag(), el.var_);
+	std::pair<G_el,G_el> construct(real_val, imag_val);
+     return construct;
+    
+  }
+
+  
   // convention, total_refs contains all elements appearing with prefact 1
  void generate_G_elements(op_vec op1, op_vec op2, std::string key, int i)
   {
@@ -235,7 +302,7 @@ public:
 	    {
 
       auto all_t=generate_all_translations(op, L_);
-	 bool found=false;
+      bool found=false;
 	 for(auto op_t: all_t)
 	   {
 	     
@@ -259,19 +326,58 @@ public:
 	   { 
 	     
 	       auto it=mat_terms.find(print_op(op_p));
-	   
+	       
 	     if(it != mat_terms.end())
 	       {
+		 bool iszero_signsym_var=is_zero_signsym(op_p);
+		 if(iszero_signsym_var)
+		   {
+		 TI_map_.insert({print_op(op), {"0",1.}});
+		 found=true;
+		 break;
+		   }
+		   else{
+		 TI_map_.insert({print_op(op), { it->first,1.}});
+		 found=true;
+		 break;
+		  }
+	       }
+	      auto op_mirror=mirror(op_p);
+	       it=mat_terms.find(print_op(op_mirror));
+	       if(it != mat_terms.end())
+	       {
+		 bool iszero_signsym_var=is_zero_signsym(op_mirror);
+		 if(iszero_signsym_var)
+		   {
+		 TI_map_.insert({print_op(op), {"0",1.}});
+		 found=true;
+		 break;
+		   }
+		 else{
 		 
 		 TI_map_.insert({print_op(op), { it->first,1.}});
 		 found=true;
 		 break;
-	       }    
+		  }
+	       }
 	   }
 	   }
 	   }
-	 if(!found){mat_terms.insert({print_op(op), op });
+	 if(!found){
+
+		 bool iszero_signsym_var=is_zero_signsym(op);
+	    //	    std::cout<< print_op(op) << " and is zero "<< iszero<<std::endl;
+	   if(iszero_signsym_var)
+	     {
+	       
+	   mat_terms.insert({"0", op });
+	   TI_map_.insert({print_op(op), { "0",1}});
+	     }
+	    else{
+	     mat_terms.insert({print_op(op), op });
 	   TI_map_.insert({print_op(op), { print_op(op),1}});
+	   }
+
 	 }}
 	    
 
@@ -350,6 +456,12 @@ public:
     auto el=total_refs_.at(print_op({}));
     M_->constraint( el.var_, Domain::equalsTo(1.0));
       }
+        // fix zero
+    if(total_refs_.find("0")!=total_refs_.end())
+      {
+    auto el=total_refs_.at("0");
+    M_->constraint( el.var_, Domain::equalsTo(0.0));
+      }
       for(int i=0; i<L_; i++)
 	{
 	  std::string block_name="X"+std::to_string(i)+"_"+sector_label_;
@@ -411,11 +523,7 @@ public:
       
        std::string g_key="G_"+sector_label_+"_"+std::to_string(i)+"/"+std::to_string(j);
        std::string g_key_2="G_"+sector_label_+"_"+std::to_string(j)+"/"+std::to_string(i);
-       G_variables_real.insert({g_key+"_real", M_->variable(g_key+"_real",L_,Domain::inRange(-1., 1))});
-       G_variables_imag.insert({g_key+"_imag", M_->variable(g_key+"_imag",L_,Domain::inRange(-1., 1))});
-       
-       //       std::cout<< g_key << "  " << g_key_2 << std::endl;
-       //       std::cout<< print_op(*it1) << "  " << print_op(*it2) << std::endl;
+
 
 
 			  for(int mat_pos=0; mat_pos<L_; mat_pos++)
@@ -431,22 +539,27 @@ public:
 			      // gives the shift between real and complex components
 			      int dim=block_shifts[mat_pos];
 			      
-			      generate_G_elements(*it1, *it2, g_key, mat_pos);
+		
 			      
 			      
 			  for(int pos=0; pos<L_; pos++)
 			    {
 			      int position_in_G=pos;//?
+			      auto construct= generate_single_G_element(*it1, *it2, g_key, pos);
 			      //int position_in_G=(L_-pos)%L_;//?
   // 			      // maybe this position is not correct
   // 			      
 			       double var_real=FT_(pos,mat_pos).real();
 			       double var_imag=FT_(pos,mat_pos).imag();
-			       expr_real=Expr::add(expr_real, Expr::mul(var_real,G_variables_real.at(g_key+"_real")->index(position_in_G) ));
-			       expr_real=Expr::add(expr_real,  Expr::mul(-1.*var_imag,G_variables_imag.at(g_key+"_imag")->index(position_in_G))) ;
 
-			       expr_imag=Expr::add(expr_imag,Expr::mul(var_imag,G_variables_real.at(g_key+"_real")->index(position_in_G) ) );
-			       expr_imag=Expr::add(expr_imag,Expr::mul(var_real,G_variables_imag.at(g_key+"_imag")->index(position_in_G) ));
+
+			       
+			        expr_real=Expr::add(expr_real, Expr::mul(var_real*construct.first.prefac_,construct.first.var_ ));
+			       expr_real=Expr::add(expr_real,  Expr::mul(-1.*var_imag*construct.second.prefac_,construct.second.var_)) ;
+
+			       expr_imag=Expr::add(expr_imag,Expr::mul(var_imag*construct.first.prefac_,construct.first.var_ ) );
+			        expr_imag=Expr::add(expr_imag,Expr::mul(var_real*construct.second.prefac_,construct.second.var_ ));
+
 
 		
 			    }
@@ -456,15 +569,15 @@ public:
 			  // // imaginary part
 				 
 				M_->constraint( Expr::add(blocks_[mat_pos]->index(i+shift,dim+j+shift),Expr::mul(-1.,expr_imag)), Domain::equalsTo(0.0));
-				if(i!=j)
-				  {
-			  // real part
-			  M_->constraint( Expr::add(blocks_[mat_pos]->index(j+shift,i+shift),Expr::mul(-1.,expr_real)), Domain::equalsTo(0.0));	  
+			  // 	if(i!=j)
+			  // 	  {
+			  // // real part
+			  // M_->constraint( Expr::add(blocks_[mat_pos]->index(j+shift,i+shift),Expr::mul(-1.,expr_real)), Domain::equalsTo(0.0));	  
 	        
-			  // // imaginary part
+			  // // // imaginary part
 				 
-				M_->constraint( Expr::add(blocks_[mat_pos]->index(j+shift,dim+i+shift),Expr::mul(1.,expr_imag)), Domain::equalsTo(0.0));
-				  }
+			  // 	M_->constraint( Expr::add(blocks_[mat_pos]->index(j+shift,dim+i+shift),Expr::mul(1.,expr_imag)), Domain::equalsTo(0.0));
+			  // 	  }
 			  	    }
 			  
 			  
@@ -482,9 +595,9 @@ public:
 	     {
 	       for(int m=l;m<index_shift; m++)
 		 {
-		   
-		   		   M_->constraint( Expr::add(blocks_[i]->index(l,m),Expr::mul(-1.,blocks_[i]->index(l+index_shift,m+index_shift))), Domain::equalsTo(0.0));
-		    M_->constraint( Expr::add(blocks_[i]->index(l,m+index_shift),Expr::mul(1.,blocks_[i]->index(m,l+index_shift))), Domain::equalsTo(0.0));
+		   //
+		   		   		   M_->constraint( Expr::add(blocks_[i]->index(l,m),Expr::mul(-1.,blocks_[i]->index(l+index_shift,m+index_shift))), Domain::equalsTo(0.0));
+		   M_->constraint( Expr::add(blocks_[i]->index(l,m+index_shift),Expr::mul(1.,blocks_[i]->index(m,l+index_shift))), Domain::equalsTo(0.0));
 		    
 
 		 }

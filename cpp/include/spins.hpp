@@ -23,6 +23,15 @@ public:
       return position;
 
   }
+    spin_op get_mirror()
+  {
+    if(site_.size()!=2)
+      {std::cout<< "mirror symmetrie only implemented in 2d"<<std::endl;}
+    auto new_sites=site_;
+    reverse(new_sites.begin(),new_sites.end());
+    
+    return spin_op(dir_,new_sites, offset_ );
+  }
  spin_op get_translated(int j, int L)
   {
     auto new_sites=site_;

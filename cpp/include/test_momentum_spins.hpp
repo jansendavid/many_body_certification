@@ -351,7 +351,7 @@ for(int i=0; i<Ly;i++)
 	   }
 	 }
     Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
-    auto basis =momentum_basis(Lx,states,M);
+    auto basis =momentum_basis(Lx,states,M, "xyz");
     // for(auto a: basis.TI_map_)
     //   {std::cout<< a.first << " -> "<<a.second.first<<std::endl;}
     double J=1;
@@ -562,7 +562,7 @@ for(int i=0; i<Ly;i++)
     Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
     auto basis =momentum_basis(Lx,states,M);
     // for(auto a: basis.TI_map_)
-    //   {std::cout<< a.first << " -> "<<a.second.first<<std::endl;}
+    //  {std::cout<< a.first << " -> "<<a.second.first<<std::endl;}
     double J1=1;
     double J2=1.0;
     
