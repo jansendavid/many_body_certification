@@ -44,8 +44,14 @@ test_spins: tests/test_spins.cpp
 test_ham_spins: tests/test_ham_spins.cpp
 	g++ -std=c++11 tests/test_ham_spins.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
 
+test_ham_spins_eff: tests/test_ham_spins_eff.cpp
+	g++ -std=c++11 tests/test_ham_spins_eff.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
+
 test_momentum_spins: tests/test_momentum_spins.cpp
 	g++ -std=c++11 tests/test_momentum_spins.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
+
+test_momentum_spins_eff: tests/test_momentum_spins_eff.cpp
+	g++ -std=c++11 tests/test_momentum_spins_eff.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
 
 
 test: src/test.cpp
