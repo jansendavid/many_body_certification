@@ -11,6 +11,30 @@
 #include <xtensor/xnpy.hpp>
 using namespace mosek::fusion;
 using namespace monty;
+void store_matrix_to_numpy_eff(const std::string &filename, size_t dim, Variable::t X){
+  // Matrix in fusion
+   auto Mat_fusion=Matrix::dense(2*dim, 2*dim, X->level());
+  std::vector<size_t> shape = { dim, dim };
+  // Matrix in xtensor
+  xt::xarray<std::complex<double>, xt::layout_type::dynamic> M(shape, xt::layout_type::row_major);
+
+  for(int i=0; i<dim; i++)
+       {
+       for(int j=0; j<dim;j++)
+    {
+      // imag X_3 -X_3^T
+      // top left is X_3
+      M(i,j)=std::complex(Mat_fusion->get(i,j)+Mat_fusion->get(dim+i,dim+j), Mat_fusion->get(j,dim+i)-Mat_fusion->get(i,dim+j));
+     
+    }
+
+    }
+
+  xt::dump_npy(filename, M);
+  return;}
+
+
+
 void store_matrix_to_numpy(const std::string &filename, size_t dim, Variable::t X){
   // Matrix in fusion
    auto Mat_fusion=Matrix::dense(2*dim, 2*dim, X->level());
@@ -22,7 +46,7 @@ void store_matrix_to_numpy(const std::string &filename, size_t dim, Variable::t 
        {
        for(int j=0; j<dim;j++)
     {
-      // std::cout<< i << ","<<j<< " elements "<<Mat_fusion->get(i,j)<< " and "<<i << ", "<<dim+j<< " get "<< Mat_fusion->get(i,dim+j)<<std::endl;
+
       M(i,j)=std::complex(Mat_fusion->get(i,j), Mat_fusion->get(i,dim+j));
      
     }
@@ -31,6 +55,11 @@ void store_matrix_to_numpy(const std::string &filename, size_t dim, Variable::t 
 
   xt::dump_npy(filename, M);
   return;}
+
+
+
+
+
 // struct mat_el{
 //   mat_el(int ind_1, int ind_2, double coeff):i1_(ind_1), i2_(ind_2), coeff_(coeff){}
 //   int i1_;

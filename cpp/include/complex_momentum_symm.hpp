@@ -3,182 +3,13 @@
 #include"spins.hpp"
 #include<unordered_map>
 #include <memory>
+#include"symmetries.hpp"
 using namespace mosek::fusion;
 using namespace monty;
 const double pi = std::acos(-1.0);
 using basis_structure =std::map<int, std::vector<op_vec>>;
 using TI_map_type =std::map<std::string, std::pair<std::string, std::complex<double>>>;
 
-struct mom_ref
-{
-    mom_ref(Variable::t var, int i1, op_vec vec):var_(var),i1_(i1),vec_(vec){}
-  Variable::t var_;
-   int i1_;
-  op_vec vec_;
-  mom_ref()=default;
-};
-op_vec translation_y(op_vec op, int j, int L){
-  op_vec vec;
-  for(int i=0; i<op.size(); i++)
-    {
-      vec.push_back(op[i].get_translated_y(j,L));
-    }
-  return vec;
-}
-std::vector<op_vec> generate_all_translations_y(op_vec op, int L, int inc=1)
-{
-  std::vector<op_vec> all_T;
-  all_T.push_back(op);
-  for(int i=1; i<L; i+=inc)
-    {
-      auto new_op=translation_y(op, i,L);
-      //      auto coeff=bubbleSort(new_op, new_op.size());
-      auto [fac, vec] =get_normal_form(new_op);
-      if(std::abs(fac.imag())>1e-9 or std::abs(fac.real()-1)>1e-9 ){std::cout<< "error in all trans"<<std::endl;}
-      all_T.push_back(vec);
-	
-    }
-  return all_T;
-}
-
-bool is_zero_signsym(op_vec op)
-{
-
-  std::vector<std::string> dirs={"x", "y", "z"};
-    for(auto dir_: dirs)
-	{
-	  int fac=1;
-    for(auto a: op)
-    {
-      
-      if(a.dir_==dir_){fac*=-1;}
-	}
-      if(fac<0)
-	{return true;}
-    }
-    return false;
-
-}
-
-
-op_vec translation(op_vec op, int j, int L){
-  op_vec vec;
-  for(int i=0; i<op.size(); i++)
-    {
-      vec.push_back(op[i].get_translated(j,L));
-    }
-  return vec;
-}
-std::vector<op_vec> generate_all_translations(op_vec op, int L)
-{
- std::vector<op_vec> all_T;
-  all_T.push_back(op);
-  if(print_op(op)=="1"){return all_T;}
-  
-
-  for(int i=1; i<L; i++)
-    {
-      auto new_op=translation(op, i,L);
-      //    do we need auto
-      auto [fac, vec] =get_normal_form(new_op);
-      if(std::abs(fac.imag())>1e-9 or std::abs(fac.real()-1)>1e-9 ){std::cout<< "error in all trans"<<std::endl;}
-      all_T.push_back(vec);
-	
-    }
-  return all_T;
-}
-  void display(char a[], int n) 
-{ 
-  for (int i = 0; i < n; i++) { 
-    std::cout << a[i] << " "; 
-  } 
-  std::cout << std::endl; 
-}
-op_vec mirror(op_vec op){
-  op_vec vec;
-  for(int i=0; i<op.size(); i++)
-    {
-      vec.push_back(op[i].get_mirror());
-    }
-  return vec;
-}
- void findPermutations(char a[], int n) 
-{ 
- 
-  // Sort the given array 
-  std::sort(a, a + n); 
- 
-  // Find all possible permutations 
-  std::cout << "Possible permutations are:\n"; 
-  do { 
-    display(a, n); 
-  } while (std::next_permutation(a, a + n)); 
-} 
-std::vector<op_vec> generate_all_permutations_xy(op_vec op)
-{
- 
- 
- std::vector<op_vec> all_P;
- all_P.push_back(op);
-
-
-  std::vector<std::map<std::string, std::string>> permutations(1);
- permutations[0].insert({"x","y"});
- permutations[0].insert({"y","x"});
- permutations[0].insert({"z","z"});
-
- for(auto& a: permutations)
-   {
-     auto new_op=op;
-     std::for_each(new_op.begin(), new_op.end(), [a](spin_op &n){
-       auto old_d=n.dir_;
-       n.dir_=a.at(old_d); });
-     all_P.push_back(new_op);
-   }
- 
-
-  return all_P;
-}
-std::vector<op_vec> generate_all_permutations_xyz(op_vec op)
-{
- 
- 
- std::vector<op_vec> all_P;
- all_P.push_back(op);
- std::vector<std::map<std::string, std::string>> permutations(5);
- permutations[0].insert({"x","x"});
- permutations[0].insert({"y","z"});
- permutations[0].insert({"z","y"});
-
- permutations[1].insert({"x","y"});
- permutations[1].insert({"y","x"});
- permutations[1].insert({"z","z"});
- 
- permutations[2].insert({"x","y"});
- permutations[2].insert({"y","z"});
- permutations[2].insert({"z","x"});
-
- permutations[3].insert({"x","z"});
- permutations[3].insert({"y","x"});
- permutations[3].insert({"z","y"});
-
- permutations[4].insert({"x","z"});
- permutations[4].insert({"y","y"});
- permutations[4].insert({"z","x"});
-
-
- for(auto& a: permutations)
-   {
-     auto new_op=op;
-     std::for_each(new_op.begin(), new_op.end(), [a](spin_op &n){
-       auto old_d=n.dir_;
-       n.dir_=a.at(old_d); });
-     all_P.push_back(new_op);
-   }
- 
-
-  return all_P;
-}
 // desription:
 //TI_map key: operator and value is pair, containing the key in total_refs, and the value to get it (is one for commuting variables)
 // total_refs contains key: operator string, value mom_ref with variable reference, index, and op_vec
@@ -539,10 +370,8 @@ public:
 			      // gives the shift between real and complex components
 			      int dim=block_shifts[mat_pos];
 			      
-		
-			      
-			      
-			  for(int pos=0; pos<L_; pos++)
+
+			      for(int pos=0; pos<L_; pos++)
 			    {
 			      int position_in_G=pos;//?
 			      auto construct= generate_single_G_element(*it1, *it2, g_key, pos);
@@ -597,7 +426,7 @@ public:
 		 {
 		   //
 		   		   		   M_->constraint( Expr::add(blocks_[i]->index(l,m),Expr::mul(-1.,blocks_[i]->index(l+index_shift,m+index_shift))), Domain::equalsTo(0.0));
-		   M_->constraint( Expr::add(blocks_[i]->index(l,m+index_shift),Expr::mul(1.,blocks_[i]->index(m,l+index_shift))), Domain::equalsTo(0.0));
+						   M_->constraint( Expr::add(blocks_[i]->index(l,m+index_shift),Expr::mul(1.,blocks_[i]->index(m,l+index_shift))), Domain::equalsTo(0.0));
 		    
 
 		 }

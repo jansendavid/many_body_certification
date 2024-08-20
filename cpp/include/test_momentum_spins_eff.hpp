@@ -8,7 +8,7 @@
 #include"spins.hpp"
 #include<unordered_map>
 #include <Eigen/Dense>
-#include"complex_momentum_symm.hpp"
+#include"complex_momentum_symm_eff.hpp"
 #include"spin_hamiltonians_TIsym.hpp"
 using namespace mosek::fusion;
 using namespace monty;
@@ -114,7 +114,7 @@ void test_single_block()
 	
   // 	auto basis=momentum_basis(L,states);
 	Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
-	auto basis =momentum_basis(L,states,M);
+	auto basis =momentum_basis_eff(L,states,M);
     	//auto block =
 
   // 	for(auto a : block.total_refs_)
@@ -192,7 +192,7 @@ void test_multiple_blocks()
    	auto h=define_xxz1d( basis.total_refs_,basis.TI_map_, J, Delta);
 	
          basis.M_->objective(ObjectiveSense::Minimize, h);
-       	  M->dataReport();
+	 M->dataReport();
 	 M->setLogHandler([=](const std::string & msg) { std::cout << msg << std::flush; } );
 	   basis.M_->solve();
 	  
@@ -351,7 +351,7 @@ for(int i=0; i<Ly;i++)
 	   }
 	 }
     Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
-    auto basis =momentum_basis(Lx,states,M, "xyz");
+    auto basis =momentum_basis_eff(Lx,states,M, "xyz");
     // for(auto a: basis.TI_map_)
     //   {std::cout<< a.first << " -> "<<a.second.first<<std::endl;}
     double J=1;
@@ -359,8 +359,8 @@ for(int i=0; i<Ly;i++)
     auto h=define_xxz2d( basis.total_refs_,basis.TI_map_, J, Delta, Ly, Lx);
     
     basis.M_->objective(ObjectiveSense::Minimize, h);
-	M->dataReport();
-	M->setLogHandler([=](const std::string & msg) { std::cout << msg << std::flush; } );
+	 	  M->dataReport();
+	 M->setLogHandler([=](const std::string & msg) { std::cout << msg << std::flush; } );
     basis.M_->solve();
 	  
 	  
@@ -462,7 +462,7 @@ for(int i=0; i<Ly;i++)
 	   }
 	 }
     Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
-    auto basis =momentum_basis(Lx,states,M, "xyz");
+    auto basis =momentum_basis_eff(Lx,states,M,"xyz");
     // for(auto a: basis.TI_map_)
     //   {std::cout<< a.first << " -> "<<a.second.first<<std::endl;}
     double J=1;
@@ -560,7 +560,7 @@ for(int i=0; i<Ly;i++)
 	 //   }
 	 // }
     Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
-    auto basis =momentum_basis(Lx,states,M, "xzy");
+    auto basis =momentum_basis_eff(Lx,states,M,"xyz");
     // for(auto a: basis.TI_map_)
     //  {std::cout<< a.first << " -> "<<a.second.first<<std::endl;}
     double J1=1;

@@ -11,25 +11,7 @@
 using namespace mosek::fusion;
 using namespace monty;
 
-void test_translation()
-{
-  int L=3;
-   
-    op_vec v1={spin_op("x", {0}),spin_op("y", {1})};
 
-    //std::cout<<print_op(v1)<<std::endl;
-    // for(int i=0; i<=L;i++)
-    //   {
-    // 	auto O=translation(v1, i, L);
-    // 	//	std::cout<<print_op(O)<<std::endl;
-    //   }
-    auto all_T=generate_all_translations(v1, L);
-    for(auto& a: all_T)
-      {
-	std::cout<<print_op(a)<<std::endl;
-      }
-    
-}
 Expression::t define_ham( std::map<std::string, Variable::t> terms_mapping, double J, double Delta, int L)
 {
   std::vector<Expression::t> expressions={};
@@ -125,7 +107,18 @@ int main()
 
 	}
 
+   // occ={std::pair<std::string, std::string>("x","y"),std::pair<std::string, std::string>("y","x")};
+   // for(int i=0; i<L; i++)
+   // 	{
+   // 	  for(auto& a: occ)
+   // 	    {
+   // 	      op_vec v1={spin_op(a.first, {i}), spin_op(a.second, {(i+2)%L})};
+   // 	      auto [fac1, nf1] =get_normal_form(v1);
+   // 	      v_tot.push_back(nf1);
+   // 	    }
+	      
 
+   //	}
    
    //std::cout<< "size "<< v_tot.size()<< " and "<< occ.size()*L+2*L*sym.size()<<std::endl;
 
@@ -157,8 +150,8 @@ int main()
 	Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });	
 	   auto X=M->variable("X", Domain::inPSDCone(2*(v_tot.size()+1)));
 	   int shift=v_tot.size()+1;
-	   M->constraint( X->index(0,0), Domain::equalsTo(1.0));
-	   M->constraint( X->index(shift,shift), Domain::equalsTo(1.0));
+	   M->constraint( Expr::add(X->index(0,0), X->index(shift,shift)), Domain::equalsTo(1.0));
+	  
 	 auto XT=M->variable("T", mat_terms.size(),Domain::inRange(-1., 1));
 	 
 	 std::map<std::string, Variable::t> terms_mapping;
@@ -181,42 +174,37 @@ int main()
        auto op_dagger=dagger_operator(v_tot[j]);
         auto v_x=op_dagger;
        v_x.insert(v_x.end(), v_tot[i].begin(),v_tot[i].end());
-       	  auto [coeff, op]=get_normal_form(v_x);
-	  // if(op.size()==0){std::cout<<"h'"<<std::endl;}
+       auto [coeff, op]=get_normal_form(v_x);
+       // if(op.size()==0){std::cout<<"h'"<<std::endl;}
 	  auto el=terms_mapping.at(print_op(op));
-	  M->constraint( Expr::add(X->index(i+1,j+1),Expr::mul(-1.*coeff.real(),el)), Domain::equalsTo(0.0));
-	  M->constraint( Expr::add(X->index(shift+i+1,j+1),Expr::mul(-1.*coeff.imag(),el)), Domain::equalsTo(0.0));
+	  M->constraint( Expr::add(Expr::add(X->index(i+1,j+1),X->index(i+1+shift,j+1+shift)),Expr::mul(-1.*coeff.real(),el)), Domain::equalsTo(0.0));
+	  M->constraint( Expr::add(Expr::add(X->index(shift+i+1,j+1),Expr::mul(-1.,X->index(shift+j+1,i+1))),Expr::mul(-1.*coeff.imag(),el)), Domain::equalsTo(0.0)); 
+	  //M->constraint( Expr::add(X->index(i+1,j+1),Expr::mul(-1.*coeff.real(),el)), Domain::equalsTo(0.0));
+	  //	  M->constraint( Expr::add(X->index(shift+i+1,j+1),Expr::mul(-1.*coeff.imag(),el)), Domain::equalsTo(0.0));
 	  if(j!=i)
 	    {
-	      M->constraint( Expr::add(X->index(j+1,i+1),Expr::mul(-1.*coeff.real(),el)), Domain::equalsTo(0.0));
-	  M->constraint( Expr::add(X->index(shift+j+1,i+1),Expr::mul(1.*coeff.imag(),el)), Domain::equalsTo(0.0));
+	      M->constraint( Expr::add(Expr::add(X->index(j+1,i+1),X->index(j+1+shift,i+1+shift)),Expr::mul(-1.*coeff.real(),el)), Domain::equalsTo(0.0));
+	      M->constraint( Expr::add(Expr::add(X->index(shift+j+1,i+1),Expr::mul(-1.,X->index(shift+i+1,j+1))),Expr::mul(1.*coeff.imag(),el)), Domain::equalsTo(0.0));
+	      //	      M->constraint( Expr::add(X->index(j+1,i+1),Expr::mul(-1.*coeff.real(),el)), Domain::equalsTo(0.0));
+	      //M->constraint( Expr::add(X->index(shift+j+1,i+1),Expr::mul(1.*coeff.imag(),el)), Domain::equalsTo(0.0));
 	    }
 
-     }}
+      }}
 
-	       for(int i=0; i<v_tot.size(); i++)
-       {
-	 auto [coeff, op]=get_normal_form(v_tot[i]);
-	 auto el=terms_mapping.at(print_op(op));
+     // 	       for(int i=0; i<v_tot.size(); i++)
+     //   {
+     // 	 auto [coeff, op]=get_normal_form(v_tot[i]);
+     // 	 auto el=terms_mapping.at(print_op(op));
 	 
-	  M->constraint( Expr::add(X->index(0,i+1),Expr::mul(-1.*coeff.real(),el)), Domain::equalsTo(0.0));
-	  M->constraint( Expr::add(X->index(i+1,0),Expr::mul(-1.*coeff.real(),el)), Domain::equalsTo(0.0));
-	  M->constraint( Expr::add(X->index(shift,i+1),Expr::mul(-1.*coeff.imag(),el)), Domain::equalsTo(0.0));
-	  M->constraint( Expr::add(X->index(shift+i+1,0),Expr::mul(-1.*coeff.imag(),el)), Domain::equalsTo(0.0));
+     // 	  M->constraint( Expr::add(X->index(0,i+1),Expr::mul(-1.*coeff.real(),el)), Domain::equalsTo(0.0));
+     // 	  M->constraint( Expr::add(X->index(i+1,0),Expr::mul(-1.*coeff.real(),el)), Domain::equalsTo(0.0));
+     // 	  M->constraint( Expr::add(X->index(shift,i+1),Expr::mul(-1.*coeff.imag(),el)), Domain::equalsTo(0.0));
+     // 	  M->constraint( Expr::add(X->index(shift+i+1,0),Expr::mul(-1.*coeff.imag(),el)), Domain::equalsTo(0.0));
 	 
 
-       }
+       //}
 	 
-	   for(int l=0; l<shift;l++)
-	     {
-	       for(int m=l;m<shift; m++)
-		 {
-		   
-		   M->constraint( Expr::add(X->index(l,m),Expr::mul(-1.,X->index(l+shift,m+shift))), Domain::equalsTo(0.0));
-		    M->constraint( Expr::add(X->index(l,m+shift),Expr::mul(1.,X->index(m,l+shift))), Domain::equalsTo(0.0));
-
-		 }
-	     }
+	 
 
 	    	double J=1;
    	double Delta=1;

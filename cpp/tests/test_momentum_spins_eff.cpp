@@ -7,8 +7,8 @@
 #include"spins.hpp"
 #include<unordered_map>
 #include <Eigen/Dense>
-#include"complex_momentum_symm.hpp"
-#include"test_momentum_spins.hpp"
+#include"complex_momentum_symm_eff.hpp"
+#include"test_momentum_spins_eff.hpp"
 using namespace mosek::fusion;
 using namespace monty;
 
