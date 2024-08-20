@@ -11,6 +11,19 @@
 #include <xtensor/xnpy.hpp>
 using namespace mosek::fusion;
 using namespace monty;
+void rdm(int degree,std::map<std::string, mom_ref> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, int Ly, int Lx)
+{
+  auto dirs=std::vector<std::string>{"1","x","y","z"};
+  
+  for(auto d1: dirs)
+    {
+op_vec v_p={spin_op(d1, {0,0}, Lx)};
+ auto [fac_p, nf_p] =get_normal_form(v_p);
+ auto [ key_p,coeff_map_p]=map.at(print_op(nf_p));  
+    }
+  
+  return;
+}
 void store_matrix_to_numpy_eff(const std::string &filename, size_t dim, Variable::t X){
   // Matrix in fusion
    auto Mat_fusion=Matrix::dense(2*dim, 2*dim, X->level());

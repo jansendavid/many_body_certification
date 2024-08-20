@@ -292,8 +292,8 @@ void test_multiple_blocks_higher_order()
 // two dimensional chain
 void test_multiple_blocks_2d()
 {
-  int Lx=4;
-  int Ly=4;
+  int Lx=6;
+  int Ly=6;
  basis_structure states;
   std::vector<op_vec> v_block_0;
   std::vector<op_vec> v_block_1;

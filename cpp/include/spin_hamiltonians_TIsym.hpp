@@ -44,6 +44,54 @@ void add_state(basis_structure& states, op_vec op, std::map<std::pair<int,int>, 
 
   return;}
 
+void add_state_symm(basis_structure& states, op_vec op, std::map<std::pair<int,int>, int> map_sec, int L, std::string permuts)
+{
+  // adds a state to a basis
+      auto [fac, nf] =get_normal_form(op);
+      auto sign=get_sec( nf);
+      if(nf.size()>0)
+	{
+	  auto all_t=generate_all_translations(nf, L);
+	  bool found=false;
+	  
+	     	 for(auto op_t: all_t)
+	   {
+	     
+	     
+      // 	     // generate all y translations, inc=1
+	      auto all_ty=generate_all_translations_y(op_t, L,1);
+	     for(auto op_ty: all_ty)
+	      {
+      // 	     // generate all permutations
+	   // 	 std::vector<op_vec> all_p;	 
+	   // 	 if(permuts=="xyz")
+	   // 	   {
+	   //    all_p=generate_all_permutations_xyz(op_ty);
+	   // 	   }
+	   // 	 else if(permuts=="xy")
+	   // 	   {
+	   // 	     all_p=generate_all_permutations_xy(op_ty);
+	   // 	   }
+
+	   //   for(auto op_p: all_p)
+	   // { 
+	     
+	     int cnt = count(states.at(map_sec.at(sign)).begin(), states.at(map_sec.at(sign)).end(), op_ty);
+	     if(cnt>0){
+	       found=true;
+	       //}
+	        }
+	       }
+       	   }
+	     if(not found)
+	       {   states.at(map_sec.at(sign)).push_back(nf);}
+       	   }
+	     
+	    
+
+  return;}
+
+
 
 
 
@@ -84,10 +132,11 @@ Expression::t define_xxz2d( std::map<std::string, mom_ref> refs, std::map<std::s
   auto ham=Expr::constTerm(0.);
   for(auto term:dirs)
     {
-      for(int i=0; i<Ly; i++)
-	{
+      //for(int i=0; i<Ly; i++)
+      //{
 	  // parallel part S_(0,0)S_(1,0),S_(1,0)S_(2,0)... etc
-      op_vec v_p={spin_op(term.first, {std::min(i,(i+1)%Ly),0}, Lx),spin_op(term.second, {std::max(i,(i+1)%Ly),0}, Lx)};
+	  //op_vec v_p={spin_op(term.first, {std::min(i,(i+1)%Ly),0}, Lx),spin_op(term.second, {std::max(i,(i+1)%Ly),0}, Lx)};
+	  op_vec v_p={spin_op(term.first, {0,0}, Lx),spin_op(term.second, {1,0}, Lx)};	  
       auto [fac_p, nf_p] =get_normal_form(v_p);
       auto [ key_p,coeff_map_p]=map.at(print_op(nf_p));  
       auto el_p=refs.at(key_p);
@@ -97,10 +146,11 @@ Expression::t define_xxz2d( std::map<std::string, mom_ref> refs, std::map<std::s
       if(std::abs(fac_p.imag())>1e-9 or std::abs(coeff_map_p.imag())>1e-9){
 	std::cout<< "error: Hamiltonian contains complex elements "<<std::endl;
       }
-      ham=Expr::add(ham,Expr::mul(coeff*fac_p.real()*coeff_map_p.real()/4., el_p.var_));
+      ham=Expr::add(ham,Expr::mul(Ly*coeff*fac_p.real()*coeff_map_p.real()/4., el_p.var_));
 
       // transverse part part S_(0,0)S_(0,1),S_(1,0)S_(1,1)... etc
-      op_vec v_t={spin_op(term.first, {i,0}, Lx),spin_op(term.second, {i,1}, Lx)};
+      //op_vec v_t={spin_op(term.first, {i,0}, Lx),spin_op(term.second, {i,1}, Lx)};
+      op_vec v_t={spin_op(term.first, {0,0}, Lx),spin_op(term.second, {0,1}, Lx)};
       auto [fac_t, nf_t] =get_normal_form(v_t);
       auto [ key_t,coeff_map_t]=map.at(print_op(nf_t));  
       auto el_t=refs.at(key_t);
@@ -110,9 +160,9 @@ Expression::t define_xxz2d( std::map<std::string, mom_ref> refs, std::map<std::s
       if(std::abs(fac_t.imag())>1e-9 or std::abs(coeff_map_t.imag())>1e-9){
 	std::cout<< "error: Hamiltonian contains complex elements "<<std::endl;
       }
-      ham=Expr::add(ham,Expr::mul(coeff*fac_t.real()*coeff_map_t.real()/4., el_t.var_));
+      ham=Expr::add(ham,Expr::mul(Ly*coeff*fac_t.real()*coeff_map_t.real()/4., el_t.var_));
     }
-    }
+  //}
 
   return ham;
     
