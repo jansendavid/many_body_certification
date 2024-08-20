@@ -125,7 +125,7 @@ public:
 	 if(std::abs(fac.imag())>1e-9){std::cout<< "errpr"<<std::endl;}
 	 M_->constraint(Expr::add(Expr::add(blocks_[0]->index(0,i+1),blocks_[0]->index(dim_0,dim_0+i+1)),Expr::mul(-1.*fac.real()*std::sqrt(L_),el.var_)), Domain::equalsTo(0.0));
 
-	 M_->constraint( Expr::add(Expr::add(blocks_[0]->index(i+1,0),blocks_[0]->index(dim_0+i+1,dim_0)),Expr::mul(-1.,blocks_[0]->index(0,i+1))), Domain::equalsTo(0.0));
+	 // old co
 	 //M_->constraint(Expr::add(blocks_[0]->index(0,i+1),Expr::mul(-1.*fac.real()*std::sqrt(L_),el.var_)), Domain::equalsTo(0.0));
 	 // M_->constraint( Expr::add(blocks_[0]->index(i+1,0),Expr::mul(-1.,blocks_[0]->index(0,i+1))), Domain::equalsTo(0.0));
         // imaginary parts
