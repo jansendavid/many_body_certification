@@ -11,7 +11,25 @@ using basis_structure =std::map<int, std::vector<op_vec>>;
 using TI_map_type =std::map<std::string, std::pair<std::string, std::complex<double>>>;
 std::shared_ptr<ndarray<int,1>>    nint(const std::vector<int> &X)    { return new_array_ptr<int>(X); }
 std::shared_ptr<ndarray<double,1>> ndou(const std::vector<double> &X) { return new_array_ptr<double>(X); }
-
+int getIndex(std::vector<int> v, int K) 
+{ 
+    auto it = find(v.begin(), v.end(), K); 
+  
+    // If element was found 
+    if (it != v.end())  
+    { 
+      
+        // calculating the index 
+        // of K 
+        int index = it - v.begin(); 
+        return index; 
+    } 
+    else { 
+        // If the element is not 
+        // present in the vector 
+        return -1; 
+    } 
+} 
 // desription:
 //TI_map key: operator and value is pair, containing the key in total_refs, and the value to get it (is one for commuting variables)
 // total_refs contains key: operator string, value mom_ref with variable reference, index, and op_vec
@@ -247,7 +265,7 @@ public:
 	return;
   }
 
-  void initialize_blocks(std::vector<Expression::t>& second_block,std::vector<Variable::t>& variables_,std::vector<double>& b)
+  void initialize_blocks(Expression::t& second_block,std::vector<Variable::t>& variables_,std::vector<double>& b)
   {
       
      int dim_x=operators_.size(); //dimension of other blocks
@@ -266,7 +284,7 @@ public:
      	}
        return;
   }
-  void initialize_blocks_zero( std::vector<Expression::t>& second_block,std::vector<Variable::t>& variables, std::vector<double>& b)
+  void initialize_blocks_zero( Expression::t& second_block,std::vector<Variable::t>& variables, std::vector<double>& b)
   {
         std::string block_name="X0_"+sector_label_;
       int dim_0=operators_.size()+1; //dimension of 0th block
@@ -296,23 +314,26 @@ public:
 	
       	variables.push_back(M_->variable("ones_2", 1));
       b.push_back(2);
-      second_block[el]=Expr::add(second_block[el],variables.back()->index(0));
+      second_block=Expr::add(second_block,Expr::mul(variables.back()->index(0),Alpha));
 
 	}
- //      //    M_->constraint( el.var_, Domain::equalsTo(1.0));
+ // //      //    M_->constraint( el.var_, Domain::equalsTo(1.0));
      
      
- //     // fix zero
- //       //     // fix zero
+ // //     // fix zero
+ // //       //     // fix zero
      if(total_refs_.find("0")!=total_refs_.end())
        {
 	 
      auto el=total_refs_.at("0");
 
-
+     std::vector<double> val={1.};
+     	std::vector<int> row={el};
+     	std::vector<int> col={0};
+     	Matrix::t Alpha  = Matrix::sparse(total_refs_.size(),1, nint(row), nint(col), ndou(val));
       b.push_back(1);
       variables.push_back(M_->variable("zero", 1));
-      second_block[el]=Expr::add(second_block[el],variables.back()->index(0));
+      second_block=Expr::add(second_block,Expr::mul(variables.back()->index(0), Alpha));
 
       // M_->constraint( el.var_, Domain::equalsTo(0.0));
        }
@@ -344,9 +365,14 @@ public:
         Matrix::t Beta_i  = Matrix::sparse(2*dim_0,2*dim_0, nint(row), nint(col), ndou(val));
 	 
 
+	 std::vector<double> val_e={-1.*fac.real()*std::sqrt(L_)};
+     	std::vector<int> row_e={el};
+     	std::vector<int> col_e={0};
+     	Matrix::t Alpha_e  = Matrix::sparse(total_refs_.size(),1, nint(row_e), nint(col_e), ndou(val_e));
+	
 	variables.push_back(M_->variable("C_r"+std::to_string(i), 1));
 	 b.push_back(-1.*fac.real()*std::sqrt(L_));
-	 second_block[el]=Expr::add(second_block[el],Expr::mul(variables.back()->index(0),-1.*fac.real()*std::sqrt(L_)));
+	 second_block=Expr::add(second_block,Expr::mul(variables.back()->index(0),Alpha_e));
 
       
 	 first_blocks_[0]=Expr::add(first_blocks_[0], Expr::mul(Beta_i,variables.back()->index(0)));
@@ -362,12 +388,16 @@ public:
 	 std::vector<int> row={dim_0, i+1,dim_0,i+1+dim_0 };
 	 std::vector<int> col={i+1,dim_0,i+1+dim_0,dim_0};
 	 Matrix::t Beta_i  = Matrix::sparse(2*dim_0,2*dim_0, nint(row), nint(col), ndou(val));
-	 
+	  std::vector<double> val_e={-1.*fac.imag()};
+     	std::vector<int> row_e={el};
+     	std::vector<int> col_e={0};
+     	Matrix::t Alpha_e  = Matrix::sparse(total_refs_.size(),1, nint(row_e), nint(col_e), ndou(val_e));
+	
 
 	 b.push_back(-1.*fac.imag());	
 	 variables.push_back(M_->variable("C_i"+std::to_string(i), 1));
-	 second_block[el]=Expr::add(second_block[el],Expr::mul(variables.back()->index(0),-1.*fac.imag()));
 
+	 second_block=Expr::add(second_block,Expr::mul(variables.back()->index(0),Alpha_e));
 	 first_blocks_[0]=Expr::add(first_blocks_[0], Expr::mul(Beta_i,variables.back()->index(0)));
 
 	 
@@ -388,7 +418,7 @@ public:
     
 
   };
-  void  generate_block(std::vector<Expression::t>& second_block,std::vector<Variable::t>& variables, std::vector<double>& b , std::vector<int>& count)
+  void  generate_block(Expression::t& second_block,std::vector<Variable::t>& variables, std::vector<double>& b , std::vector<int>& count)
   {
      std::vector<loop_object>  OBJ(total_refs_.size());
     int i=0;
@@ -426,82 +456,131 @@ public:
 			      //here we store the extra term since <A_iX>=b_i, since the diagonal elements are, e.g.,  (1+sigma)
 			      double sum_real{0};
 			      double sum_imag{0};
-	// variables_temp_real.push_back(M_->variable("C_r"+std::to_string(mat_pos)+g_key, 1));
-	// variables_temp_imag.push_back(M_->variable("C_i"+std::to_string(mat_pos)+g_key, 1));
-// 			      for(int pos=0; pos<L_; pos++)
-// 			    {
-// 			      int position_in_G=pos;//?
-// 			      auto construct= generate_single_G_element(*it1, *it2, g_key, pos);
-//   // 			      
-// 			       double var_real=FT_(pos,mat_pos).real();
-// 			       double var_imag=FT_(pos,mat_pos).imag();
-
-			      
-// 			       count[construct.first.pos_]+=2;
-// 			       count[construct.second.pos_]+=2;
-// 			       temp[construct.first.pos_]=Expr::add(temp[construct.first.pos_],Expr::mul(variables_temp_real.back()->index(0),(-1)*var_real*construct.first.prefac_));
-// 	 sum_real+=(-1)*var_real*construct.first.prefac_;
-// 	 temp[construct.second.pos_]=Expr::add(temp[construct.second.pos_],Expr::mul(variables_temp_real.back()->index(0),(-1.)*(-1)*var_imag*construct.second.prefac_));
+			      variables_temp_real.push_back(M_->variable("C_r"+std::to_string(mat_pos)+g_key, 1));
+			      variables_temp_imag.push_back(M_->variable("C_i"+std::to_string(mat_pos)+g_key, 1));
+	std::vector<int> row_e_real;
+	std::vector<double> val_e_real;
+	std::vector<int> row_e_im;
+	std::vector<double> val_e_im;	
+			      for(int pos=0; pos<L_; pos++)
+			    {
+			      int position_in_G=pos;//?
+			      auto construct= generate_single_G_element(*it1, *it2, g_key, pos);
+  // 			      
+			       double var_real=FT_(pos,mat_pos).real();
+			       double var_imag=FT_(pos,mat_pos).imag();
+			       auto index_r_1=getIndex(row_e_real,  construct.first.pos_);
+			       auto index_r_2=getIndex(row_e_real,  construct.second.pos_);
+			       if(index_r_1 <0)
+				 {
+				   row_e_real.push_back(construct.first.pos_);
+				   val_e_real.push_back((-1)*var_real*construct.first.prefac_);
+				 }
+			       else{
+				 val_e_real[index_r_1]+=(-1)*var_real*construct.first.prefac_;
+			       }
+			     if(index_r_2 <0)
+				 {
+				   row_e_real.push_back(construct.second.pos_);
+				   val_e_real.push_back((-1.)*(-1)*var_imag*construct.second.prefac_);
+				 }
+			       else{
+				 val_e_real[index_r_2]+=(-1.)*(-1)*var_imag*construct.second.prefac_;
+			       }
+			       //			       temp[construct.first.pos_]=Expr::add(temp[construct.first.pos_],Expr::mul(variables_temp_real.back()->index(0),(-1)*var_real*construct.first.prefac_));
+	 sum_real+=(-1)*var_real*construct.first.prefac_;
+	 //temp[construct.second.pos_]=Expr::add(temp[construct.second.pos_],Expr::mul(variables_temp_real.back()->index(0),(-1.)*(-1)*var_imag*construct.second.prefac_));
 
 	
-// 	     sum_real+=(-1)*(-1.)*var_imag*construct.second.prefac_;
+	     sum_real+=(-1)*(-1.)*var_imag*construct.second.prefac_;
 	     
+	      
+			       auto index_i_1=getIndex(row_e_im,  construct.first.pos_);
+			       auto index_i_2=getIndex(row_e_im,  construct.second.pos_);
+			       if(index_i_1 <0)
+				 {
+				   row_e_im.push_back(construct.first.pos_);
+				   val_e_im.push_back((-1)*var_imag*construct.first.prefac_);
+				 }
+			       else{
+				 val_e_im[index_i_1]+=(-1)*var_imag*construct.first.prefac_;
+			       }
+			     if(index_i_2 <0)
+				 {
+				   row_e_im.push_back(construct.second.pos_);
+				   val_e_im.push_back((-1)*var_real*construct.second.prefac_);
+				 }
+			       else{
+				 val_e_im[index_i_2]+=(-1)*var_real*construct.second.prefac_;
+			       }
+			     
+	     //temp[construct.first.pos_]=Expr::add(temp[construct.first.pos_],Expr::mul(variables_temp_imag.back()->index(0),(-1)*var_imag*construct.first.prefac_));
+	     sum_imag+=(-1)*var_imag*construct.first.prefac_;
 
-// 	     temp[construct.first.pos_]=Expr::add(temp[construct.first.pos_],Expr::mul(variables_temp_imag.back()->index(0),(-1)*var_imag*construct.first.prefac_));
-// 	     sum_imag+=(-1)*var_imag*construct.first.prefac_;
+	     //     temp[construct.second.pos_]=Expr::add(temp[construct.second.pos_],Expr::mul(variables_temp_imag.back()->index(0),(-1)*var_real*construct.second.prefac_));
+	     sum_imag+=(-1)*var_real*construct.second.prefac_;
 
-// 	     temp[construct.second.pos_]=Expr::add(temp[construct.second.pos_],Expr::mul(variables_temp_imag.back()->index(0),(-1)*var_real*construct.second.prefac_));
-// 	     sum_imag+=(-1)*var_real*construct.second.prefac_;
-
-//  			    }
+ 			    }
 	
    
 // // // // // 			      // note no multiplictaion with -1 in bs since was done in the above code
 			    
+// std::vector<double> val_e={-1.*fac.imag()};
+  
+		  {
+		    std::vector<int> col_e(row_e_real.size(),0);
+		    Matrix::t Alpha_e_1  = Matrix::sparse(total_refs_.size(),1, nint(row_e_real), nint(col_e), ndou(val_e_real));
+		    second_block=Expr::add(second_block, Expr::mul(variables_temp_real.back()->index(0), Alpha_e_1));
+		  }
 
-// 	{
+		  {
+		    std::vector<int> col_e(row_e_im.size(),0);
+		  
+		    Matrix::t Alpha_e_1  = Matrix::sparse(total_refs_.size(),1, nint(row_e_im), nint(col_e), ndou(val_e_im));
+		    second_block=Expr::add(second_block, Expr::mul(variables_temp_imag.back()->index(0), Alpha_e_1));
+		  }
+		  
+	{
 	  	 
 	   
-// 	  std::vector<double> val={1./2,1./2};
-// 	  std::vector<int> row={i+shift, i+shift+dim };
-// 	  std::vector<int> col={j+shift,j+shift+dim};
-//         Matrix::t Beta_i  = Matrix::sparse(2*dim,2*dim, nint(row), nint(col), ndou(val));
-// 	Matrix::t Beta_i_t=Matrix::sparse(2*dim,2*dim, nint(col), nint(row), ndou(val));
-// 	first_blocks_[mat_pos]=Expr::add(first_blocks_[mat_pos], Expr::mul(Beta_i,variables_temp_real.back()->index(0)));
-// 	first_blocks_[mat_pos]=Expr::add(first_blocks_[mat_pos], Expr::mul(Beta_i_t,variables_temp_real.back()->index(0)));
+	  std::vector<double> val={1./2,1./2};
+	  std::vector<int> row={i+shift, i+shift+dim };
+	  std::vector<int> col={j+shift,j+shift+dim};
+        Matrix::t Beta_i  = Matrix::sparse(2*dim,2*dim, nint(row), nint(col), ndou(val));
+	Matrix::t Beta_i_t=Matrix::sparse(2*dim,2*dim, nint(col), nint(row), ndou(val));
+	first_blocks_[mat_pos]=Expr::add(first_blocks_[mat_pos], Expr::mul(Beta_i,variables_temp_real.back()->index(0)));
+	first_blocks_[mat_pos]=Expr::add(first_blocks_[mat_pos], Expr::mul(Beta_i_t,variables_temp_real.back()->index(0)));
         
-// 	}
+	}
 	 
-// 	{
-// 	  std::vector<double> val={1./2,-1./2};
-// 	 std::vector<int> row={i+shift,j+shift };
-// 	 std::vector<int> col={dim+j+shift,dim+i+shift};
-// 	 Matrix::t Beta_i  = Matrix::sparse(2*dim,2*dim, nint(row), nint(col), ndou(val));
-// 	 Matrix::t Beta_i_t  = Matrix::sparse(2*dim,2*dim, nint(col), nint(row), ndou(val));
-// 	 first_blocks_[mat_pos]=Expr::add(first_blocks_[mat_pos], Expr::mul(Beta_i,variables_temp_imag.back()->index(0)));
-// 	 first_blocks_[mat_pos]=Expr::add(first_blocks_[mat_pos], Expr::mul(Beta_i_t,variables_temp_imag.back()->index(0)));
-//  	}
+	{
+	  std::vector<double> val={1./2,-1./2};
+	 std::vector<int> row={i+shift,j+shift };
+	 std::vector<int> col={dim+j+shift,dim+i+shift};
+	 Matrix::t Beta_i  = Matrix::sparse(2*dim,2*dim, nint(row), nint(col), ndou(val));
+	 Matrix::t Beta_i_t  = Matrix::sparse(2*dim,2*dim, nint(col), nint(row), ndou(val));
+	 first_blocks_[mat_pos]=Expr::add(first_blocks_[mat_pos], Expr::mul(Beta_i,variables_temp_imag.back()->index(0)));
+	 first_blocks_[mat_pos]=Expr::add(first_blocks_[mat_pos], Expr::mul(Beta_i_t,variables_temp_imag.back()->index(0)));
+ 	}
 
-//     	 b_temp_real.push_back(sum_real);
+    	 b_temp_real.push_back(sum_real);
 
-//     	 b_temp_imag.push_back(sum_imag);	
+    	 b_temp_imag.push_back(sum_imag);	
 
-//  			  	    }
-// 			  XX+=2;	  
+ 			  	    }
 			  
-// 			  j+=1;
-// 			    }
-// 	 i+=1;
-//        }
-//     for(int i=0; i<temp.size(); i++)
-//       {
-// 	second_block[i]=Expr::add(second_block[i], temp[i]);
-//       }
-//     //std::cout<< "temp shape "<< temp.size()<<std::endl;
-//     std::cout<< "tot variables "<< variables_temp_real.size()+variables_temp_imag.size() << "  and  "<<b_temp_real.size()+b_temp_imag.size()<<std::endl;
-  
+			  
+			  j+=1;
+			    }
+	 i+=1;
+       }
+    variables.insert (variables.end(), variables_temp_real.begin(), variables_temp_real.end());
+    variables.insert (variables.end(), variables_temp_imag.begin(), variables_temp_imag.end());
 
-    // std::cout<< "ending dim "<< index_r<< " and "<<	b_block_r_.size()<< " and sum real "<< test_man<< "   "<< test_im<<std::endl;
+    b.insert (b.end(), b_temp_real.begin(), b_temp_real.end());
+    b.insert (b.end(), b_temp_imag.begin(),b_temp_imag.end());
+    
+  
 
       return;}
 
@@ -530,7 +609,7 @@ public:
   std::map<std::string, std::pair<std::string, std::complex<double>>> TI_map_;
   std::map<std::string, int> total_refs_; // reference to the the element
   Eigen::MatrixXcd FT_;
-  std::vector<Expression::t> second_block_;
+  Expression::t second_block_;
   //std::vector<Variable::t> variables_;
   std::vector<Variable::t> variables_;
   std::vector<double> b_;
@@ -569,8 +648,8 @@ public:
       initialize_XT();
      std::cout<< "size TI map "<< TI_map_.size()<<std::endl;
 
-      second_block_=std::vector<Expression::t>(total_refs_.size(),Expr::constTerm(0.0));
-      count=std::vector<int>(total_refs_.size(),0);
+     second_block_=Expr::constTerm(total_refs_.size(), 0.0);
+
 
       auto it=sectors_.begin();
       it->second.initialize_blocks_zero(second_block_, variables_, b_);
@@ -593,12 +672,7 @@ public:
 
 	 ++it_2;
 	 }
-	 // std::cout<< "done "<<std::endl;
-	 // for(int i=0; i<total_refs_.size(); i++)
-	 //   {
-	 //     std::cout<< i << " and "<< count[i]<<std::endl;
-	 //   }
-	   std::cout<< "done "<<std::endl;
+
         return;
  
   }; 
