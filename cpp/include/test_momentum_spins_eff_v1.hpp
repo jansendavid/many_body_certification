@@ -8,7 +8,7 @@
 #include"spins.hpp"
 #include<unordered_map>
 #include <Eigen/Dense>
-#include"complex_momentum_symm_eff_v3.hpp"
+#include"complex_momentum_symm_eff.hpp"
 #include"spin_hamiltonians_TIsym.hpp"
 #include"functions.hpp"
 using namespace mosek::fusion;
@@ -356,18 +356,12 @@ for(int i=0; i<Ly;i++)
 		    std::cout<< a.second.size()<<std::endl;
 		  }
     Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
-
     auto basis =momentum_basis_eff(Lx,states,M, "xyz");
-    // // // for(auto a: basis.TI_map_)
-    // // //   {std::cout<< a.first << " -> "<<a.second.first<<std::endl;}
+    // // for(auto a: basis.TI_map_)
+    // //   {std::cout<< a.first << " -> "<<a.second.first<<std::endl;}
     double J=1;
     double Delta=1;
-     auto C=define_xxz2d_dual( basis.total_refs_,basis.TI_map_, J, Delta, Ly, Lx);
-       basis.set_C(C);
-      auto h=basis.get_costfunction();
-  
-    //auto h=define_xxz2d( basis.total_refs_,basis.TI_map_, J, Delta, Ly, Lx);
-    
+    auto h=define_xxz2d( basis.total_refs_,basis.TI_map_, J, Delta, Ly, Lx);
     
     basis.M_->objective(ObjectiveSense::Minimize, h);
     	 	  M->dataReport();
@@ -376,10 +370,9 @@ for(int i=0; i<Ly;i++)
 	  
 	  
     std::cout << "Solution : " << std::endl;
-    //std::cout<<std::setprecision(9)<<M->primalObjValue()/Ly -2*Delta/4-2*2*J/4 <<std::endl;
-    std::cout<<std::setprecision(9)<<M->primalObjValue()/Ly <<std::endl;
+    std::cout<<std::setprecision(9)<<M->primalObjValue()/Ly  <<std::endl;
 	  
-    // //  double sol=M->primalObjValue()/Ly;
+    //  double sol=M->primalObjValue()/Ly;
 	  
 
     // // 	  	   if(std::abs(sol+0.721905655)>1e-06)

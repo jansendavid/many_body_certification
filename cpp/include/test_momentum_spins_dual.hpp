@@ -8,9 +8,8 @@
 #include"spins.hpp"
 #include<unordered_map>
 #include <Eigen/Dense>
-#include"complex_momentum_symm_eff_v3.hpp"
+#include"complex_momentum_symm_dual.hpp"
 #include"spin_hamiltonians_TIsym.hpp"
-#include"functions.hpp"
 using namespace mosek::fusion;
 using namespace monty;
 
@@ -115,7 +114,7 @@ using namespace monty;
 	
 //   // 	auto basis=momentum_basis(L,states);
 // 	Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
-// 	auto basis =momentum_basis_eff(L,states,M);
+// 	auto basis =momentum_basis_dual(L,states,M);
 //     	//auto block =
 
 //   // 	for(auto a : block.total_refs_)
@@ -176,24 +175,24 @@ using namespace monty;
 // 	     op_vec v0={spin_op(s, {0})};
 // 	      add_state(states, v0, map_sec);
 // 	   }
-//       // std::vector<string_pair> occ={string_pair("x","y"),string_pair("y","x"),string_pair("y","z"),string_pair("z","y"),string_pair("x","z"),string_pair("z","x")};
+//       std::vector<string_pair> occ={string_pair("x","y"),string_pair("y","x"),string_pair("y","z"),string_pair("z","y"),string_pair("x","z"),string_pair("z","x")};
 
-//       // for(auto a: occ){
+//       for(auto a: occ){
 	    
-//       // 	op_vec v0={spin_op(a.first, {0}),spin_op(a.second, {1})};
-//       // 	      add_state(states, v0, map_sec);
-//       // 	   }
+// 	op_vec v0={spin_op(a.first, {0}),spin_op(a.second, {1})};
+// 	      add_state(states, v0, map_sec);
+// 	   }
    
 	  
 //     Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
-//     	auto basis =momentum_basis(L,states,M);
+//     	auto basis =momentum_basis_dual(L,states,M);
 
 //    	double J=1;
 //    	double Delta=1;
 //    	auto h=define_xxz1d( basis.total_refs_,basis.TI_map_, J, Delta);
 	
 //          basis.M_->objective(ObjectiveSense::Minimize, h);
-// 	 M->dataReport();
+//        	  M->dataReport();
 // 	 M->setLogHandler([=](const std::string & msg) { std::cout << msg << std::flush; } );
 // 	   basis.M_->solve();
 	  
@@ -259,7 +258,7 @@ using namespace monty;
 
       
 //     Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
-//     	auto basis =momentum_basis(L,states,M);
+//     	auto basis =momentum_basis_dual(L,states,M);
 
 //   // // 	for(auto a : block.total_refs_)
 //   // 	  {
@@ -339,7 +338,7 @@ for(int i=0; i<Ly;i++)
 
 
        
-      std::vector<string_pair> occ={string_pair("x","y"),string_pair("y","x"),string_pair("y","z"),string_pair("z","y"),string_pair("x","z"),string_pair("z","x")};   
+std::vector<string_pair> occ={string_pair("x","y"),string_pair("y","x"),string_pair("y","z"),string_pair("z","y"),string_pair("x","z"),string_pair("z","x")};   
 	        for(int i=0; i<Ly;i++)
 	 {
 	   auto mn=std::min(i, (i+1)%Ly);
@@ -351,39 +350,48 @@ for(int i=0; i<Ly;i++)
 	     add_state(states, v1, map_sec);
 	   }
 	 }
-			for(auto a:states)
+		for(auto a:states)
 		  {
 		    std::cout<< a.second.size()<<std::endl;
 		  }
     Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
-
-    auto basis =momentum_basis_eff(Lx,states,M, "xyz");
-    // // // for(auto a: basis.TI_map_)
-    // // //   {std::cout<< a.first << " -> "<<a.second.first<<std::endl;}
-    double J=1;
-    double Delta=1;
+   
+    auto basis =momentum_basis_dual(Lx,states,M, "xyz");
+      double J=1;
+     double Delta=1;
      auto C=define_xxz2d_dual( basis.total_refs_,basis.TI_map_, J, Delta, Ly, Lx);
-       basis.set_C(C);
+     basis.set_C(C);
+    // // // std::cout<< "returned "<<std::endl;
+    
+    // //  // // ADD C
+     
+     
+      basis.prep_SDP();
+ 
+ 
+
+    // // // // //  // FIX last constarins
       auto h=basis.get_costfunction();
-  
-    //auto h=define_xxz2d( basis.total_refs_,basis.TI_map_, J, Delta, Ly, Lx);
-    
-    
-    basis.M_->objective(ObjectiveSense::Minimize, h);
-    	 	  M->dataReport();
-    	 M->setLogHandler([=](const std::string & msg) { std::cout << msg << std::flush; } );
-    basis.M_->solve();
+
+
+      // //   std::cout<< "cf"<<std::endl;
+     		   basis.M_->objective(ObjectiveSense::Maximize, h);
+    // 		         std::cout<< "cf"<<std::endl;
+	M->dataReport();
+	M->setLogHandler([=](const std::string & msg) { std::cout << msg << std::flush; } );
+     basis.M_->solve();
 	  
 	  
     std::cout << "Solution : " << std::endl;
-    //std::cout<<std::setprecision(9)<<M->primalObjValue()/Ly -2*Delta/4-2*2*J/4 <<std::endl;
     std::cout<<std::setprecision(9)<<M->primalObjValue()/Ly <<std::endl;
+    std::cout<<std::setprecision(9)<<M->primalObjValue()/Ly -2*Delta/4-2*2*J/4 <<std::endl;
+    
 	  
-    // //  double sol=M->primalObjValue()/Ly;
+    // // // //  double sol=M->primalObjValue()/Ly;
 	  
 
-    // // 	  	   if(std::abs(sol+0.721905655)>1e-06)
-    // // 	   {std::cout<<"error, not converging properly"<<std::endl;}
+    // // // 	  	   if(std::abs(sol+0.721905655)>1e-06)
+    // // // 	   {std::cout<<"error, not converging properly"<<std::endl;}
 	    return;
 }
 
@@ -474,7 +482,7 @@ for(int i=0; i<Ly;i++)
 // 	   }
 // 	 }
 //     Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
-//     auto basis =momentum_basis_eff(Lx,states,M,"xyz");
+//     auto basis =momentum_basis_dual(Lx,states,M, "xyz");
 //     // for(auto a: basis.TI_map_)
 //     //   {std::cout<< a.first << " -> "<<a.second.first<<std::endl;}
 //     double J=1;
@@ -482,8 +490,8 @@ for(int i=0; i<Ly;i++)
 //     auto h=define_xxz2d( basis.total_refs_,basis.TI_map_, J, Delta, Ly, Lx);
     
 //     basis.M_->objective(ObjectiveSense::Minimize, h);
-// 		  M->dataReport();
-// 	  M->setLogHandler([=](const std::string & msg) { std::cout << msg << std::flush; } );
+// 	//   // 	  block.M_->dataReport();
+// 	//   // M->setLogHandler([=](const std::string & msg) { std::cout << msg << std::flush; } );
 //     basis.M_->solve();
 	  
 	  
@@ -502,8 +510,8 @@ for(int i=0; i<Ly;i++)
 // void test_J1J2_2d()
 // {
 
-//   int Lx=4;
-//   int Ly=4;
+//   int Lx=6;
+//   int Ly=6;
 //  basis_structure states;
 //   std::vector<op_vec> v_block_0;
 //   std::vector<op_vec> v_block_1;
@@ -572,7 +580,7 @@ for(int i=0; i<Ly;i++)
 // 	 //   }
 // 	 // }
 //     Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
-//     auto basis =momentum_basis_eff(Lx,states,M,"xyz");
+//     auto basis =momentum_basis_dual(Lx,states,M, "xzy");
 //     // for(auto a: basis.TI_map_)
 //     //  {std::cout<< a.first << " -> "<<a.second.first<<std::endl;}
 //     double J1=1;
@@ -595,11 +603,4 @@ for(int i=0; i<Ly;i++)
 // 	  //	   if(std::abs(sol+0.44670126)>1e-06)
 // 	  // {std::cout<<"error, not converging properly"<<std::endl;}
 // 	    return;
-// }
-// void test_load_basis()
-// {
-//   int Lx=4;
-//   auto states=load_basis_from_file("test_basis.txt", Lx);
-//   for(auto s: states)
-//     {std::cout<<print_op(s)<<std::endl;}
 // }
