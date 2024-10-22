@@ -568,20 +568,20 @@ for(int i=0; i<Ly;i++)
 	 }
 
     std::vector<string_pair> occ={string_pair("x","y"),string_pair("y","x"),string_pair("y","z"),string_pair("z","y"),string_pair("x","z"),string_pair("z","x")};   
-	 //        for(int i=0; i<Ly;i++)
-	 // {
-	 //   auto mn=std::min(i, (i+1)%Ly);
-	 //   auto mx=std::max(i, (i+1)%Ly);
-	 //   for(auto a: occ){
-	 //     op_vec v0={spin_op(a.first, {i,0}, Lx),spin_op(a.second, {i,1}, Lx)};
-	 //     add_state(states, v0, map_sec);
-	 //     op_vec v1={spin_op(a.first, {mn,0}, Lx),spin_op(a.second, {mx,0}, Lx)};
-	 //     add_state(states, v1, map_sec);
-	 //   }
-	 // }
+	        for(int i=0; i<Ly;i++)
+	 {
+	   auto mn=std::min(i, (i+1)%Ly);
+	   auto mx=std::max(i, (i+1)%Ly);
+	   for(auto a: occ){
+	     op_vec v0={spin_op(a.first, {i,0}, Lx),spin_op(a.second, {i,1}, Lx)};
+	     add_state(states, v0, map_sec);
+	     op_vec v1={spin_op(a.first, {mn,0}, Lx),spin_op(a.second, {mx,0}, Lx)};
+	     add_state(states, v1, map_sec);
+	   }
+	 }
     Model::t M = new Model("sdo1");
     auto _M = finally([&]() { M->dispose(); });
-    auto basis =momentum_basis_dual(Lx,states,M, "xzy");
+    auto basis =momentum_basis_dual(Lx,states,M, "xyz");
     // for(auto a: basis.TI_map_)
     //  {std::cout<< a.first << " -> "<<a.second.first<<std::endl;}
     double J1=1;

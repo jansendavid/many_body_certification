@@ -1,12 +1,8 @@
 
-
-
-
-MOSEK=/home/djansen/mosek/10.1/tools/platform/linux64x86/
 INC+=-I$(MOSEK)/src/fusion_cxx/
 INC+=-I$(MOSEK)/h/
 INC+=-I./include/
-INC+=-I/home/djansen/eigen-3.4.0/
+INC+=-I$(EIGEN)
 #########################
 
 CCFLAGS=  -Wno-unused-variable -std=c++17 -O2 -std=gnu++1z
