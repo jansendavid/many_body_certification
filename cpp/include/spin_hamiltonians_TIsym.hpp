@@ -149,8 +149,7 @@ Expression::t define_xxz1d( std::map<std::string, mom_ref> refs, std::map<std::s
       }
       {
 
-	//  second_block[el_p]=Expr::add(second_block[el_p],-1.*Ly*coeff*fac_p.real()*coeff_map_p.real()/4.);
-  std::cout<< "Adding "<<el_p<<std::endl;
+
 	auto index_1=getIndex(rows,  el_p);
 	if(index_1<0)
 	  {
@@ -192,13 +191,7 @@ Expression::t define_xxz1d( std::map<std::string, mom_ref> refs, std::map<std::s
     
     
     }
-    std::cout<< "ROWS "<<std::endl;
 
-    for(auto a: rows)
-    {
-std::cout<< a<<std::endl;
-
-    }
 std::vector<int> cols(rows.size(),0);
  Matrix::t Alpha_e_1  = Matrix::sparse(refs.size(),1, nint(rows), nint(cols), ndou(vals)); 
  
@@ -252,6 +245,114 @@ Expression::t define_xxz2d( std::map<std::string, mom_ref> refs, std::map<std::s
     
 
 }
+Matrix::t define_J1J2_2d_dual( std::map<std::string, int> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, double J1, double J2, int Ly, int Lx)
+{
+    std::vector<string_pair> dirs{string_pair("x","x"),string_pair("z","z"),string_pair("y","y")};
+  auto ham=Expr::constTerm(0.);
+  std::vector<int> rows;
+  std::vector<double> vals;
+  for(auto term:dirs)
+    {
+      
+	  // parallel part S_(0,0)S_(1,0),S_(1,0)S_(2,0)... etc
+      op_vec v_p={spin_op(term.first, {0,0}, Lx),spin_op(term.second, {1,0}, Lx)};
+      auto [fac_p, nf_p] =get_normal_form(v_p);
+      auto [ key_p,coeff_map_p]=map.at(print_op(nf_p));  
+      auto el_p=refs.at(key_p);
+      if(std::abs(fac_p.imag())>1e-9 or std::abs(coeff_map_p.imag())>1e-9){
+	std::cout<< "error: Hamiltonian contains complex elements "<<std::endl;
+      }
+
+      {
+	auto index_1=getIndex(rows,  el_p);
+	if(index_1<0)
+	  {
+	  rows.push_back(el_p);
+	  vals.push_back(Ly*J1*fac_p.real()*coeff_map_p.real()/4.);
+	  }
+	else{
+	  vals[index_1]+=Ly*J1*fac_p.real()*coeff_map_p.real()/4.;
+	}
+      }
+
+      op_vec v_t={spin_op(term.first, {0,0}, Lx),spin_op(term.second, {0,1}, Lx)};
+      auto [fac_t, nf_t] =get_normal_form(v_t);
+      auto [ key_t,coeff_map_t]=map.at(print_op(nf_t));  
+      auto el_t=refs.at(key_t);
+
+      
+      
+      if(std::abs(fac_t.imag())>1e-9 or std::abs(coeff_map_t.imag())>1e-9){
+	std::cout<< "error: Hamiltonian contains complex elements "<<std::endl;
+      }
+      {
+
+		auto index_1=getIndex(rows,  el_t);
+	if(index_1<0)
+	  {
+  rows.push_back(el_t);
+	  vals.push_back(Ly*J1*fac_t.real()*coeff_map_t.real()/4.);
+	  }
+	else{
+	  vals[index_1]+=Ly*J1*fac_t.real()*coeff_map_t.real()/4.;
+	}
+      }
+      
+    }
+    for(auto term:dirs)
+    {
+
+	  // parallel part S_(0,0)S_(1,0),S_(1,0)S_(2,0)... etc
+      op_vec v_p={spin_op(term.first, {0,0}, Lx),spin_op(term.second, {2,0}, Lx)};
+      auto [fac_p, nf_p] =get_normal_form(v_p);
+      auto [ key_p,coeff_map_p]=map.at(print_op(nf_p));  
+      auto el_p=refs.at(key_p);
+      if(std::abs(fac_p.imag())>1e-9 or std::abs(coeff_map_p.imag())>1e-9){
+	std::cout<< "error: Hamiltonian contains complex elements "<<std::endl;
+      }
+            {
+	auto index_1=getIndex(rows,  el_p);
+	if(index_1<0)
+	  {
+	  rows.push_back(el_p);
+	  vals.push_back(Ly*J2*fac_p.real()*coeff_map_p.real()/4.);
+	  }
+	else{
+	  vals[index_1]+=Ly*J2*fac_p.real()*coeff_map_p.real()/4.;
+	}
+	    }
+      op_vec v_t={spin_op(term.first, {0,0}, Lx),spin_op(term.second, {0,2}, Lx)};
+      auto [fac_t, nf_t] =get_normal_form(v_t);
+      auto [ key_t,coeff_map_t]=map.at(print_op(nf_t));  
+      auto el_t=refs.at(key_t);      
+      if(std::abs(fac_t.imag())>1e-9 or std::abs(coeff_map_t.imag())>1e-9){
+	std::cout<< "error: Hamiltonian contains complex elements "<<std::endl;
+      }
+      {
+      		auto index_1=getIndex(rows,  el_t);
+	if(index_1<0)
+	  {
+  rows.push_back(el_t);
+	  vals.push_back(Ly*J2*fac_t.real()*coeff_map_t.real()/4.);
+	  }
+	else{
+	  vals[index_1]+=Ly*J2*fac_t.real()*coeff_map_t.real()/4.;
+	}
+      }
+
+}
+  
+
+
+std::vector<int> cols(rows.size(),0);
+ Matrix::t Alpha_e_1  = Matrix::sparse(refs.size(),1, nint(rows), nint(cols), ndou(vals)); 
+ 
+  return Alpha_e_1; 
+    
+
+}
+
+
 
 Expression::t define_J1J2_2d( std::map<std::string, mom_ref> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, double J1, double J2, int Ly, int Lx)
 {
@@ -318,3 +419,4 @@ Expression::t define_J1J2_2d( std::map<std::string, mom_ref> refs, std::map<std:
     
 
 }
+
