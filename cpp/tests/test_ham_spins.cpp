@@ -35,28 +35,11 @@ Expression::t define_ham( std::map<std::string, Variable::t> terms_mapping, doub
   std::vector<Expression::t> expressions={};
   std::vector<std::string> sym={"x","y","z"};
   auto ham=Expr::constTerm(0.);
-    for(auto s: sym)
-      {
-	op_vec v0={spin_op(s, {0}),spin_op(s, {1})};
-     auto [fac0, nf0] =get_normal_form(v0);
-     
-    
-     if(s=="z")
-       {
-	 ham=Expr::add(ham,Expr::mul(Delta/4,terms_mapping.at(print_op(nf0))));
-
-       }
-     else{
-	 ham=Expr::add(ham,Expr::mul(J/4,terms_mapping.at(print_op(nf0))));
-
-     }
-     if((std::abs(fac0.real()-1.)>1e-8 or std::abs(fac0.imag())>1e-8 )  )
-       {std::cout<< "error"<<std::endl;}
-      }
+ 
     
   for(auto s: sym)
       {
-    for(int i=1; i<L; i++)
+    for(int i=0; i<L; i++)
       {
 	op_vec v0={spin_op(s, {i}),spin_op(s, {(i+1)%L})};
      auto [fac0, nf0] =get_normal_form(v0);
@@ -85,7 +68,7 @@ Expression::t define_ham( std::map<std::string, Variable::t> terms_mapping, doub
 int main()
 {
   //test_translation();
-    int L=6;
+    int L=5;
     basis_structure states;
     std::vector<op_vec> v_tot;
       std::vector<std::string> sym={"z", "x", "y"};
@@ -100,7 +83,7 @@ int main()
  
 
 	}
-             sym={"z"};
+      sym={"x","y","z"};
       
       for(int i=0; i<L; i++)
 	{
@@ -153,6 +136,7 @@ int main()
 
      }
        }
+	std::cout<< mat_terms.size()<<std::endl;
 
 	Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });	
 	   auto X=M->variable("X", Domain::inPSDCone(2*(v_tot.size()+1)));
@@ -182,7 +166,7 @@ int main()
         auto v_x=op_dagger;
        v_x.insert(v_x.end(), v_tot[i].begin(),v_tot[i].end());
        	  auto [coeff, op]=get_normal_form(v_x);
-	  // if(op.size()==0){std::cout<<"h'"<<std::endl;}
+
 	  auto el=terms_mapping.at(print_op(op));
 	  M->constraint( Expr::add(X->index(i+1,j+1),Expr::mul(-1.*coeff.real(),el)), Domain::equalsTo(0.0));
 	  M->constraint( Expr::add(X->index(shift+i+1,j+1),Expr::mul(-1.*coeff.imag(),el)), Domain::equalsTo(0.0));
@@ -190,7 +174,7 @@ int main()
 	    {
 	      M->constraint( Expr::add(X->index(j+1,i+1),Expr::mul(-1.*coeff.real(),el)), Domain::equalsTo(0.0));
 	  M->constraint( Expr::add(X->index(shift+j+1,i+1),Expr::mul(1.*coeff.imag(),el)), Domain::equalsTo(0.0));
-	    }
+		    }
 
      }}
 
@@ -201,7 +185,8 @@ int main()
 	 
 	  M->constraint( Expr::add(X->index(0,i+1),Expr::mul(-1.*coeff.real(),el)), Domain::equalsTo(0.0));
 	  M->constraint( Expr::add(X->index(i+1,0),Expr::mul(-1.*coeff.real(),el)), Domain::equalsTo(0.0));
-	  M->constraint( Expr::add(X->index(shift,i+1),Expr::mul(-1.*coeff.imag(),el)), Domain::equalsTo(0.0));
+
+		  M->constraint( Expr::add(X->index(shift,i+1),Expr::mul(-1.*coeff.imag(),el)), Domain::equalsTo(0.0));
 	  M->constraint( Expr::add(X->index(shift+i+1,0),Expr::mul(-1.*coeff.imag(),el)), Domain::equalsTo(0.0));
 	 
 
