@@ -613,10 +613,10 @@ for(int i=0; i<Ly;i++)
 	  
 	  
     std::cout << "Solution : " << std::endl;
-    std::cout<<std::setprecision(9)<<M->primalObjValue()/Ly <<std::endl;
+ 
     std::cout<<std::setprecision(9)<<M->primalObjValue()/Ly -2*J1/4-2*2*J1/4-2*J2/4-2*2*J2/4 <<std::endl;
 	  
-    // double sol=M->primalObjValue(); -0.720847431
+    //std::cout<<std::setprecision(9)<<M->primalObjValue()/Ly -2*J1/4-2*2*J1/4-2*J2/4-2*2*J2/4 <<std::endl;-0.645428034
 	  
 
 	  //	   if(std::abs(sol+0.44670126)>1e-06)
