@@ -125,14 +125,11 @@ public:
 	 if(std::abs(fac.imag())>1e-9){std::cout<< "errpr"<<std::endl;}
 	 M_->constraint(Expr::add(Expr::add(blocks_[0]->index(0,i+1),blocks_[0]->index(dim_0,dim_0+i+1)),Expr::mul(-1.*fac.real()*std::sqrt(L_),el.var_)), Domain::equalsTo(0.0));
 
-	 // old co
-	 //M_->constraint(Expr::add(blocks_[0]->index(0,i+1),Expr::mul(-1.*fac.real()*std::sqrt(L_),el.var_)), Domain::equalsTo(0.0));
-	 // M_->constraint( Expr::add(blocks_[0]->index(i+1,0),Expr::mul(-1.,blocks_[0]->index(0,i+1))), Domain::equalsTo(0.0));
+
         // imaginary parts
 	 M_->constraint( Expr::add(blocks_[0]->index(dim_0,i+1),Expr::mul(-1.,blocks_[0]->index(dim_0+i+1,0))), Domain::equalsTo(0.0));
 	 
-	 //M_->constraint( blocks_[0]->index(dim_0,i+1), Domain::equalsTo(0.0));
-	 //M_->constraint( blocks_[0]->index(dim_0+i+1,0), Domain::equalsTo(0.0));
+
 	 i++;
         } 
        return;}
@@ -155,8 +152,8 @@ public:
 			  for(int mat_pos=0; mat_pos<L_; mat_pos++)
 			    {
 		
-			      auto expr_real=Expr::constTerm(0.);
-			      auto expr_imag=Expr::constTerm(0.);
+			       auto expr_real=Expr::constTerm(0.);
+			       auto expr_imag=Expr::constTerm(0.);
 
 			      
 			      // determines if first block of zeroth moment blocks
@@ -165,7 +162,8 @@ public:
 			      // gives the shift between real and complex components
 			      int dim=block_shifts[mat_pos];
 			      
-
+			      //auto exp_real_pt = new ndarray<Expression::t,1>(shape(L_));
+			      //auto exp_imag_pt = new ndarray<Expression::t,1>(shape(L_));			      
 			      for(int pos=0; pos<L_; pos++)
 			    {
 			      int position_in_G=pos;//?
@@ -176,9 +174,10 @@ public:
 			       double var_real=FT_(pos,mat_pos).real();
 			       double var_imag=FT_(pos,mat_pos).imag();
 
-
+			       //			       (*exp_real_pt)[pos] = Expr::add(Expr::mul(var_real*construct.first.prefac_,construct.first.var_ ),Expr::mul(-1.*var_imag*construct.second.prefac_,construct.second.var_));
+			       //(*exp_imag_pt)[pos] = Expr::add(Expr::mul(var_imag*construct.first.prefac_,construct.first.var_ ) ,Expr::mul(var_real*construct.second.prefac_,construct.second.var_ ));
 			       
-			        expr_real=Expr::add(expr_real, Expr::mul(var_real*construct.first.prefac_,construct.first.var_ ));
+			       expr_real=Expr::add(expr_real, Expr::mul(var_real*construct.first.prefac_,construct.first.var_ ));
 			       expr_real=Expr::add(expr_real,  Expr::mul(-1.*var_imag*construct.second.prefac_,construct.second.var_)) ;
 
 			       expr_imag=Expr::add(expr_imag,Expr::mul(var_imag*construct.first.prefac_,construct.first.var_ ) );
@@ -187,6 +186,8 @@ public:
 
 		
 			    }
+			      //				 Expression::t expr_real=Expr::add( std::shared_ptr<ndarray<Expression::t,1>>(exp_real_pt) );
+			      // Expression::t expr_imag=Expr::add( std::shared_ptr<ndarray<Expression::t,1>>(exp_imag_pt) );
 			  // real part
 			      M_->constraint( Expr::add( Expr::add(blocks_[mat_pos]->index(i+shift,j+shift), blocks_[mat_pos]->index(i+shift+dim,j+shift+dim)),Expr::mul(-1.,expr_real)), Domain::equalsTo(0.0));	  
 			      //	  M_->constraint( Expr::add(blocks_[mat_pos]->index(i+shift,j+shift),Expr::mul(-1.,expr_real)), Domain::equalsTo(0.0));	  
@@ -203,24 +204,7 @@ public:
 	 i+=1;
        }
 
-       // for(int i=0; i<blocks_.size();i++)
-       // 	 {
-	
-       // 	   int index_shift=block_shifts[i];
-
-       // 	   for(int l=0; l<index_shift;l++)
-       // 	     {
-       // 	       for(int m=l;m<index_shift; m++)
-       // 		 {
-       // 		   //
-       // 		   		   		   M_->constraint( Expr::add(blocks_[i]->index(l,m),Expr::mul(-1.,blocks_[i]->index(l+index_shift,m+index_shift))), Domain::equalsTo(0.0));
-       // 						   M_->constraint( Expr::add(blocks_[i]->index(l,m+index_shift),Expr::mul(1.,blocks_[i]->index(m,l+index_shift))), Domain::equalsTo(0.0));
-		    
-
-       // 		 }
-       // 	     }
-
-       // 	 }
+    
 
       return;}
 

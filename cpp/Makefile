@@ -1,12 +1,8 @@
 
-
-
-
-MOSEK=/home/david/mosek/10.1/tools/platform/linux64x86/
 INC+=-I$(MOSEK)/src/fusion_cxx/
 INC+=-I$(MOSEK)/h/
 INC+=-I./include/
-INC+=-I/home/david/eigen-3.4.0/
+INC+=-I$(EIGEN)
 #########################
 
 CCFLAGS=  -Wno-unused-variable -std=c++17 -O2 -std=gnu++1z
@@ -52,6 +48,9 @@ test_momentum_spins: tests/test_momentum_spins.cpp
 
 test_momentum_spins_eff: tests/test_momentum_spins_eff.cpp
 	g++ -std=c++11 tests/test_momentum_spins_eff.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
+
+test_momentum_spins_dual: tests/test_momentum_spins_dual.cpp
+	g++ -std=c++11 tests/test_momentum_spins_dual.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
 
 
 test: src/test.cpp
