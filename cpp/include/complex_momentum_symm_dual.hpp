@@ -5,6 +5,7 @@
 #include <memory>
 #include"symmetries.hpp"
 #include"complex_momentum_parent.hpp"
+#include <chrono>
 using namespace mosek::fusion;
 using namespace monty;
 const double pi = std::acos(-1.0);
@@ -125,7 +126,7 @@ public:
 	 std::cout<< "start "<<el<< " , "<<mat_org.variable_index<<std::endl;    
 	  mat_org.add_values( int_pair(el,mat_org.variable_index), 1.);
 	  mat_org.b[ mat_org.variable_index]+=1;
-	  second_block[el]=Expr::add(second_block[el],mat_org.variables->index(mat_org.variable_index));
+	  //second_block[el]=Expr::add(second_block[el],mat_org.variables->index(mat_org.variable_index));
 	  mat_org.variable_index+=1;
 	 
        }
@@ -160,7 +161,7 @@ public:
   mat_org.add_values( int_pair(el,mat_org.variable_index),-1.*fac.real()*std::sqrt(L_));
   mat_org.b[ mat_org.variable_index]+= -1.*fac.real()*std::sqrt(L_);
 
-  	 second_block[el]=Expr::add(second_block[el],Expr::mul(mat_org.variables->index(mat_org.variable_index),-1.*fac.real()*std::sqrt(L_)));
+  	 //second_block[el]=Expr::add(second_block[el],Expr::mul(mat_org.variables->index(mat_org.variable_index),-1.*fac.real()*std::sqrt(L_)));
 	 
   mat_org.variable_index+=1;
 	        }
@@ -175,7 +176,7 @@ public:
 first_blocks_[0].push_back(Expr::mul(mat_org.variables->index(mat_org.variable_index),Beta_i));
  mat_org.add_values( int_pair(el,mat_org.variable_index),  -1.*fac.imag());
  
- second_block[el]=Expr::add(second_block[el],Expr::mul(mat_org.variables->index(mat_org.variable_index),-1.*fac.imag()));
+ //second_block[el]=Expr::add(second_block[el],Expr::mul(mat_org.variables->index(mat_org.variable_index),-1.*fac.imag()));
  
  mat_org.b[ mat_org.variable_index]+= -1.*fac.imag();
 
@@ -192,7 +193,9 @@ first_blocks_[0].push_back(Expr::mul(mat_org.variables->index(mat_org.variable_i
   void  generate_block(matrix_organizer& mat_org,std::vector<Expression::t>& second_block)
   {
     int i=0;
+      std::cout<< "start "<<std::endl;
 
+    const auto start{std::chrono::steady_clock::now()};
     for(auto it1=operators_.begin(); it1!=operators_.end(); ++it1)
        {
 	 int j=i;
@@ -231,10 +234,10 @@ first_blocks_[0].push_back(Expr::mul(mat_org.variables->index(mat_org.variable_i
 			       double var_imag=FT_(pos,mat_pos).imag();
 // 			    
 			       mat_org.add_values( int_pair(construct.first.pos_,mat_org.variable_index),(-1)*var_real*construct.first.prefac_);
-			       second_block[construct.first.pos_]=Expr::add(second_block[construct.first.pos_],Expr::mul(mat_org.variables->index(mat_org.variable_index),(-1)*var_real*construct.first.prefac_));
+			    //   second_block[construct.first.pos_]=Expr::add(second_block[construct.first.pos_],Expr::mul(mat_org.variables->index(mat_org.variable_index),(-1)*var_real*construct.first.prefac_));
 			       
 			       mat_org.add_values( int_pair(construct.second.pos_,mat_org.variable_index),(-1.)*(-1)*var_imag*construct.second.prefac_);
-			     second_block[construct.second.pos_]=Expr::add(second_block[construct.second.pos_],Expr::mul(mat_org.variables->index(mat_org.variable_index),(-1.)*(-1)*var_imag*construct.second.prefac_));
+			   //  second_block[construct.second.pos_]=Expr::add(second_block[construct.second.pos_],Expr::mul(mat_org.variables->index(mat_org.variable_index),(-1.)*(-1)*var_imag*construct.second.prefac_));
 			     
  			       sum_real+=(-1)*var_real*construct.first.prefac_;
 
@@ -246,10 +249,10 @@ first_blocks_[0].push_back(Expr::mul(mat_org.variables->index(mat_org.variable_i
 			       mat_org.add_values( int_pair( construct.first.pos_,mat_org.variable_index+1),(-1)*var_imag*construct.first.prefac_);
 	  mat_org.add_values( int_pair( construct.second.pos_,mat_org.variable_index+1),(-1)*var_real*construct.second.prefac_);		       
 // 	     		    
-     second_block[construct.first.pos_]=Expr::add(second_block[construct.first.pos_],Expr::mul(mat_org.variables->index(mat_org.variable_index+1),(-1)*var_imag*construct.first.prefac_));
+    //  second_block[construct.first.pos_]=Expr::add(second_block[construct.first.pos_],Expr::mul(mat_org.variables->index(mat_org.variable_index+1),(-1)*var_imag*construct.first.prefac_));
 	     
 
-	     second_block[construct.second.pos_]=Expr::add(second_block[construct.second.pos_],Expr::mul(mat_org.variables->index(mat_org.variable_index+1),(-1)*var_real*construct.second.prefac_));
+	  //    second_block[construct.second.pos_]=Expr::add(second_block[construct.second.pos_],Expr::mul(mat_org.variables->index(mat_org.variable_index+1),(-1)*var_real*construct.second.prefac_));
 
 	     
   	     sum_imag+=(-1)*var_imag*construct.first.prefac_;
@@ -270,23 +273,23 @@ first_blocks_[0].push_back(Expr::mul(mat_org.variables->index(mat_org.variable_i
 		  
   
 	   {
-	  std::vector<double> val={1./2,1./2};
-	  std::vector<int> row={i+shift, i+shift+dim };
-	  std::vector<int> col={j+shift,j+shift+dim};
+	  std::vector<double> val={1./2,1./2, 1./2, 1./2};
+	  std::vector<int> row={i+shift, j+shift,i+shift+dim,j+shift+dim };
+	  std::vector<int> col={j+shift,i+shift,j+shift+dim,i+shift+dim};
         Matrix::t Beta_i  = Matrix::sparse(2*dim,2*dim, nint(row), nint(col), ndou(val));
-	Matrix::t Beta_i_t=Matrix::sparse(2*dim,2*dim, nint(col), nint(row), ndou(val));
+
 	first_blocks_[mat_pos].push_back(Expr::mul(Beta_i,mat_org.variables->index(mat_org.variable_index)));
-	first_blocks_[mat_pos].push_back(Expr::mul(Beta_i_t,mat_org.variables->index(mat_org.variable_index)));
+	
 	}
 	 
  	{
-	  std::vector<double> val={1./2,-1./2};
-	 std::vector<int> row={i+shift,j+shift };
-	 std::vector<int> col={dim+j+shift,dim+i+shift};
+	  std::vector<double> val={1./2,1./2, -1./2, -1./2};
+	 std::vector<int> row={i+shift,dim+j+shift,j+shift,dim+i+shift, };
+	 std::vector<int> col={dim+j+shift,i+shift,dim+i+shift,j+shift};
 	 Matrix::t Beta_i  = Matrix::sparse(2*dim,2*dim, nint(row), nint(col), ndou(val));
-	 Matrix::t Beta_i_t  = Matrix::sparse(2*dim,2*dim, nint(col), nint(row), ndou(val));
+	 //Matrix::t Beta_i_t  = Matrix::sparse(2*dim,2*dim, nint(col), nint(row), ndou(val));
 	 first_blocks_[mat_pos].push_back(Expr::mul(Beta_i,mat_org.variables->index(mat_org.variable_index+1)));
-	 first_blocks_[mat_pos].push_back( Expr::mul(Beta_i_t,mat_org.variables->index(mat_org.variable_index+1)));
+	 //first_blocks_[mat_pos].push_back( Expr::mul(Beta_i_t,mat_org.variables->index(mat_org.variable_index+1)));
 	}
 		 mat_org.variable_index+=2;  
 	
@@ -303,7 +306,9 @@ first_blocks_[0].push_back(Expr::mul(mat_org.variables->index(mat_org.variable_i
 	 i+=1;
        }
 
-
+     const auto end{std::chrono::steady_clock::now()};
+     const std::chrono::duration<double> elapsed_seconds{end - start};
+    std::cout<< "time "<< elapsed_seconds.count()<<std::endl;
        return;}
 
   void set_matrices_in_PSDcone()

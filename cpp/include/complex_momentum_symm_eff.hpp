@@ -135,7 +135,9 @@ public:
        return;}
    void  generate_block(){
   
-     
+          std::cout<< "start "<<std::endl;
+
+    const auto start{std::chrono::steady_clock::now()};
 
     int i=0;
     for(auto it1=operators_.begin(); it1!=operators_.end(); ++it1)
@@ -204,7 +206,9 @@ public:
 	 i+=1;
        }
 
-    
+         const auto end{std::chrono::steady_clock::now()};
+     const std::chrono::duration<double> elapsed_seconds{end - start};
+    std::cout<< "time "<< elapsed_seconds.count()<<std::endl;
 
       return;}
 

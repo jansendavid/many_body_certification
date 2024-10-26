@@ -617,6 +617,121 @@ for(int i=0; i<Ly;i++)
     std::cout<<std::setprecision(9)<<M->primalObjValue()/Ly -2*J1/4-2*2*J1/4-2*J2/4-2*2*J2/4 <<std::endl;
 	  
     //std::cout<<std::setprecision(9)<<M->primalObjValue()/Ly -2*J1/4-2*2*J1/4-2*J2/4-2*2*J2/4 <<std::endl;-0.645428034
+	  if(Lx==6)
+	  {
+		if(std::abs(-0.645428092-(M->primalObjValue()/Ly -2*J1/4-2*2*J1/4-2*J2/4-2*2*J2/4))>1e-8)
+		{
+		std::cout<< "converged "<<std::endl;
+		}
+	  }
+
+	  //	   if(std::abs(sol+0.44670126)>1e-06)
+	  // {std::cout<<"error, not converging properly"<<std::endl;}
+	    return;
+}
+
+void test_J1J2_2d_2()
+{
+
+  int Lx=6;
+  int Ly=6;
+ basis_structure states;
+  std::vector<op_vec> v_block_0;
+  std::vector<op_vec> v_block_1;
+  std::vector<op_vec> v_block_2;
+  std::vector<op_vec> v_block_3;
+  states.insert({0, v_block_0});
+  states.insert({1, v_block_1});
+  states.insert({2, v_block_2});
+  states.insert({3, v_block_3});
+std::map<std::pair<int,int>, int> map_sec;
+
+ map_sec.insert({std::pair<int,int>(1,1), 0});
+  map_sec.insert({std::pair<int,int>(1,-1), 1});
+  map_sec.insert({std::pair<int,int>(-1,1), 2});
+    map_sec.insert({std::pair<int,int>(-1,-1), 3});
+ 
+       std::vector<std::string> dirs={"x", "y", "z"};
+	   	 for(int i=0; i<Ly;i++)
+	 {
+
+	   for(auto s: dirs){
+	    
+	     op_vec v0={spin_op(s, {i,0}, Lx)};
+	     add_state(states, v0, map_sec);
+
+
+	    }
+	 }
+       for(int i=0; i<Ly;i++)
+	 {
+	   auto mn=std::min(i, (i+1)%Ly);
+	   auto mx=std::max(i, (i+1)%Ly);
+	   for(int s1=0; s1<dirs.size(); s1++){
+	    {
+		for(int s2=s1; s2<dirs.size(); s2++){
+	     op_vec v0={spin_op(dirs[s1], {i,0}, Lx),spin_op(dirs[s2], {i,1}, Lx)};
+	     add_state(states, v0, map_sec);
+	     op_vec v1={spin_op(dirs[s1], {mn,0}, Lx),spin_op(dirs[s2], {mx,0}, Lx)};
+	     add_state(states, v1, map_sec);
+		}
+		}
+	    }
+	 }
+       for(int i=0; i<Ly;i++)
+	 {
+	   auto mn=std::min(i, (i+2)%Ly);
+	   auto mx=std::max(i, (i+2)%Ly);
+	   for(int s1=0; s1<dirs.size(); s1++){
+	    {
+		for(int s2=s1; s2<dirs.size(); s2++){
+	     op_vec v0={spin_op(dirs[s1], {i,0}, Lx),spin_op(dirs[s2], {i,2}, Lx)};
+	     add_state(states, v0, map_sec);
+	     op_vec v1={spin_op(dirs[s1], {mn,0}, Lx),spin_op(dirs[s2], {mx,0}, Lx)};
+	     add_state(states, v1, map_sec);
+		}
+		}
+	    }
+	 }
+   
+    Model::t M = new Model("sdo1");
+    auto _M = finally([&]() { M->dispose(); });
+    auto basis =momentum_basis_dual(Lx,states,M, "xyz");
+    // for(auto a: basis.TI_map_)
+    //  {std::cout<< a.first << " -> "<<a.second.first<<std::endl;}
+    double J1=1;
+    double J2=0.2;
+    
+
+
+    auto C=define_J1J2_2d_dual( basis.total_refs_,basis.TI_map_, J1,J2,  Ly, Lx);
+     basis.set_C(C);
+    // // // std::cout<< "returned "<<std::endl;
+    
+    // //  // // ADD C
+     
+     
+      basis.prep_SDP();
+ 
+ 
+
+    // // // // //  // FIX last constarins
+      auto h=basis.get_costfunction();
+
+
+      // //   std::cout<< "cf"<<std::endl;
+     		   basis.M_->objective(ObjectiveSense::Maximize, h);
+    // 		         std::cout<< "cf"<<std::endl;
+	M->dataReport();
+	M->setLogHandler([=](const std::string & msg) { std::cout << msg << std::flush; } );
+     basis.M_->solve();
+	  
+	  
+    std::cout << "Solution : " << std::endl;
+ 
+    std::cout<<std::setprecision(9)<<M->primalObjValue()/Ly -2*J1/4-2*2*J1/4-2*J2/4-2*2*J2/4 <<std::endl;
+	  
+    //std::cout<<std::setprecision(9)<<M->primalObjValue()/Ly -2*J1/4-2*2*J1/4-2*J2/4-2*2*J2/4 <<std::endl;-0.645428034
 	  
 
 	  //	   if(std::abs(sol+0.44670126)>1e-06)

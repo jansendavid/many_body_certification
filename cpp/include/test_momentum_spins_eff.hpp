@@ -502,8 +502,8 @@ for(int i=0; i<Ly;i++)
 void test_J1J2_2d()
 {
 
-  int Lx=4;
-  int Ly=4;
+  int Lx=6;
+  int Ly=6;
  basis_structure states;
   std::vector<op_vec> v_block_0;
   std::vector<op_vec> v_block_1;
@@ -560,17 +560,17 @@ for(int i=0; i<Ly;i++)
 	 }
 
     std::vector<string_pair> occ={string_pair("x","y"),string_pair("y","x"),string_pair("y","z"),string_pair("z","y"),string_pair("x","z"),string_pair("z","x")};   
-	 //        for(int i=0; i<Ly;i++)
-	 // {
-	 //   auto mn=std::min(i, (i+1)%Ly);
-	 //   auto mx=std::max(i, (i+1)%Ly);
-	 //   for(auto a: occ){
-	 //     op_vec v0={spin_op(a.first, {i,0}, Lx),spin_op(a.second, {i,1}, Lx)};
-	 //     add_state(states, v0, map_sec);
-	 //     op_vec v1={spin_op(a.first, {mn,0}, Lx),spin_op(a.second, {mx,0}, Lx)};
-	 //     add_state(states, v1, map_sec);
-	 //   }
-	 // }
+	        for(int i=0; i<Ly;i++)
+	 {
+	   auto mn=std::min(i, (i+1)%Ly);
+	   auto mx=std::max(i, (i+1)%Ly);
+	   for(auto a: occ){
+	     op_vec v0={spin_op(a.first, {i,0}, Lx),spin_op(a.second, {i,1}, Lx)};
+	     add_state(states, v0, map_sec);
+	     op_vec v1={spin_op(a.first, {mn,0}, Lx),spin_op(a.second, {mx,0}, Lx)};
+	     add_state(states, v1, map_sec);
+	   }
+	 }
     Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
     auto basis =momentum_basis_eff(Lx,states,M,"xyz");
     // for(auto a: basis.TI_map_)
@@ -578,8 +578,12 @@ for(int i=0; i<Ly;i++)
     double J1=1;
     double J2=0.2;
     
-     auto h=define_J1J2_2d( basis.total_refs_,basis.TI_map_, J1, J2, Ly, Lx);
-    
+     auto C=define_J1J2_2d_dual( basis.total_refs_,basis.TI_map_, J1, J2, Ly, Lx);
+ 
+       basis.set_C(C);
+      auto h=basis.get_costfunction();
+
+
     basis.M_->objective(ObjectiveSense::Minimize, h);
 		  basis.M_->dataReport();
 	  M->setLogHandler([=](const std::string & msg) { std::cout << msg << std::flush; } );
