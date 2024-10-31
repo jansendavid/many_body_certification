@@ -633,8 +633,8 @@ for(int i=0; i<Ly;i++)
 void test_J1J2_2d_2()
 {
 
-  int Lx=6;
-  int Ly=6;
+  int Lx=10;
+  int Ly=10;
  basis_structure states;
   std::vector<op_vec> v_block_0;
   std::vector<op_vec> v_block_1;
