@@ -202,6 +202,10 @@ public:
 	   {
 	 check_if_operator_exists(vec, mat_terms);
 	   }
+	   else{
+		
+		TI_map_.insert({print_op(vec), { "0",1}});
+	   }
 
     for(auto it2=it1; it2!=operators_.end(); ++it2)
       {

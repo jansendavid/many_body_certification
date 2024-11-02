@@ -92,7 +92,7 @@ public:
       	std::vector<double> val={1.,1.};
      	std::vector<int> row={0, dim_0};
      	std::vector<int> col={0, dim_0};
-     	Matrix::t Alpha  = Matrix::dense(Matrix::sparse(2*(dim_0),2*(dim_0), nint(row), nint(col), ndou(val)));
+     	Matrix::t Alpha  = (Matrix::sparse(2*(dim_0),2*(dim_0), nint(row), nint(col), ndou(val)));
 	first_blocks_.push_back({});
 	first_blocks_[0].push_back(Expr::mul(mat_org.variables->index(mat_org.variable_index),Alpha));
 	mat_org.b[ mat_org.variable_index]+=1;
