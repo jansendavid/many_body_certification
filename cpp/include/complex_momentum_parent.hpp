@@ -73,7 +73,45 @@ struct G_el{
   }
 
   
+ std::pair<G_el,G_el> generate_single_G_element_y(op_vec op1, op_vec op2, std::string key, int j, int i)
+  {
+// Generate all elements of the first row with translation in y direction. j go in y direction
 
+    auto op_dagger=dagger_operator(op1);
+    op_vec new_op_y;
+	op_vec new_op;
+	if(j>0)
+	{
+new_op_y=translation_y(op2, j, L_);
+	}
+	else{
+
+		new_op_y=op2;
+	}
+    if(i>0)
+      {
+	new_op=translation(new_op_y, i, L_);
+      }
+    else{
+      new_op=new_op_y;
+    }
+    auto v_x=op_dagger;
+    
+    v_x.insert(v_x.end(), new_op.begin(),new_op.end());
+     auto [fac, vec] =get_normal_form(v_x);
+     auto [ti_key,ti_val]=TI_map_.at(print_op(vec));
+     
+       auto el=total_refs_.at(ti_key);
+       cpx total_fac=fac;//fac*ti_val;
+
+       auto real_val=G_el(total_fac.real(), el);
+       
+       //        M_->constraint( Expr::add(G_variables_imag.at(key+"_imag")->index(i),Expr::mul(-1.*total_fac.imag(),el.var_)), Domain::equalsTo(0.0));
+	auto imag_val=G_el(total_fac.imag(), el);
+	std::pair<G_el,G_el> construct(real_val, imag_val);
+     return construct;
+    
+  }
 
 
 
@@ -235,6 +273,70 @@ public:
      check_if_operator_exists(vec_tot, mat_terms);
 
 
+     	  }
+
+     
+     
+       }
+   }
+   return;
+	}
+	
+
+   void generate_TI_map_xy(std::map<std::string, op_vec>& mat_terms){
+//     // generate all elemenets with translation symmetrie in x and y direction
+
+     int index=0;
+     for(auto it1=operators_.begin(); it1!=operators_.end(); ++it1)
+       {
+	 auto [fac, vec] =get_normal_form(*it1);
+	 if(is_zero_)
+	   {
+	 check_if_operator_exists(vec, mat_terms);
+	   }
+	   else{
+		
+		TI_map_.insert({print_op(vec), { "0",1}});
+	   }
+
+    for(auto it2=it1; it2!=operators_.end(); ++it2)
+      {
+
+
+	auto op_cp=*it2;
+	for(int n=0; n<L_;n++ )
+	  {
+	for(int m=0; m<L_;m++ )
+	  {
+		op_vec new_op_y;
+	    op_vec new_op;
+	    if(m>0)
+	      {
+	
+		new_op_y=translation_y(op_cp, m, L_);
+	      }
+	    else{
+	      new_op_y=op_cp;}
+
+	    if(n>0)
+	      {
+	
+		new_op=translation(new_op_y, n, L_);
+	      }
+	    else{
+	      new_op=new_op_y;}
+
+     auto v_x=dagger_operator(*it1);
+     v_x.insert(v_x.end(), new_op.begin(),new_op.end());
+
+
+     auto [fac_tot, vec_tot] =get_normal_form(v_x);
+     
+
+     check_if_operator_exists(vec_tot, mat_terms);
+
+
+	  }
      	  }
 
      
