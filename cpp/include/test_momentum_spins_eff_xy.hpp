@@ -502,201 +502,9 @@ void test_multiple_blocks_higher_order_2d_rdm()
   std::cout<< "WARNING! Takes a lot of memory"<<std::endl;
   int Lx=4;
   int Ly=4;
- basis_structure states=get_basis_2d(Lx, int(Lx/2));
-  // std::vector<op_vec> v_block_0;
-  // std::vector<op_vec> v_block_1;
-  // std::vector<op_vec> v_block_2;
-  // std::vector<op_vec> v_block_3;
-  // states.insert({0, v_block_0});
-  // states.insert({1, v_block_1});
-  // states.insert({2, v_block_2});
-  // states.insert({3, v_block_3});
-  // std::map<std::pair<int,int>, int> map_sec;
-  //     map_sec.insert({std::pair<int,int>(1,1), 0});
-  // map_sec.insert({std::pair<int,int>(1,-1), 1});
-  // map_sec.insert({std::pair<int,int>(-1,1), 2});
-  //   map_sec.insert({std::pair<int,int>(-1,-1), 3});
+ basis_structure states=get_basis_2d(Lx, 2);
+
  
-  //      std::vector<std::string> dirs={"x", "y", "z"};
-
-	//    for(auto s1: dirs){
-	//       for(auto s2: dirs){
-	     
-  //      {op_vec v0={spin_op(s1, {0,0}, Lx),spin_op(s2, {0,1}, Lx)};
-	//      add_state(states, v0, map_sec);
-	// 	 }
-	// 	      {op_vec v0={spin_op(s1, {0,0}, Lx),spin_op(s2, {1,0}, Lx)};
-	//      add_state(states, v0, map_sec);
-	// 	 }
-	//     }
-  //    }
-
-  //    	   for(auto s1: dirs){
-	//       for(auto s2: dirs){
-	     
-  //      {op_vec v0={spin_op(s1, {0,0}, Lx),spin_op(s2, {0,2}, Lx)};
-	//      add_state(states, v0, map_sec);
-	// 	 }
-	// 	      {op_vec v0={spin_op(s1, {0,0}, Lx),spin_op(s2, {2,0}, Lx)};
-	//      add_state(states, v0, map_sec);
-	// 	 }
-	//     }
-  //    }
-  //         	   for(auto s1: dirs){
-	//       for(auto s2: dirs){
-  //          for(auto s3: dirs){
-	     
-  //      {op_vec v0={spin_op(s1, {0,0}, Lx),spin_op(s2, {0,1}, Lx),spin_op(s2, {0,2}, Lx)};
-	//      add_state(states, v0, map_sec);
-	// 	 }
-		 
-	//     }
-  //       }
-  //    }
-
-// 	       for(int i=0; i<1;i++)
-// 	 {
-// 	   auto mn=std::min(i, (Ly-1)%Ly);
-// 	   auto mx=std::max(i, (Ly-1)%Ly);
-// 	   for(auto s: dirs){
-	    
-// 	     op_vec v0={spin_op(s, {i,0}, Lx),spin_op(s, {i,Ly-1}, Lx)};
-// 	     add_state(states, v0, map_sec);
-// 	     op_vec v1={spin_op(s, {mn,0}, Lx),spin_op(s, {mx,0}, Lx)};
-// 	     add_state(states, v1, map_sec);
-
-// 	    }
-// 	 }
-//        for(int i=0; i<1;i++)
-// 	 {
-// 	   auto mn=std::min(i, (i+2)%Ly);
-// 	   auto mx=std::max(i, (i+2)%Ly);
-// 	   for(auto s: dirs){
-	    
-// 	     op_vec v0={spin_op(s, {i,0}, Lx),spin_op(s, {i,2}, Lx)};
-// 	     add_state(states, v0, map_sec);
-// 	     op_vec v1={spin_op(s, {mn,0}, Lx),spin_op(s, {mx,0}, Lx)};
-// 	     add_state(states, v1, map_sec);
-
-// 	    }
-// 	 }
-// 	        for(int i=0; i<1;i++)
-// 	 {
-// 	   auto mn=std::min(i, (Ly-2)%Ly);
-// 	   auto mx=std::max(i, (Ly+2)%Ly);
-// 	   for(auto s: dirs){
-	    
-// 	     op_vec v0={spin_op(s, {i,0}, Lx),spin_op(s, {i,Ly-2}, Lx)};
-// 	     add_state(states, v0, map_sec);
-// 	     op_vec v1={spin_op(s, {mn,0}, Lx),spin_op(s, {mx,0}, Lx)};
-// 	     add_state(states, v1, map_sec);
-
-// 	    }
-// 	 }
-
-       
-
-
-	  //  for(auto s: dirs){
-	    
-	  //    op_vec v0={spin_op(s, {0,0}, Lx)};
-	  //    add_state(states, v0, map_sec);
-
-
-	  //   }
-	 
-
-
-       
-//       std::vector<string_pair> occ={string_pair("x","y"),string_pair("y","x"),string_pair("y","z"),string_pair("z","y"),string_pair("x","z"),string_pair("z","x")};   
-// 	        for(int i=0; i<1;i++)
-// 	 {
-// 	   auto mn=std::min(i, (i+1)%Ly);
-// 	   auto mx=std::max(i, (i+1)%Ly);
-// 	   for(auto a: occ){
-// 	     op_vec v0={spin_op(a.first, {i,0}, Lx),spin_op(a.second, {i,1}, Lx)};
-// 	     add_state(states, v0, map_sec);
-// 	     op_vec v1={spin_op(a.first, {mn,0}, Lx),spin_op(a.second, {mx,0}, Lx)};
-// 	     add_state(states, v1, map_sec);
-// 	   }
-// 	 }
-// 			        for(int i=0; i<Ly;i++)
-// 	 {
-// 	   auto mn=std::min(i, (i+2)%Ly);
-// 	   auto mx=std::max(i, (i+2)%Ly);
-// 	   for(auto a: occ){
-// 	     op_vec v0={spin_op(a.first, {i,0}, Lx),spin_op(a.second, {i,2}, Lx)};
-// 	     add_state(states, v0, map_sec);
-// 	     op_vec v1={spin_op(a.first, {mn,0}, Lx),spin_op(a.second, {mx,0}, Lx)};
-// 	     add_state(states, v1, map_sec);
-// 	   }
-// 	 }
-// 	 	        for(int i=0; i<1;i++)
-// 	 {
-// 	   auto mn=std::min(i, (Ly-1)%Ly);
-// 	   auto mx=std::max(i, (Ly-1)%Ly);
-// 	   for(auto a: occ){
-// 	     op_vec v0={spin_op(a.first, {i,0}, Lx),spin_op(a.second, {i,Ly-1}, Lx)};
-// 	     add_state(states, v0, map_sec);
-// 	     op_vec v1={spin_op(a.first, {mn,0}, Lx),spin_op(a.second, {mx,0}, Lx)};
-// 	     add_state(states, v1, map_sec);
-// 	   }
-// 	 }
-// 			        for(int i=0; i<1;i++)
-// 	 {
-// 	   auto mn=std::min(i, (Ly-2)%Ly);
-// 	   auto mx=std::max(i, (Ly-2)%Ly);
-// 	   for(auto a: occ){
-// 	     op_vec v0={spin_op(a.first, {i,0}, Lx),spin_op(a.second, {i,Ly-2}, Lx)};
-// 	     add_state(states, v0, map_sec);
-// 	     op_vec v1={spin_op(a.first, {mn,0}, Lx),spin_op(a.second, {mx,0}, Lx)};
-// 	     add_state(states, v1, map_sec);
-// 	   }
-// 	 }
-// 	for(auto s1: dirs)
-// 	{
-// for(auto s2: dirs)
-// {
-// for(auto s3: dirs)
-// {
-// 	     op_vec v0={spin_op(s1, {0,0}, Lx),spin_op(s2, {0,1}, Lx),spin_op(s3, {0,2}, Lx)};
-// 	     add_state(states, v0, map_sec);
-
-// }
-
-// }
-
-// 	}
-// 	for(auto s1: dirs)
-// 	{
-// for(auto s2: dirs)
-// {
-// for(auto s3: dirs)
-// {
-// 	for(auto s4: dirs){
-// 	     op_vec v0={spin_op(s1, {0,0}, Lx),spin_op(s2, {0,1}, Lx),spin_op(s3, {0,2}, Lx),spin_op(s4, {0,3}, Lx)};
-// 	     add_state(states, v0, map_sec);
-// 	}
-// }
-
-// }
-
-// 	}
-// 		for(auto s1: dirs)
-// 	{
-// for(auto s2: dirs)
-// {
-// for(auto s3: dirs)
-// {
-// 	for(auto s4: dirs){
-// 	     op_vec v0={spin_op(s1, {0,0}, Lx),spin_op(s2, {1,0}, Lx),spin_op(s3, {2,0}, Lx),spin_op(s4, {3,0}, Lx)};
-// 	     add_state(states, v0, map_sec);
-// 	}
-// }
-
-// }
-
-// 	}
 for(auto a: states)
 {
 
@@ -718,12 +526,12 @@ for(auto a: states)
 	  
 	//   {std::pair<int,int> a(0,0);
 	//   std::pair<int,int> b(1,0);
-	// generate_rmds_primal({a, b},basis.total_refs_,basis.TI_map_ , basis.variables_, Lx, M);
+	// //generate_rmds_primal({a, b},basis.total_refs_,basis.TI_map_ , basis.variables_, Lx, M);
 	//   }
 	//     {std::pair<int,int> a(0,0);
 	//   std::pair<int,int> b(0,1);
 	//    std::pair<int,int> c(0,2);
-	// generate_rmds_primal({a, b, c},basis.total_refs_,basis.TI_map_ , basis.variables_, Lx, M);
+	// //generate_rmds_primal({a, b, c},basis.total_refs_,basis.TI_map_ , basis.variables_, Lx, M);
 	//   }
     basis.M_->objective(ObjectiveSense::Minimize, h);
 		  basis.M_->dataReport();

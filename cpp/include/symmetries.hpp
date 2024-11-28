@@ -279,7 +279,7 @@ std::vector<op_vec> generate_all_permutations_xyz(op_vec op)
 }
   basis_structure get_basis_2d(int L, int r)
   {
-
+std::set <std::string> states_strings;
  basis_structure states;
       std::vector<op_vec> v_block_0;
   std::vector<op_vec> v_block_1;
@@ -297,30 +297,46 @@ std::vector<op_vec> generate_all_permutations_xyz(op_vec op)
  
        std::vector<std::string> dirs={"x", "y", "z"};
 
+
 	   for(auto s: dirs){
 	    
 	     op_vec v0={spin_op(s, {0,0}, L)};
-	     add_state(states, v0, map_sec);
+       const bool is_in = states_strings.find(print_op(v0)) != states_strings.end();
+       if(not is_in)
+       {add_state(states, v0, map_sec);}
 
 
 	    }
-      for(int i=-r; i<=r; i++)
+      int SS=0;
+      for(int i=0; i<=r; i++)
       {
-          for(int j=-r; j<=r; j++)
+     
+          for(int j=0; j<=r; j++)
       {
         for(auto s1: dirs){
 	     
        for(auto s2: dirs){
-	     
        {
-        if(i!=0 and j!=0)
+        
+        if(i!=0 or j!=0)
         {
           int ind1=(L+i)%L;
           int ind2=(L+j)%L;
         op_vec v0={spin_op(s1, {0,0}, L),spin_op(s2, {ind1, ind2}, L)};
-	   std::cout<< "print "<<print_op(v0)<<std::endl;
+
+	
         auto [fac, vec] =get_normal_form(v0);
-	     add_state(states, vec, map_sec);
+         const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
+
+       if(not is_in)
+       {
+    
+        add_state(states, vec, map_sec);
+        
+        }
+      
+
+	     
         }
 		 }
 		   
@@ -328,47 +344,72 @@ std::vector<op_vec> generate_all_permutations_xyz(op_vec op)
      }
       }
       }
-  
-    //    	   for(auto s1: dirs){
-	  //     for(auto s2: dirs){
-    //        for(auto s3: dirs){
+ 
+       	   for(auto s1: dirs){
+	      for(auto s2: dirs){
+           for(auto s3: dirs){
 	     
-    //    {
-    //     op_vec v0={spin_op(s1, {0,0}, L),spin_op(s2, {0,1}, L),spin_op(s3, {1,1}, L)};
-    //     auto [fac, vec] =get_normal_form(v0);
-	  //    add_state(states, vec, map_sec);
-		//  }
-    //   {
-    //     op_vec v0={spin_op(s1, {0,0}, L),spin_op(s2, {0,1}, L),spin_op(s3, {L-1,1}, L)};
-	  //    auto [fac, vec] =get_normal_form(v0);
-	  //    add_state(states, vec, map_sec);
-		//  }
-    //  {
-    //       op_vec v0={spin_op(s1, {0,0}, L),spin_op(s2, {1,0}, L),spin_op(s3, {1,1}, L)};
-	  //    auto [fac, vec] =get_normal_form(v0);
-	  //    add_state(states, vec, map_sec);
-		//  }
-    //     {
-    //       op_vec v0={spin_op(s1, {0,0}, L),spin_op(s2, {L-1,0}, L),spin_op(s3, {L-1,1}, L)};
-	  //    auto [fac, vec] =get_normal_form(v0);
-	  //    add_state(states, vec, map_sec);
-		//  }
-    //   {
-    //       op_vec v0={spin_op(s1, {0,0}, L),spin_op(s2, {1,0}, L),spin_op(s3, {2,0}, L)};
-	  //    auto [fac, vec] =get_normal_form(v0);
-	  //    add_state(states, vec, map_sec);
-		//  }
-    //     {
-    //       op_vec v0={spin_op(s1, {0,0}, L),spin_op(s2, {0,1}, L),spin_op(s3, {0,2}, L)};
-	  //    auto [fac, vec] =get_normal_form(v0);
-	  //    add_state(states, vec, map_sec);
-		//  }
+       {
+        op_vec v0={spin_op(s1, {0,0}, L),spin_op(s2, {0,1}, L),spin_op(s3, {1,1}, L)};
+        auto [fac, vec] =get_normal_form(v0);
+	         const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
+       if(not is_in)
+       {add_state(states, vec, map_sec);}
+
+		 }
+      {
+        op_vec v0={spin_op(s1, {0,0}, L),spin_op(s2, {0,1}, L),spin_op(s3, {L-1,1}, L)};
+	     auto [fac, vec] =get_normal_form(v0);
+	         const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
+       if(not is_in)
+       {add_state(states, vec, map_sec);}
+		 }
+     {
+          op_vec v0={spin_op(s1, {0,0}, L),spin_op(s2, {1,0}, L),spin_op(s3, {1,1}, L)};
+	     auto [fac, vec] =get_normal_form(v0);
+	         const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
+       if(not is_in)
+       {add_state(states, vec, map_sec);}
+		 }
+        {
+          op_vec v0={spin_op(s1, {0,0}, L),spin_op(s2, {L-1,0}, L),spin_op(s3, {L-1,1}, L)};
+	     auto [fac, vec] =get_normal_form(v0);
+	         const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
+       if(not is_in)
+       {add_state(states, vec, map_sec);}
+		 }
+      {
+          op_vec v0={spin_op(s1, {0,0}, L),spin_op(s2, {1,0}, L),spin_op(s3, {2,0}, L)};
+	     auto [fac, vec] =get_normal_form(v0);
+	         const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
+       if(not is_in)
+       {add_state(states, vec, map_sec);}
+		 }
+        {
+          op_vec v0={spin_op(s1, {0,0}, L),spin_op(s2, {0,1}, L),spin_op(s3, {0,2}, L)};
+	     auto [fac, vec] =get_normal_form(v0);
+	         const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
+       if(not is_in)
+       {add_state(states, vec, map_sec);}
+		 }
 		 
-	  //   }
-    //     }
-    //  }
+	    }
+        }
+     }
 
-
+ for(auto s1: dirs){
+	      for(auto s2: dirs){
+           for(auto s3: dirs){
+	     
+       {
+            for(auto s4: dirs){
+	     
+       {
+        op_vec v0={spin_op(s1, {0,0}, L),spin_op(s2, {1,0}, L),spin_op(s3, {0,1}, L),spin_op(s4, {1,1}, L)};
+        auto [fac, vec] =get_normal_form(v0);
+	     add_state(states, vec, map_sec);
+		 }
+            } }}}}
 
        return states;
   }

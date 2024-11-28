@@ -219,19 +219,21 @@ blocks_[0].push_back(M_->variable(block_name, Domain::inPSDCone(2*(dim_x))));
 	  std::vector<int> row={i+shift, j+shift, i+shift+dim,j+shift+dim };
 	  std::vector<int> col={j+shift,i+shift, j+shift+dim,i+shift+dim};
         Matrix::t Beta_i  = Matrix::sparse(2*dim,2*dim, nint(row), nint(col), ndou(val));
-
-M_->constraint( Expr::add( Expr::sum(Expr::mulDiag(blocks_[mat_pos_x][mat_pos_y], Beta_i)),Expr::mul(-1.,expr_real_1)), Domain::equalsTo(0.));	  
+  auto e1=Expr::condense(expr_real_1);
+  
+M_->constraint( Expr::add( Expr::sum(Expr::mulDiag(blocks_[mat_pos_x][mat_pos_y], Beta_i)),Expr::mul(-1.,e1)), Domain::equalsTo(0.));	  
 			      //M_->constraint( Expr::add( Expr::add(blocks_[mat_pos]->index(i+shift,j+shift), blocks_[mat_pos]->index(i+shift+dim,j+shift+dim)),Expr::mul(-1.,expr_real)), Domain::equalsTo(0.0));	  
 			      //	  M_->constraint( Expr::add(blocks_[mat_pos]->index(i+shift,j+shift),Expr::mul(-1.,expr_real)), Domain::equalsTo(0.0));	  
         }
 			  // // imaginary part
         {
+          auto e2=Expr::condense(expr_imag_1);
            std::vector<double> val={1./2,1./2,-1./2, -1./2};
 	 std::vector<int> row={i+shift,dim+j+shift,j+shift, dim+i+shift};
 	 std::vector<int> col={dim+j+shift,i+shift, dim+i+shift,j+shift};
     Matrix::t Beta_i  = Matrix::sparse(2*dim,2*dim, nint(row), nint(col), ndou(val));
 
-M_->constraint( Expr::add( Expr::sum(Expr::mulDiag(blocks_[mat_pos_x][mat_pos_y], Beta_i)),Expr::mul(-1.,expr_imag_1)), Domain::equalsTo(0.));	     
+M_->constraint( Expr::add( Expr::sum(Expr::mulDiag(blocks_[mat_pos_x][mat_pos_y], Beta_i)),Expr::mul(-1.,e2)), Domain::equalsTo(0.));	     
 	//		      M_->constraint( Expr::add(Expr::add(blocks_[mat_pos]->index(i+shift,dim+j+shift),Expr::mul(-1.,blocks_[mat_pos]->index(j+shift,dim+i+shift))),Expr::mul(-1.,expr_imag)), Domain::equalsTo(0.0));
 		//	      M_->constraint( Expr::add(blocks_[mat_pos]->index(i+shift,dim+j+shift),Expr::mul(-1.,expr_imag)), Domain::equalsTo(0.0));
           
@@ -357,6 +359,7 @@ public:
        {
 
 	 b.second.generate_TI_map_xy(mat_terms);
+   std::cout<<"sizes "<< mat_terms.size()<< " adn "<<TI_map_.size()<<std::endl;
 
        }
    

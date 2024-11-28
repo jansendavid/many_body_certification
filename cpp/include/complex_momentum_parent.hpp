@@ -6,7 +6,6 @@
 #include"symmetries.hpp"
 using namespace mosek::fusion;
 using namespace monty;
-using basis_structure =std::map<int, std::vector<op_vec>>;
 using int_pair=std::pair<int,int>;
 using TI_map_type =std::map<std::string, std::pair<std::string, std::complex<double>>>;
 
