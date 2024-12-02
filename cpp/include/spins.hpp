@@ -3,6 +3,7 @@
 #include"string"
 #include <iostream>
 using cpx =std::complex<double>;
+
 class spin_op{
 public:
   std::string dir_;
@@ -101,8 +102,10 @@ std::ostream& operator<<(std::ostream& os, const spin_op& op)
 }
 
 
-
+/////////////////////////////////////////////////////////////////////////
 using op_vec = std::vector<spin_op>;
+using basis_structure =std::map<int, std::vector<op_vec>>;
+/////////////////////////////////////////////////////////////////
 std::string print_op(const op_vec& oper)
 {
   std::string s="";
@@ -261,6 +264,8 @@ std::pair<cpx,op_vec> get_normal_form(op_vec op)
     }
   return std::pair<cpx,op_vec>{pref, new_list};
  }
+
+
 // double sort(op_vec& op, int n)
 // {
 //   sort(op.begin(), op.end(),[](spin_op o1, spin_op o2){return o1.pos()<o2.pos();} );

@@ -14,85 +14,6 @@ using namespace monty;
 using string_pair=std::pair<std::string, std::string>;
 
 // file with spin hamiltonians for translation invariant system
-std::pair<int,int> get_sec(op_vec op)
-{
-  // computes the sector of a given vector of operators
-  // NOTE: all are of the form vec{S_i}vec{S_j} in the Hamiltonian is needed. For e.g., TFI, small modifications must be made
-  int sxy=1;
-  int syz=1;
-  for(auto a: op)
-    {
-      if(a.dir_=="x"){sxy*=-1;}
-      if(a.dir_=="y"){syz*=-1;
-	sxy*=-1;}
-      if(a.dir_=="z"){syz*=-1;}
-      
-    }
-  return std::pair<int,int>(sxy, syz);
-}
-void add_state(basis_structure& states, op_vec op, std::map<std::pair<int,int>, int> map_sec)
-{
-  // adds a state to a basis
-      auto [fac, nf] =get_normal_form(op);
-	     auto sign=get_sec( nf);
-	     if(nf.size()>0)
-	       {
-	     states.at(map_sec.at(sign)).push_back(nf);
-	       }
-	     
-	    
-
-  return;}
-
-void add_state_symm(basis_structure& states, op_vec op, std::map<std::pair<int,int>, int> map_sec, int L, std::string permuts)
-{
-  // adds a state to a basis
-      auto [fac, nf] =get_normal_form(op);
-      auto sign=get_sec( nf);
-      if(nf.size()>0)
-	{
-	  auto all_t=generate_all_translations(nf, L);
-	  bool found=false;
-	  
-	     	 for(auto op_t: all_t)
-	   {
-	     
-	     
-      // 	     // generate all y translations, inc=1
-	      auto all_ty=generate_all_translations_y(op_t, L,1);
-	     for(auto op_ty: all_ty)
-	      {
-      // 	     // generate all permutations
-	   // 	 std::vector<op_vec> all_p;	 
-	   // 	 if(permuts=="xyz")
-	   // 	   {
-	   //    all_p=generate_all_permutations_xyz(op_ty);
-	   // 	   }
-	   // 	 else if(permuts=="xy")
-	   // 	   {
-	   // 	     all_p=generate_all_permutations_xy(op_ty);
-	   // 	   }
-
-	   //   for(auto op_p: all_p)
-	   // { 
-	     
-	     int cnt = count(states.at(map_sec.at(sign)).begin(), states.at(map_sec.at(sign)).end(), op_ty);
-	     if(cnt>0){
-	       found=true;
-	       //}
-	        }
-	       }
-       	   }
-	     if(not found)
-	       {   states.at(map_sec.at(sign)).push_back(nf);}
-       	   }
-	     
-	    
-
-  return;}
-
-
-
 
 
 // HAMILTONIANS WHEN USING TRANSLATION SYMMETRY 
@@ -131,16 +52,21 @@ Expression::t define_xxz1d( std::map<std::string, mom_ref> refs, std::map<std::s
   auto ham=Expr::constTerm(0.);
   std::vector<int> rows;
   std::vector<double> vals;
+
   for(auto term:dirs)
     {
+   
       //for(int i=0; i<Ly; i++)
       //{
 	  // parallel part S_(0,0)S_(1,0),S_(1,0)S_(2,0)... etc
 	  //op_vec v_p={spin_op(term.first, {std::min(i,(i+1)%Ly),0}, Lx),spin_op(term.second, {std::max(i,(i+1)%Ly),0}, Lx)};
 	  op_vec v_p={spin_op(term.first, {0,0}, Lx),spin_op(term.second, {1,0}, Lx)};	  
       auto [fac_p, nf_p] =get_normal_form(v_p);
+     
       auto [ key_p,coeff_map_p]=map.at(print_op(nf_p));  
+    
       auto el_p=refs.at(key_p);
+ 
       double coeff=J;
       if(term==string_pair("z","z")){coeff=Delta;}
       
@@ -151,13 +77,14 @@ Expression::t define_xxz1d( std::map<std::string, mom_ref> refs, std::map<std::s
 
 
 	auto index_1=getIndex(rows,  el_p);
+  
 	if(index_1<0)
 	  {
 	  rows.push_back(el_p);
-	  vals.push_back(Ly*coeff*fac_p.real()*coeff_map_p.real()/4.);
+	  vals.push_back(coeff*fac_p.real()*coeff_map_p.real()/4.);
 	  }
 	else{
-	  vals[index_1]+=Ly*coeff*fac_p.real()*coeff_map_p.real()/4.;
+	  vals[index_1]+=coeff*fac_p.real()*coeff_map_p.real()/4.;
 	}
        }
    
@@ -179,13 +106,13 @@ Expression::t define_xxz1d( std::map<std::string, mom_ref> refs, std::map<std::s
 	if(index_1<0)
 	  {
   rows.push_back(el_t);
-	  vals.push_back(Ly*coeff*fac_t.real()*coeff_map_t.real()/4);
+	  vals.push_back(coeff*fac_t.real()*coeff_map_t.real()/4);
 	  }
 	else{
-	  vals[index_1]+=Ly*coeff*fac_t.real()*coeff_map_t.real()/4.;
+	  vals[index_1]+=coeff*fac_t.real()*coeff_map_t.real()/4.;
 	}
 
-	 std::cout<< "Adding "<<el_t<<std::endl;
+	 
 	
       }
     

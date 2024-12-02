@@ -49,6 +49,10 @@ test_momentum_spins: tests/test_momentum_spins.cpp
 test_momentum_spins_eff: tests/test_momentum_spins_eff.cpp
 	g++ -std=c++11 tests/test_momentum_spins_eff.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
 
+test_momentum_spins_eff_xy: tests/test_momentum_spins_eff_xy.cpp
+	g++ -std=c++11 tests/test_momentum_spins_eff_xy.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
+
+
 test_momentum_spins_dual: tests/test_momentum_spins_dual.cpp
 	g++ -std=c++11 tests/test_momentum_spins_dual.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
 
