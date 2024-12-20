@@ -191,11 +191,7 @@ int main()
 	auto el=terms_mapping.at("1");
 	  M->constraint( y->index(el), Domain::equalsTo(1.0));
 	
-	// for(int i=0; i<dim; i++)
-	// {
-	// matrix_mapping["1"].add_values({i,i},1./2);
 
-	// }
 	auto KK_0=matrix_organizer();
 
 	matrix_mapping["1"].add_values({0,0},1./2);

@@ -37,6 +37,13 @@ struct G_el{
     G_el(double prefac, int pos ) : prefac_(prefac),pos_(pos) {};
             
   };
+
+  struct G_op{
+    std::complex<double> prefac_;
+    std::string op_;
+    G_op(std::complex<double> prefac, std::string op ) : prefac_(prefac),op_(op) {};
+            
+  };
   // generate G element
     // convention, total_refs contains all elements appearing with prefact 1
   std::pair<G_el,G_el> generate_single_G_element(op_vec op1, op_vec op2, std::string key, int i)
@@ -109,6 +116,39 @@ new_op_y=translation_y(op2, j, L_);
 	auto imag_val=G_el(total_fac.imag(), el);
 	std::pair<G_el,G_el> construct(real_val, imag_val);
      return construct;
+    
+  }
+
+  G_op generate_single_G_element_sos(op_vec op1, op_vec op2, int j, int i)
+  {
+// Generate all elements of the first row with translation in y direction. j go in y direction
+
+    auto op_dagger=dagger_operator(op1);
+    op_vec new_op_y;
+	op_vec new_op;
+	if(j>0)
+	{
+new_op_y=translation_y(op2, j, L_);
+	}
+	else{
+
+		new_op_y=op2;
+	}
+    if(i>0)
+      {
+	new_op=translation(new_op_y, i, L_);
+      }
+    else{
+      new_op=new_op_y;
+    }
+    auto v_x=op_dagger;
+    
+    v_x.insert(v_x.end(), new_op.begin(),new_op.end());
+     auto [fac, vec] =get_normal_form(v_x);
+     auto [ti_key,ti_val]=TI_map_.at(print_op(vec));
+    
+       cpx total_fac=fac;//fac*ti_val;
+     return G_op(total_fac,ti_key);
     
   }
 
@@ -222,10 +262,10 @@ new_op_y=translation_y(op2, j, L_);
 class momentum_block_child: public momentum_block_base{
 public:
 
-  bool is_zero_{0};
+  int sign_sector_{0};
   std::vector<int> block_shifts;
   
-  momentum_block_child(int L,std::vector<op_vec> operators, Model::t M, bool is_zero, TI_map_type& TI_map,std::map<std::string, int>& total_refs, Eigen::MatrixXcd& FT, std::string sector_label="",  std::string permuts="xyz"):is_zero_(is_zero),  momentum_block_base(L, operators, M,TI_map, total_refs,FT, sector_label, permuts){
+  momentum_block_child(int L,std::vector<op_vec> operators, Model::t M,   int sign_sector, TI_map_type& TI_map,std::map<std::string, int>& total_refs, Eigen::MatrixXcd& FT, std::string sector_label="",  std::string permuts="xyz"):sign_sector_(sign_sector),  momentum_block_base(L, operators, M,TI_map, total_refs,FT, sector_label, permuts){
     
   }
     void generate_TI_map(std::map<std::string, op_vec>& mat_terms){
@@ -235,7 +275,7 @@ public:
      for(auto it1=operators_.begin(); it1!=operators_.end(); ++it1)
        {
 	 auto [fac, vec] =get_normal_form(*it1);
-	 if(is_zero_)
+	 if(sign_sector_)
 	   {
 	 check_if_operator_exists(vec, mat_terms);
 	   }
@@ -289,7 +329,7 @@ public:
      for(auto it1=operators_.begin(); it1!=operators_.end(); ++it1)
        {
 	 auto [fac, vec] =get_normal_form(*it1);
-	 if(is_zero_)
+	 if(sign_sector_==0)
 	   {
 	 check_if_operator_exists(vec, mat_terms);
 	   }
