@@ -508,39 +508,39 @@ void test_multiple_blocks_higher_order_2d_rdm()
 for(auto a: states)
 {
 
-	std::cout<<"sec "<< a.first<< " and size "<< a.second.size()<<std::endl;
+	std::cout<<"sec "<< a.first<< " and size "<< a.second.size()<< " and "<<a.second.size()/(Lx*Lx)<<std::endl;
 }
 
-    Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
-    auto basis =momentum_basis_xy(Lx,states,M,"xyz");
-    // for(auto a: basis.TI_map_)
-    //  {std::cout<< a.first << " -> "<<a.second.first<<std::endl;}
-    double J=1;
-    double Delta=1.;
+  //   Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
+  //   auto basis =momentum_basis_xy(Lx,states,M,"xyz");
+  //   // for(auto a: basis.TI_map_)
+  //   //  {std::cout<< a.first << " -> "<<a.second.first<<std::endl;}
+  //   double J=1;
+  //   double Delta=1.;
     
-     auto C=define_xxz2d_dual( basis.total_refs_,basis.TI_map_, J, Delta, Ly, Lx);
+  //    auto C=define_xxz2d_dual( basis.total_refs_,basis.TI_map_, J, Delta, Ly, Lx);
  
-       basis.set_C(C);
-      auto h=basis.get_costfunction();
-	  std::cout<<C->toString()<<std::endl;
+  //      basis.set_C(C);
+  //     auto h=basis.get_costfunction();
+	//   std::cout<<C->toString()<<std::endl;
 	  
-	//   {std::pair<int,int> a(0,0);
-	//   std::pair<int,int> b(1,0);
-	// //generate_rmds_primal({a, b},basis.total_refs_,basis.TI_map_ , basis.variables_, Lx, M);
-	//   }
-	//     {std::pair<int,int> a(0,0);
-	//   std::pair<int,int> b(0,1);
-	//    std::pair<int,int> c(0,2);
-	// //generate_rmds_primal({a, b, c},basis.total_refs_,basis.TI_map_ , basis.variables_, Lx, M);
-	//   }
-    basis.M_->objective(ObjectiveSense::Minimize, h);
-		  basis.M_->dataReport();
-	  M->setLogHandler([=](const std::string & msg) { std::cout << msg << std::flush; } );
-    basis.M_->solve();
+	// //   {std::pair<int,int> a(0,0);
+	// //   std::pair<int,int> b(1,0);
+	// // //generate_rmds_primal({a, b},basis.total_refs_,basis.TI_map_ , basis.variables_, Lx, M);
+	// //   }
+	// //     {std::pair<int,int> a(0,0);
+	// //   std::pair<int,int> b(0,1);
+	// //    std::pair<int,int> c(0,2);
+	// // //generate_rmds_primal({a, b, c},basis.total_refs_,basis.TI_map_ , basis.variables_, Lx, M);
+	// //   }
+  //   basis.M_->objective(ObjectiveSense::Minimize, h);
+	// 	  basis.M_->dataReport();
+	//   M->setLogHandler([=](const std::string & msg) { std::cout << msg << std::flush; } );
+  //   basis.M_->solve();
 	  
 	  
-    std::cout << "Solution : " << std::endl;
-    std::cout<<std::setprecision(9)<<M->primalObjValue()<<std::endl;
+  //   std::cout << "Solution : " << std::endl;
+  //   std::cout<<std::setprecision(9)<<M->primalObjValue()<<std::endl;
 	  
    //double sol=M->primalObjValue(); //-0.720847431
 	  

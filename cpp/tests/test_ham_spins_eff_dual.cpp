@@ -12,47 +12,7 @@
 using namespace mosek::fusion;
 using namespace monty;
 
-std::shared_ptr<ndarray<int,1>>    nint(const std::vector<int> &X)    { return new_array_ptr<int>(X); }
-std::shared_ptr<ndarray<double,1>> ndou(const std::vector<double> &X) { return new_array_ptr<double>(X); }
 
-// void define_ham( std::map<std::string, int> terms_mapping, double J, double Delta, int L, std::vector<Expression::t>& block)
-// {
-//   std::vector<Expression::t> expressions={};
-//   std::vector<std::string> sym={"x","y","z"};
-//   // since sum_i y_i A_i<=C
- 
-    
-//   for(auto s: sym)
-//       {
-//     for(int i=0; i<L; i++)
-//       {
-// 	op_vec v0={spin_op(s, {i}),spin_op(s, {(i+1)%L})};
-
-//      auto [fac0, nf0] =get_normal_form(v0);
-	
-//      auto el=terms_mapping.at(print_op(nf0));
-//      if(s=="z")
-//        {
-
-	 
-// 	 block[el]=Expr::add(block[el],-1*Delta/4 );
-
-//        }
-//      else{
-// 	 block[el]=Expr::add(block[el],-1*J/4 );
-	 
-	 
-//       }
-//       if((std::abs(fac0.real()-1.)>1e-8 or std::abs(fac0.imag())>1e-8 ))
-//        {std::cout<< "error"<<std::endl;}
-//       }
-// }
-   
-   
-  
-
-//   return;
-// }
  Matrix::t define_ham( std::map<std::string, int> terms_mapping, double J, double Delta, int L)
 {
   std::vector<Expression::t> expressions={};
@@ -98,59 +58,16 @@ std::shared_ptr<ndarray<double,1>> ndou(const std::vector<double> &X) { return n
 
   return Alpha_e_1;
 }
-// struct matrix_organizer{
-//   std::vector<int_pair> matrix_positions;
-//   std::vector<double> matrix_values;
-  
-//   std::vector<double> b;
-//   Variable::t variables;
-//   int variable_index{0};
-  
-//   void add_values(int_pair position,double value)
-//   {
 
-//     auto index=getIndex(matrix_positions, position);
-//     // Check if the target value was found
-//     if(index<0)
-//       {
-// 	matrix_positions.push_back(position);
-// 	matrix_values.push_back(value);
-	
-//       }
-//     else
-//       {
-// 	matrix_values[index]+=value;
-//       }
-    
-//   }
-//   Matrix::t make_matrix(int dim1, int dim2)
-//   {
-//     std::vector<int> rows;
-//     std::vector<int> cols;
-//     std::vector<double> T;
-//     int i=0;
-//     for(auto& p:matrix_positions )
-//       {
-// 	rows.push_back(p.first);
-// 	cols.push_back(p.second);
-// 	T.push_back(matrix_values[i]);
-// 	break;
-// 	i++;
-//       }
-    
-  
-//   return Matrix::sparse(dim1, dim2, nint(rows), nint(cols), ndou(T));
-//   }
-// };
 
 
 int main()
 {
   //test_translation();
-    int L=5;
+    int L=6;
     basis_structure states;
     std::vector<op_vec> v_tot;
-      std::vector<std::string> sym={"z", "x", "y"};
+      std::vector<std::string> sym={"x", "y", "z"};
       for(int i=0; i<L; i++)
 	{
 	  for(auto s: sym)
@@ -376,20 +293,20 @@ int main()
 	variable_index+=1;
         }
 	 
-   {
-         std::vector<double> val={1./2,1./2,-1./2, -1./2};
-	 std::vector<int> row={0, i+1,shift,i+1+shift };
-	 std::vector<int> col={i+1,0,i+1+shift,shift};
-	 Matrix::t Beta_i  = Matrix::sparse(dim,dim, nint(row), nint(col), ndou(val));
-	 second_block[el]=Expr::add(second_block[el], Expr::mul(-1.*coeff.imag(),X->index(variable_index)));
-	 first_block=Expr::add(first_block, Expr::mul(Beta_i,X->index(variable_index)));
-	 rows_second_block.push_back(el);
-	cols_second_block.push_back(variable_index);
-	vals_second_block.push_back(-1.*coeff.imag());
-	b[variable_index]=-1.*coeff.imag();
+//    {
+//          std::vector<double> val={1./2,1./2,-1./2, -1./2};
+// 	 std::vector<int> row={0, i+1,shift,i+1+shift };
+// 	 std::vector<int> col={i+1,0,i+1+shift,shift};
+// 	 Matrix::t Beta_i  = Matrix::sparse(dim,dim, nint(row), nint(col), ndou(val));
+// 	 second_block[el]=Expr::add(second_block[el], Expr::mul(-1.*coeff.imag(),X->index(variable_index)));
+// 	 first_block=Expr::add(first_block, Expr::mul(Beta_i,X->index(variable_index)));
+// 	 rows_second_block.push_back(el);
+// 	cols_second_block.push_back(variable_index);
+// 	vals_second_block.push_back(-1.*coeff.imag());
+// 	b[variable_index]=-1.*coeff.imag();
 	
-	variable_index+=1;
-	 }
+// 	variable_index+=1;
+// 	 }
  }
 
 	 
