@@ -416,6 +416,27 @@ momentum_symmetry_solver_sos(int L, basis_structure operators,Model::t M, std::s
         }
  
 }
+bool check_if_op(op_vec v0, std::string nam)
+{
+
+           auto all_t=generate_all_translations(v0, L_);
+	  bool found=false;
+	  
+	     	 for(auto op_t: all_t)
+	   {
+          auto all_ty=generate_all_translations_y(op_t, L_,1);
+	     for(auto op_ty: all_ty)
+	      {
+  if(nam==print_op(op_ty))
+  {std::cout<< nam<<std::endl;
+  found==true;
+ 
+  }
+     }
+        }
+return found;
+}
+
 void fix_constrains(){
  
 
@@ -489,9 +510,11 @@ void fix_constrains(){
       {
         if(a.first!="1" && a.first!="0")
         {
+        
           int el=total_refs_.at(a.first);
-          //std::cout<<a.first<< " "<<b_[el]<<std::endl;
+         
         M_->constraint( expressions_[el], Domain::equalsTo(-1*b_[el]));
+         
         }
       }
 
