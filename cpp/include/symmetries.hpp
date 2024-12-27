@@ -18,20 +18,31 @@ op_vec translation_y(op_vec op, int j, int L){
 
 std::vector<op_vec> generate_all_translations_y(op_vec op, int L, int inc=1)
 {
+   
   std::vector<op_vec> all_T;
     if(print_op(op)=="1"){
       all_T.push_back(op);
     return all_T;
     }
+    
+		
 
    auto [fac, vec] =get_normal_form(op);
   all_T.push_back(vec);
   for(int i=1; i<L; i+=inc)
     {
       auto new_op=translation_y(op, i,L);
+     
+		
       //      auto coeff=bubbleSort(new_op, new_op.size());
       auto [fac, vec] =get_normal_form(new_op);
-      if(std::abs(fac.imag())>1e-9 or std::abs(fac.real()-1)>1e-9 ){std::cout<< "error in all trans"<<std::endl;}
+   
+    
+      if(std::abs(fac.imag())>1e-9 or std::abs(fac.real()-1)>1e-9 ){
+       
+        std::cout<< "error in all trans"<<std::endl;
+      
+        }
       all_T.push_back(vec);
 	
     }
@@ -150,23 +161,25 @@ void add_state(basis_structure& states, op_vec op, std::map<std::pair<int,int>, 
 	  
 	     	 for(auto op_t: all_t)
 	   {
-  
-        auto it = std::find(states.at(map_sec.at(sign)).begin(), states.at(map_sec.at(sign)).end(), op_t);
+    
+        auto all_ty=generate_all_translations_y(op_t, L,1);
+        	     for(auto op_ty: all_ty)
+	      {
+        auto it = std::find(states.at(map_sec.at(sign)).begin(), states.at(map_sec.at(sign)).end(), op_ty);
     if (it!=states.at(map_sec.at(sign)).end())
         {
           //std::cout<<print_op(nf)<< " was "<< print_op(*it)<<std::endl;
           found=true;
         break;}
+        }
        
 
         
 	     
 
      }
-     
-    //    auto all_ty=generate_all_translations_y(nf, L,1);
-	  //    for(auto op_ty: all_ty)
-	  //     {
+   
+
     //     auto it = std::find(states.at(map_sec.at(sign)).begin(), states.at(map_sec.at(sign)).end(), op_ty);
     // if (it!=states.at(map_sec.at(sign)).end())
     //     {std::cout<<print_op(nf)<< " was "<< print_op(*it)<<std::endl;
@@ -384,112 +397,112 @@ std::vector<op_vec> generate_all_permutations_xyz(op_vec op)
 
   return all_P;
 }
-  basis_structure get_basis_1d(int L, int r, int start=0)
-  {
-std::set <std::string> states_strings;
- basis_structure states;
-      std::vector<op_vec> v_block_0;
-  std::vector<op_vec> v_block_1;
-  std::vector<op_vec> v_block_2;
-  std::vector<op_vec> v_block_3;
-  states.insert({0, v_block_0});
-  states.insert({1, v_block_1});
-  states.insert({2, v_block_2});
-  states.insert({3, v_block_3});
-  std::map<std::pair<int,int>, int> map_sec;
-      map_sec.insert({std::pair<int,int>(1,1), 0});
-  map_sec.insert({std::pair<int,int>(1,-1), 1});
-  map_sec.insert({std::pair<int,int>(-1,1), 2});
-    map_sec.insert({std::pair<int,int>(-1,-1), 3});
+//   basis_structure get_basis_1d(int L, int r, int start=0)
+//   {
+// std::set <std::string> states_strings;
+//  basis_structure states;
+//       std::vector<op_vec> v_block_0;
+//   std::vector<op_vec> v_block_1;
+//   std::vector<op_vec> v_block_2;
+//   std::vector<op_vec> v_block_3;
+//   states.insert({0, v_block_0});
+//   states.insert({1, v_block_1});
+//   states.insert({2, v_block_2});
+//   states.insert({3, v_block_3});
+//   std::map<std::pair<int,int>, int> map_sec;
+//       map_sec.insert({std::pair<int,int>(1,1), 0});
+//   map_sec.insert({std::pair<int,int>(1,-1), 1});
+//   map_sec.insert({std::pair<int,int>(-1,1), 2});
+//     map_sec.insert({std::pair<int,int>(-1,-1), 3});
  
-       std::vector<std::string> dirs={"x", "y", "z"};
+//        std::vector<std::string> dirs={"x", "y", "z"};
        
 
 
-	   for(auto s: dirs){
+// 	   for(auto s: dirs){
 	    
-	     op_vec v0={spin_op(s, {0})};
-       const bool is_in = states_strings.find(print_op(v0)) != states_strings.end();
-       if(not is_in)
-       {
-        //add_state_with_symmetries_1d(states, v0, map_sec, L);
-       add_state(states, v0, map_sec);
-       }
+// 	     op_vec v0={spin_op(s, {0})};
+//        const bool is_in = states_strings.find(print_op(v0)) != states_strings.end();
+//        if(not is_in)
+//        {
+//         //add_state_with_symmetries_1d(states, v0, map_sec, L);
+//        add_state(states, v0, map_sec);
+//        }
 
 
-	    }
-      int SS=0;
-      for(int i=1; i<=r; i++)
-      {
+// 	    }
+//       int SS=0;
+//       for(int i=1; i<=r; i++)
+//       {
      
   
-        for(auto s1: dirs){
+//         for(auto s1: dirs){
 	     
-       for(auto s2: dirs){
-       {
+//        for(auto s2: dirs){
+//        {
         
       
-        op_vec v0={spin_op(s1, {0}),spin_op(s2, {i})};
+//         op_vec v0={spin_op(s1, {0}),spin_op(s2, {i})};
 
 	
-        auto [fac, vec] =get_normal_form(v0);
-         const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
+//         auto [fac, vec] =get_normal_form(v0);
+//          const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
 
-       if(not is_in)
-       {
+//        if(not is_in)
+//        {
     
-        //add_state_with_symmetries_1d(states, vec, map_sec, L);
-        add_state(states, vec, map_sec);
+//         //add_state_with_symmetries_1d(states, vec, map_sec, L);
+//         add_state(states, vec, map_sec);
         
-        }
+//         }
       
-	    }
-     }
-      }
-      }
+// 	    }
+//      }
+//       }
+//       }
  
-       	   for(auto s1: dirs){
-	      for(auto s2: dirs){
-           for(auto s3: dirs){
+//        	   for(auto s1: dirs){
+// 	      for(auto s2: dirs){
+//            for(auto s3: dirs){
 	     
-       {
-        op_vec v0={spin_op(s1, {0}),spin_op(s2, {1}),spin_op(s3, {2})};
-        auto [fac, vec] =get_normal_form(v0);
-	         const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
-       if(not is_in)
-       {
-        //add_state_with_symmetries_1d(states, vec, map_sec, L);
-         add_state(states, vec, map_sec);
-       }
+//        {
+//         op_vec v0={spin_op(s1, {0}),spin_op(s2, {1}),spin_op(s3, {2})};
+//         auto [fac, vec] =get_normal_form(v0);
+// 	         const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
+//        if(not is_in)
+//        {
+//         //add_state_with_symmetries_1d(states, vec, map_sec, L);
+//          add_state(states, vec, map_sec);
+//        }
 
-		 }
+// 		 }
 
 		 
-	    }
-        }
-     }
+// 	    }
+//         }
+//      }
 
- for(auto s1: dirs){
-	      for(auto s2: dirs){
-           for(auto s3: dirs){
+//  for(auto s1: dirs){
+// 	      for(auto s2: dirs){
+//            for(auto s3: dirs){
 	     
-       {
-            for(auto s4: dirs){
+//        {
+//             for(auto s4: dirs){
 	     
-       {
-        op_vec v0={spin_op(s1, {0}, L),spin_op(s2, {1}, L),spin_op(s3, {2}, L),spin_op(s4, {3}, L)};
-        auto [fac, vec] =get_normal_form(v0);
-	     //add_state_with_symmetries_1d(states, vec, map_sec, L);
-       add_state(states, vec, map_sec);
-		 }
-            } }}}}
+//        {
+//         op_vec v0={spin_op(s1, {0}, L),spin_op(s2, {1}, L),spin_op(s3, {2}, L),spin_op(s4, {3}, L)};
+//         auto [fac, vec] =get_normal_form(v0);
+// 	     //add_state_with_symmetries_1d(states, vec, map_sec, L);
+//        add_state(states, vec, map_sec);
+// 		 }
+//             } }}}}
 
-       return states;
-  }
+//        return states;
+//   }
 
 
 
-  basis_structure get_basis_2d(int L, int r, int start=0,bool use_symm=true)
+  basis_structure get_basis_2d(int L, int r, int start,bool use_symm)
   {
 std::set <std::string> states_strings;
  basis_structure states;
@@ -513,7 +526,7 @@ std::set <std::string> states_strings;
 
 	   for(auto s: dirs){
 	    
-	     op_vec v0={spin_op(s, {0,0}, L)};
+	     op_vec v0={spin_op(s, {0,0}, {L,L})};
        const bool is_in = states_strings.find(print_op(v0)) != states_strings.end();
        //if(not is_in)
        {
@@ -546,7 +559,7 @@ add_state_with_symmetries(states, v0, map_sec, L);
         {
           int ind1=(L+i)%L;
           int ind2=(L+j)%L;
-        op_vec v0={spin_op(s1, {0,0}, L),spin_op(s2, {ind1, ind2}, L)};
+        op_vec v0={spin_op(s1, {0,0}, {L,L}),spin_op(s2, {ind1, ind2}, {L,L})};
 
 	
         auto [fac, vec] =get_normal_form(v0);
@@ -579,7 +592,7 @@ add_state_with_symmetries(states, v0, map_sec, L);
            for(auto s3: dirs){
 	     
        {
-        op_vec v0={spin_op(s1, {0,0}, L),spin_op(s2, {0,1}, L),spin_op(s3, {1,1}, L)};
+        op_vec v0={spin_op(s1, {0,0}, {L,L}),spin_op(s2, {0,1},{L,L}),spin_op(s3, {1,1}, {L,L})};
         auto [fac, vec] =get_normal_form(v0);
 	         const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
       // if(not is_in)
@@ -595,7 +608,7 @@ add_state_with_symmetries(states, v0, map_sec, L);
 		 }
         }
       {
-        op_vec v0={spin_op(s1, {0,0}, L),spin_op(s2, {0,1}, L),spin_op(s3, {L-1,1}, L)};
+        op_vec v0={spin_op(s1, {0,0}, {L,L}),spin_op(s2, {0,1}, {L,L}),spin_op(s3, {L-1,1}, {L,L})};
 	     auto [fac, vec] =get_normal_form(v0);
 	         const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
       // if(not is_in)
@@ -611,7 +624,7 @@ add_state_with_symmetries(states, v0, map_sec, L);
        }
 		 }
      {
-          op_vec v0={spin_op(s1, {0,0}, L),spin_op(s2, {1,0}, L),spin_op(s3, {1,1}, L)};
+          op_vec v0={spin_op(s1, {0,0}, {L,L}),spin_op(s2, {1,0}, {L,L}),spin_op(s3, {1,1}, {L,L})};
 	     auto [fac, vec] =get_normal_form(v0);
 	         const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
       // if(not is_in)
@@ -627,7 +640,7 @@ add_state_with_symmetries(states, v0, map_sec, L);
        }
 		 }
         {
-          op_vec v0={spin_op(s1, {0,0}, L),spin_op(s2, {L-1,0}, L),spin_op(s3, {L-1,1}, L)};
+          op_vec v0={spin_op(s1, {0,0}, {L,L}),spin_op(s2, {L-1,0}, {L,L}),spin_op(s3, {L-1,1}, {L,L})};
 	     auto [fac, vec] =get_normal_form(v0);
 	         const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
        //if(not is_in)
@@ -643,7 +656,7 @@ add_state_with_symmetries(states, v0, map_sec, L);
         }
 		 }
       {
-          op_vec v0={spin_op(s1, {0,0}, L),spin_op(s2, {1,0}, L),spin_op(s3, {2,0}, L)};
+          op_vec v0={spin_op(s1, {0,0}, {L,L}),spin_op(s2, {1,0}, {L,L}),spin_op(s3, {2,0}, {L,L})};
 	     auto [fac, vec] =get_normal_form(v0);
 	         const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
        //if(not is_in)
@@ -659,7 +672,7 @@ add_state_with_symmetries(states, v0, map_sec, L);
         }
 		 }
         {
-          op_vec v0={spin_op(s1, {0,0}, L),spin_op(s2, {0,1}, L),spin_op(s3, {0,2}, L)};
+          op_vec v0={spin_op(s1, {0,0}, {L,L}),spin_op(s2, {0,1}, {L,L}),spin_op(s3, {0,2}, {L,L})};
 	     auto [fac, vec] =get_normal_form(v0);
 	         const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
        //if(not is_in)
@@ -689,7 +702,7 @@ add_state_with_symmetries(states, v0, map_sec, L);
             for(auto s4: dirs){
 	     
        {
-        op_vec v0={spin_op(s1, {0,0}, L),spin_op(s2, {1,0}, L),spin_op(s3, {0,1}, L),spin_op(s4, {1,1}, L)};
+        op_vec v0={spin_op(s1, {0,0}, {L,L}),spin_op(s2, {1,0}, {L,L}),spin_op(s3, {0,1}, {L,L}),spin_op(s4, {1,1}, {L,L})};
         auto [fac, vec] =get_normal_form(v0);
 	 
          if(use_symm)
@@ -706,7 +719,7 @@ add_state_with_symmetries(states, v0, map_sec, L);
   }
 
 
-  basis_structure get_basis_2d_2(int L, int r)
+   basis_structure get_basis_bilayer_2d(int Lx, int Ly, int layers, int r, int start,bool use_symm)
   {
 std::set <std::string> states_strings;
  basis_structure states;
@@ -724,143 +737,81 @@ std::set <std::string> states_strings;
   map_sec.insert({std::pair<int,int>(-1,1), 2});
     map_sec.insert({std::pair<int,int>(-1,-1), 3});
  
-       std::vector<std::string> dirs={"x", "y", "z"};
-
-for(int i=0; i<L; i++)
-{
-  for(int j=0; j<L; j++)
+       std::vector<std::string> dirs={"x","y","z"};
+       
+ 
+for(int i=0; i<2;i++)
 {
 	   for(auto s: dirs){
 	    
-	     op_vec v0={spin_op(s, {i,j}, L)};
+	     op_vec v0={spin_op(s, {i,0,0}, {layers,Ly, Lx})};
        const bool is_in = states_strings.find(print_op(v0)) != states_strings.end();
-       if(not is_in)
-       {add_state(states, v0, map_sec);}
+
+       {
+        if(use_symm)
+        {
+add_state_with_symmetries(states, v0, map_sec, Ly);
+        }
+        else{
+          add_state(states, v0, map_sec);
+        }
+        
+        
+       }
 
 
 	    }
 }
-}
-      int SS=0;
-        for(int n=0; n<L; n++)
-      {
-           for(int m=0; m<L; m++)
-      {
-      for(int i=-r; i<=r; i++)
+for(int n=0; n<2; n++)
+{
+  for(int m=0; m<2; m++)
+{
+    for(int i=start; i<=r; i++)
       {
      
-          for(int j=-r; j<=r; j++)
+          for(int j=start; j<=r; j++)
       {
         for(auto s1: dirs){
 	     
        for(auto s2: dirs){
        {
         
-      
-          int ind1=(n+L+i)%L;
-          int ind2=(m+L+j)%L;
-        op_vec v0={spin_op(s1, {n,m}, L),spin_op(s2, {ind1, ind2}, L)};
-        auto v1={spin_op(s1, {n,m}, L)};
-        auto v2={spin_op(s2, {ind1, ind2}, L)};
-        if(print_op(v1)==print_op(v2))
-        {continue;}
-        else{
+        if(i!=0 or j!=0)
+        {
+          int ind1=(Ly+i)%Ly;
+          int ind2=(Lx+j)%Lx;
+        op_vec v0={spin_op(s1, {n,0,0}, {layers,Ly, Lx}),spin_op(s2, {m,ind1, ind2}, {layers,Ly, Lx})};
+
+	
         auto [fac, vec] =get_normal_form(v0);
          const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
 
-       if(not is_in)
+      //if(not is_in)
        {
     
-        add_state(states, vec, map_sec);
-        
+         if(use_symm)
+        {
+add_state_with_symmetries(states, v0, map_sec, Ly);
+        }
+        else{
+          add_state(states, v0, map_sec);
+        }
         }
       
 
+	     
         }
-        
 		 }
 		   
 	    }
      }
       }
       }
-      }
-      }
  
- for(int i=0; i<L; i++)
- {
-  for(int j=0; j<L; j++)
-  {
-       	   for(auto s1: dirs){
-	      for(auto s2: dirs){
-           for(auto s3: dirs){
-	     
-       {
-        op_vec v0={spin_op(s1, {i,j}, L),spin_op(s2, {i,(j+1)%L}, L),spin_op(s3, {(i+1)%L,(j+1)%L}, L)};
-        auto [fac, vec] =get_normal_form(v0);
-	         const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
-       if(not is_in)
-       {add_state(states, vec, map_sec);}
-
-		 }
-      {
-        op_vec v0={spin_op(s1, {i,j}, L),spin_op(s2, {i,(j+1)%L}, L),spin_op(s3, {(i+L-1)%L,(j+1)%L}, L)};
-	     auto [fac, vec] =get_normal_form(v0);
-	         const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
-       if(not is_in)
-       {add_state(states, vec, map_sec);}
-		 }
-     {
-          op_vec v0={spin_op(s1, {i,j}, L),spin_op(s2, {(i+1)%L,j}, L),spin_op(s3, {(i+1)%L,(j+1)%L}, L)};
-	     auto [fac, vec] =get_normal_form(v0);
-	         const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
-       if(not is_in)
-       {add_state(states, vec, map_sec);}
-		 }
-        {
-          op_vec v0={spin_op(s1, {i,j}, L),spin_op(s2, {(i+L-1)%L,j}, L),spin_op(s3, {(i+L-1)%L,(j+1)%L}, L)};
-	     auto [fac, vec] =get_normal_form(v0);
-	         const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
-       if(not is_in)
-       {add_state(states, vec, map_sec);}
-		 }
-      {
-          op_vec v0={spin_op(s1, {i,j}, L),spin_op(s2, {(i+1)%L,j}, L),spin_op(s3, {(i+2)%L,j}, L)};
-	     auto [fac, vec] =get_normal_form(v0);
-	         const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
-       if(not is_in)
-       {add_state(states, vec, map_sec);}
-		 }
-        {
-          op_vec v0={spin_op(s1, {i,j}, L),spin_op(s2, {i,(j+1)%L}, L),spin_op(s3, {i,(j+2)%L}, L)};
-	     auto [fac, vec] =get_normal_form(v0);
-	         const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
-       if(not is_in)
-       {add_state(states, vec, map_sec);}
-		 }
-		 
-	    }
-        }
-     }
-  }}
-for(int i=0; i<L; i++)
-{
-  for(int j=0; j<L; j++)
-{
- for(auto s1: dirs){
-	      for(auto s2: dirs){
-           for(auto s3: dirs){
-	     
-       {
-            for(auto s4: dirs){
-	     
-       {
-        op_vec v0={spin_op(s1, {i,j}, L),spin_op(s2, {(i+1)%L,j}, L),spin_op(s3, {i,(j+1)%L}, L),spin_op(s4, {(i+1)%L,(j+1)%L}, L)};
-        auto [fac, vec] =get_normal_form(v0);
-	     add_state(states, vec, map_sec);
-		 }
-            } }}}}
-}}
-
+}
+}
        return states;
   }
+
+
+  

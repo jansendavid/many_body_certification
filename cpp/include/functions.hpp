@@ -43,44 +43,44 @@ std::vector<int> extractIntegerWords(std::string str)
     }
     return numbers;
 }
-std::vector<op_vec> load_basis_from_file(std::string filename, int Lx)
-{
-  std::vector<op_vec> basis;
-  std::fstream new_file;
-  new_file.open(filename, std::ios::in); 
+// std::vector<op_vec> load_basis_from_file(std::string filename, int Lx)
+// {
+//   std::vector<op_vec> basis;
+//   std::fstream new_file;
+//   new_file.open(filename, std::ios::in); 
     
-    // Checking whether the file is open.
-    if (new_file.is_open()) { 
-      std::string sa;
-        // Read data from the file object and put it into a string.
-        while (getline(new_file, sa)) { 
-            // Print the data of the string.
+//     // Checking whether the file is open.
+//     if (new_file.is_open()) { 
+//       std::string sa;
+//         // Read data from the file object and put it into a string.
+//         while (getline(new_file, sa)) { 
+//             // Print the data of the string.
 	  
-	  std::replace( sa.begin(), sa.end(), ',', ' ');
-	  std::replace( sa.begin(), sa.end(), '(', ' ');
-	  std::replace( sa.begin(), sa.end(), ')', ' ');
-	  auto sa_copy=sa;//std::strcpy(sa.data(), sa.data());
-	  sa.erase(std::remove(sa.begin(), sa.end(), ' '), sa.end());
-	  auto numbs=extractIntegerWords(sa_copy);
+// 	  std::replace( sa.begin(), sa.end(), ',', ' ');
+// 	  std::replace( sa.begin(), sa.end(), '(', ' ');
+// 	  std::replace( sa.begin(), sa.end(), ')', ' ');
+// 	  auto sa_copy=sa;//std::strcpy(sa.data(), sa.data());
+// 	  sa.erase(std::remove(sa.begin(), sa.end(), ' '), sa.end());
+// 	  auto numbs=extractIntegerWords(sa_copy);
 	 
-	  sa.erase(std::remove_if(std::begin(sa), std::end(sa), [](auto ch) { return std::isdigit(ch); }),sa.end());
-	  op_vec state;
-	  int i=0; // index thar gives number
+// 	  sa.erase(std::remove_if(std::begin(sa), std::end(sa), [](auto ch) { return std::isdigit(ch); }),sa.end());
+// 	  op_vec state;
+// 	  int i=0; // index thar gives number
 	  
-	  for(int j=0; j<sa.size(); j++){
-		state.push_back(spin_op(sa.substr(j,1), {numbs[i],numbs[i+1]}, Lx));
+// 	  for(int j=0; j<sa.size(); j++){
+// 		state.push_back(spin_op(sa.substr(j,1), {numbs[i],numbs[i+1]}, Lx));
 	
-	      i+=2;
-	    }
-	  basis.push_back(state);
-        }
+// 	      i+=2;
+// 	    }
+// 	  basis.push_back(state);
+//         }
         
-        // Close the file object.
-        new_file.close(); 
-    }
-  return basis;
+//         // Close the file object.
+//         new_file.close(); 
+//     }
+//   return basis;
 
-}
+// }
 
 void store_matrix_to_numpy_eff(const std::string &filename, size_t dim, Variable::t X){
   // Matrix in fusion

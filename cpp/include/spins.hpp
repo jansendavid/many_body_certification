@@ -9,27 +9,30 @@ public:
   std::string dir_;
   std::vector<int> site_;
 
-  int offset_{0};
+  std::vector<int> offset_;
   bool unit=false;
-  spin_op(std::string dir, std::vector<int> site, int offset=0 ):dir_(dir), site_(site), offset_(offset){
-    if(site.size()>1 and offset==0){std::cout<< "spin warning need offset for 2d"<<std::endl;}};
+  spin_op(std::string dir, std::vector<int> site, std::vector<int> offset):dir_(dir), site_(site), offset_(offset){
+    if(site.size()<offset.size()){std::cout<< "Need sufficient offsets"<<std::endl;}};
   spin_op(){ unit=true;};
   int const pos()const {
+    
     int position=0;
-    if(site_.size()>1)
+    for(int i=site_.size()-1; i>-1; i--)
       {
-	position+=site_[0]*offset_;
+       // std::cout<< "offset "<<offset_[i]<< " and factor "<<offset_.size()-1<<std::endl;
+	    position+=site_[i]*std::pow(offset_[i],i);
       }
-      position+=site_[site_.size()-1];
+     
       return position;
 
   }
     spin_op get_mirror()
   {
-    if(site_.size()!=2)
-      {std::cout<< "mirror symmetrie only implemented in 2d"<<std::endl;}
+    // assumes LxL lattice and order ....y,x
     auto new_sites=site_;
-    reverse(new_sites.begin(),new_sites.end());
+
+    new_sites[new_sites.size()-1]=site_[site_.size()-2];
+    new_sites[new_sites.size()-2]=site_[site_.size()-1];
     
     return spin_op(dir_,new_sites, offset_ );
   }
@@ -44,7 +47,8 @@ public:
    spin_op get_translated_y(int j, int L)
   {
     auto new_sites=site_;
-    new_sites[0]=(new_sites[0]+j)%L;
+    
+    new_sites[new_sites.size()-2]=(new_sites[new_sites.size()-2]+j)%L;
     
     return spin_op(dir_,new_sites, offset_ );
   }
@@ -142,42 +146,6 @@ T apply_commutator(T& arr, int i)
 }
 
 
-// std::vector<std::pair<double,op_vec>> check_one_term(op_vec& op, double& coeff, std::vector<std::pair<double,op_vec>>& terms, bool& unit_found)
-// {
-//   auto it = op.begin();
-//   int index=0;
-//   auto end=op.size();
-//   int i=0;
-  
-//   std::vector<std::pair<double,op_vec>> new_terms;
-//   while(i<end-1)
-//     {
- 
-       
-//       if(op[i].pos()==op[i+1].pos())
-// 	{
-//       if(op[i].dagger_==false and op[i+1].dagger_==true)
-// 	{
-//       auto m=apply_commutator(op, i);
-//       coeff*=-1;
-//       if(m.size()>0)
-// 	{
-// 	  bool zero=check_zero(m);
-	  
-// 	  new_terms.push_back({-1*coeff,m});
-	      
-// 	}
-//       else{
-// 	unit_found=true;
-//       }
-// 	}
-// 	}
-//       i++;
-//     }
-  
-//   return new_terms;
-// }
-
 std::pair<cpx,std::string>get_dir(std::string a, std::string b)
 {
   std::pair<cpx, std::string> p1(cpx(0,0), std::string("0"));
@@ -248,6 +216,11 @@ std::pair<cpx,op_vec> get_normal_form(op_vec op)
   bool change=false;
   auto new_list=op;  
   sort(new_list.begin(), new_list.end(),[](spin_op& o1, spin_op& o2){return o1.pos()<o2.pos();} );
+  for(auto a: new_list)
+  {
+    //std::cout<<a.pos()<<std::endl;
+  }
+  
   while(not change)
     {
 
