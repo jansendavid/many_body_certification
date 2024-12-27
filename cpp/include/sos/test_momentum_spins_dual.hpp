@@ -18,24 +18,24 @@ using namespace monty;
 
 void test_multiple_blocks_higher_order_2d_rdm()
 {
-  std::cout<< "WARNING! Takes a lot of memory"<<std::endl;
-  int Lx=4;
-  int Ly=4;
- basis_structure states=get_basis_2d(Lx, 2);
+//   std::cout<< "WARNING! Takes a lot of memory"<<std::endl;
+//   int Lx=4;
+//   int Ly=4;
+//  basis_structure states=get_basis_2d(Lx, 2);
 
  
-for(auto a: states)
-{
+// for(auto a: states)
+// {
 
-	std::cout<<"sec "<< a.first<< " and size "<< a.second.size()<< " and "<<a.second.size()/(Lx*Lx)<<std::endl;
-}
+// 	std::cout<<"sec "<< a.first<< " and size "<< a.second.size()<< " and "<<a.second.size()/(Lx*Lx)<<std::endl;
+// }
 
-    Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
-    auto basis =momentum_symmetry_solver_dual(Lx,states,M,"xyz");
-  //   // for(auto a: basis.TI_map_)
-  //   //  {std::cout<< a.first << " -> "<<a.second.first<<std::endl;}
-     double J=1;
-     double Delta=1.;
+//     Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
+//     auto basis =momentum_symmetry_solver_dual(Lx,states,M,"xyz");
+//   //   // for(auto a: basis.TI_map_)
+//   //   //  {std::cout<< a.first << " -> "<<a.second.first<<std::endl;}
+//      double J=1;
+//      double Delta=1.;
     
   //    auto b=define_xxz2d_sos( basis.total_refs_,basis.TI_map_, J, Delta, Ly, Lx);
  
@@ -76,7 +76,7 @@ void test_multiple_blocks_higher_order_2d_rdm_sos()
   int Lx=4;
   int Ly=4;
 
-    basis_structure states=get_basis_2d(Lx, 3, -3, false);
+    basis_structure states=get_basis_2d(Lx, 2, -2, true);
 
  
 for(auto a: states)
@@ -131,62 +131,62 @@ void test_x()
 {
   int Lx=4;
   int Ly=4;
- basis_structure states=get_basis_2d(Lx, 1,0);
- basis_structure states_2=get_basis_2d(Lx, 1, -1);
-//  basis_structure states;
-//   std::vector<op_vec> v_block_0;
-//   std::vector<op_vec> v_block_1;
-//   std::vector<op_vec> v_block_2;
-//   std::vector<op_vec> v_block_3;
-//   states.insert({0, v_block_0});
-//   states.insert({1, v_block_1});
-//   states.insert({2, v_block_2});
-//   states.insert({3, v_block_3});
+//  basis_structure states=get_basis_2d(Lx, 1,0);
+//  basis_structure states_2=get_basis_2d(Lx, 1, -1);
+// //  basis_structure states;
+// //   std::vector<op_vec> v_block_0;
+// //   std::vector<op_vec> v_block_1;
+// //   std::vector<op_vec> v_block_2;
+// //   std::vector<op_vec> v_block_3;
+// //   states.insert({0, v_block_0});
+// //   states.insert({1, v_block_1});
+// //   states.insert({2, v_block_2});
+// //   states.insert({3, v_block_3});
 
-//   op_vec v0={spin_op("x", {0,0}, Lx),spin_op("x", {0, 3}, Lx)};
-//     op_vec v1={spin_op("x", {0,0}, Lx),spin_op("x", {1, 3}, Lx)};
-//  states[0].push_back(v0);
-//   states[0].push_back(v1);
-//    basis_structure states_2;
-//   std::vector<op_vec> v_block_0_x;
-//   std::vector<op_vec> v_block_1_x;
-//   std::vector<op_vec> v_block_2_x;
-//   std::vector<op_vec> v_block_3_x;
-//   states_2.insert({0, v_block_0_x});
-//   states_2.insert({1, v_block_1_x});
-//   states_2.insert({2, v_block_2_x});
-//   states_2.insert({3, v_block_3_x});
-//    v0={spin_op("x", {0,0}, Lx),spin_op("x", {0, 3}, Lx)};
-//     v1={spin_op("x", {0,0}, Lx),spin_op("x", {3, 1}, Lx)};
-//  states_2[0].push_back(v0);
-//   states_2[0].push_back(v1);
+// //   op_vec v0={spin_op("x", {0,0}, Lx),spin_op("x", {0, 3}, Lx)};
+// //     op_vec v1={spin_op("x", {0,0}, Lx),spin_op("x", {1, 3}, Lx)};
+// //  states[0].push_back(v0);
+// //   states[0].push_back(v1);
+// //    basis_structure states_2;
+// //   std::vector<op_vec> v_block_0_x;
+// //   std::vector<op_vec> v_block_1_x;
+// //   std::vector<op_vec> v_block_2_x;
+// //   std::vector<op_vec> v_block_3_x;
+// //   states_2.insert({0, v_block_0_x});
+// //   states_2.insert({1, v_block_1_x});
+// //   states_2.insert({2, v_block_2_x});
+// //   states_2.insert({3, v_block_3_x});
+// //    v0={spin_op("x", {0,0}, Lx),spin_op("x", {0, 3}, Lx)};
+// //     v1={spin_op("x", {0,0}, Lx),spin_op("x", {3, 1}, Lx)};
+// //  states_2[0].push_back(v0);
+// //   states_2[0].push_back(v1);
 
-for(auto a: states)
-{
+// for(auto a: states)
+// {
 
-	std::cout<<"sec "<< a.first<< " and size "<< a.second.size()<< " and "<<a.second.size()/(Lx*Lx)<<std::endl;
-  for(auto x: a.second)
-  {
-    std::cout<<print_op(x)<<std::endl;
-  }
-}
-for(auto a: states_2)
-{
+// 	std::cout<<"sec "<< a.first<< " and size "<< a.second.size()<< " and "<<a.second.size()/(Lx*Lx)<<std::endl;
+//   for(auto x: a.second)
+//   {
+//     std::cout<<print_op(x)<<std::endl;
+//   }
+// }
+// for(auto a: states_2)
+// {
 
-	std::cout<<"sec "<< a.first<< " and size "<< a.second.size()<< " and "<<a.second.size()/(Lx*Lx)<<std::endl;
-   for(auto x: a.second)
-  {
-    std::cout<<print_op(x)<<std::endl;
-  }
-}
+// 	std::cout<<"sec "<< a.first<< " and size "<< a.second.size()<< " and "<<a.second.size()/(Lx*Lx)<<std::endl;
+//    for(auto x: a.second)
+//   {
+//     std::cout<<print_op(x)<<std::endl;
+//   }
+// }
 
 
-    Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
-     Model::t M_2= new Model("sdo1"); auto _M_2 = finally([&]() { M_2->dispose(); });
-    auto basis =momentum_symmetry_solver_sos(Lx,states,M,"xyz");
-    std::cout<<"##########################################################################################"<<std::endl;
-     auto basis_2 =momentum_symmetry_solver_sos(Lx,states_2,M_2,"xyz");
-     int i=0;
+//     Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
+//      Model::t M_2= new Model("sdo1"); auto _M_2 = finally([&]() { M_2->dispose(); });
+//     auto basis =momentum_symmetry_solver_sos(Lx,states,M,"xyz");
+//     std::cout<<"##########################################################################################"<<std::endl;
+//      auto basis_2 =momentum_symmetry_solver_sos(Lx,states_2,M_2,"xyz");
+//      int i=0;
 
 
 
@@ -281,16 +281,12 @@ for(auto a: states_2)
 }
 void test_y()
 {
-  int Lx=4;
-  //basis_structure states=get_basis_1d(Lx, int(Lx/2),0);
-   basis_structure states=get_basis_2d(Lx, 3, -3);
+  int L=4;
+ op_vec vec={spin_op("x", {2,2}, {L,L}),spin_op("x", {0,0}, {L,L})};
 
-for(auto a: states)
-{
-
- 	std::cout<<"sec "<< a.first<< " and size "<< a.second.size()<< " and "<<a.second.size()/(Lx)<<std::endl;
-
-}
+std::cout<< print_op(vec)<<std::endl;
+ auto [fac, nf] =get_normal_form(vec);
+ std::cout<< fac << " and "<< print_op(nf)<<std::endl;
 	    return;
 }
 

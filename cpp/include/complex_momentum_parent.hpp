@@ -50,7 +50,9 @@ struct G_el{
   {
 
 
-    auto op_dagger=dagger_operator(op1);
+    auto op_dagg_first=dagger_operator(op1);
+	auto [fac_dagg,op_dagger]=get_normal_form(op_dagg_first);
+	assert(std::abs(fac_dagg.imag())<1e-9);
     op_vec new_op;
 
     if(i>0)
@@ -83,7 +85,9 @@ struct G_el{
   {
 // Generate all elements of the first row with translation in y direction. j go in y direction
 
-    auto op_dagger=dagger_operator(op1);
+    auto op_dagg_first=dagger_operator(op1);
+	auto [fac_dagg,op_dagger]=get_normal_form(op_dagg_first);
+	assert(std::abs(fac_dagg.imag())<1e-9);
     op_vec new_op_y;
 	op_vec new_op;
 	if(j>0)
@@ -123,7 +127,11 @@ new_op_y=translation_y(op2, j, L_);
   {
 // Generate all elements of the first row with translation in y direction. j go in y direction
 
-    auto op_dagger=dagger_operator(op1);
+    auto op_dagg_first=dagger_operator(op1);
+
+	auto [fac_dagg,op_dagger]=get_normal_form(op_dagg_first);
+
+	assert(std::abs(fac_dagg.imag())<1e-9);
     op_vec new_op_y;
 	op_vec new_op;
 	if(j>0)
@@ -157,6 +165,7 @@ new_op_y=translation_y(op2, j, L_);
 
     void check_if_operator_exists(op_vec op,std::map<std::string, op_vec>& mat_terms){
       // check if the operator is contained in functions
+	 
        if(op.size()<1)
 	{
 	  
@@ -166,13 +175,14 @@ new_op_y=translation_y(op2, j, L_);
      		
        	       }
 	  else{
-		std::cout<< print_op(op)<<std::endl;
+	
 		mat_terms.insert({print_op(op), op });
        	TI_map_.insert({print_op(op), { print_op(op),1}});
 		
 		}
        	  return;
        	}
+		
 
 		if(is_zero_signsym(op))
 		{
@@ -184,15 +194,19 @@ new_op_y=translation_y(op2, j, L_);
    					 }
 		return;
 		}
-     auto all_t=generate_all_translations(op, L_);
+		
+		  auto all_ty=generate_all_translations_y(op, L_,1);
+		  
+    	
       bool found=false;
 	
-	 for(auto op_t: all_t)
+	 for(auto op_ty: all_ty)
 	   {
-	     auto all_ty=generate_all_translations_y(op_t, L_,1);
-	     for(auto op_ty: all_ty)
+	    auto all_t=generate_all_translations(op_ty, L_);
+	
+	     for(auto op_t: all_t)
 	       {
-			auto it=mat_terms.find(print_op(op_ty));
+			auto it=mat_terms.find(print_op(op_t));
 			if(it != mat_terms.end())
 			{
 				
@@ -202,11 +216,11 @@ new_op_y=translation_y(op2, j, L_);
 			std::vector<op_vec> all_p;	
 			if(permuts_=="xyz" or permuts_=="yxz" or permuts_=="zxy" or permuts_=="zyx")
 		   {
-	      all_p=generate_all_permutations_xyz(op_ty);
+	      all_p=generate_all_permutations_xyz(op_t);
 		   }
 		 else if(permuts_=="xy")
 		   {
-		     all_p=generate_all_permutations_xy(op_ty);
+		     all_p=generate_all_permutations_xy(op_t);
 		   }
 		        	 for(auto op_p: all_p)
 	   { 
@@ -228,95 +242,16 @@ new_op_y=translation_y(op2, j, L_);
 	       
 		   }
 			
-			//std::cout<< print_op(op_ty)<<std::endl;
-		// 	if()
+		
 	
 	   }
 	
 	
 	}
 
-    //    	  else
-	//     {
-
  
-	     
-	     
-	//      // generate all y translations, inc=1
-	//      auto all_ty=generate_all_translations_y(op_t, L_,1);
-	//      for(auto op_ty: all_ty)
-	//        {
-	//      // generate all permutations
-	// 	 std::vector<op_vec> all_p;	 
-	// 	 if(permuts_=="xyz")
-	// 	   {
-	//       all_p=generate_all_permutations_xyz(op_ty);
-	// 	   }
-	// 	 else if(permuts_=="xy")
-	// 	   {
-	// 	     all_p=generate_all_permutations_xy(op_ty);
-	// 	   }
-		   
-	//     	 for(auto op_p: all_p)
-	//    { 
-	     
-	//        auto it=mat_terms.find(print_op(op_p));
-	       
-	//      if(it != mat_terms.end())
-	//        {
-	// 	 bool iszero_signsym_var=is_zero_signsym(op_p);
-	// 	 if(iszero_signsym_var)
-	// 	   {
-	// 	 TI_map_.insert({print_op(op), {"0",1.}});
-	// 	 found=true;
-	// 	 break;
-	// 	   }
-	// 	   else{
-	// 	 TI_map_.insert({print_op(op), { it->first,1.}});
-	// 	 found=true;
-	// 	 break;
-	// 	  }
-	//        }
-	// 	   else{
-	//       auto op_mirror=mirror(op_p);
-	//        it=mat_terms.find(print_op(op_mirror));
-	//        if(it != mat_terms.end())
-	//        {
-	// 	 bool iszero_signsym_var=is_zero_signsym(op_mirror);
-	// 	 if(iszero_signsym_var)
-	// 	   {
-	// 	 TI_map_.insert({print_op(op), {"0",1.}});
-	// 	 found=true;
-	// 	 break;
-	// 	   }
-	// 	 else{
-		 
-	// 	 TI_map_.insert({print_op(op), { it->first,1.}});
-	// 	 found=true;
-	// 	 break;
-	// 	  }
-	//        }
-	//    }
-	//    }
-	//    }
-	//    }
-	//  if(!found){
 
-	// 	 bool iszero_signsym_var=is_zero_signsym(op);
-	//     //	    std::cout<< print_op(op) << " and is zero "<< iszero<<std::endl;
-	//    if(iszero_signsym_var)
-	//      {
-	       
-	//    mat_terms.insert({"0", op });
-	//    TI_map_.insert({print_op(op), { "0",1}});
-	//      }
-	//     else{
 
-	//      mat_terms.insert({print_op(op), op });
-	//    TI_map_.insert({print_op(op), { print_op(op),1}});
-	//    }
-
-	//  }}
 	       mat_terms.insert({print_op(op), op });
 	   TI_map_.insert({print_op(op), { print_op(op),1}});  
 
@@ -371,7 +306,9 @@ public:
 	    else{
 	      new_op=op_cp;}
 
-     auto v_x=dagger_operator(*it1);
+     auto op_dagg_first=dagger_operator(*it1);
+	auto [fac_dagg,v_x]=get_normal_form(op_dagg_first);
+	assert(std::abs(fac_dagg.imag())<1e-9);
      v_x.insert(v_x.end(), new_op.begin(),new_op.end());
 
 
@@ -412,6 +349,8 @@ public:
 
 
 	auto op_cp=*it2;
+	
+
 	for(int n=0; n<L_;n++ )
 	  {
 	for(int m=0; m<L_;m++ )
@@ -420,8 +359,9 @@ public:
 	    op_vec new_op;
 	    if(m>0)
 	      {
-	
+			
 		new_op_y=translation_y(op_cp, m, L_);
+		
 	      }
 	    else{
 	      new_op_y=op_cp;}
@@ -434,12 +374,16 @@ public:
 	    else{
 	      new_op=new_op_y;}
 
-     auto v_x=dagger_operator(*it1);
+     auto op_dagger=dagger_operator(*it1);
+	 auto [fac, v_x]=get_normal_form(op_dagger);
+	 assert(std::abs(fac.imag()<1e-9));
+	 
+
      v_x.insert(v_x.end(), new_op.begin(),new_op.end());
 
 
      auto [fac_tot, vec_tot] =get_normal_form(v_x);
-     
+
 
      check_if_operator_exists(vec_tot, mat_terms);
 

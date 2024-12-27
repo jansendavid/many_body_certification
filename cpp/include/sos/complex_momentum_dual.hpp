@@ -77,19 +77,14 @@ block_shifts[0].push_back(dim_0);
   }
 
 
-//     //std::cout<< " block zero size "<<blocks_[0].size()<< " and "<<block_shifts[0].size()<<std::endl;
-//     std::vector<double> val={1.,1.};
-//     std::vector<int> row={0, dim_0};
-//     std::vector<int> col={0, dim_0};
-//     Matrix::t Alpha  = Matrix::dense(Matrix::sparse(2*(dim_0),2*(dim_0), nint(row), nint(col), ndou(val)));
-//     M_->constraint( Expr::sum(Expr::mulDiag(blocks_[0][0], Alpha)), Domain::equalsTo(1.0));
-//    // M_->constraint( Expr::add(blocks_[0]->index(0,0),blocks_[0]->index(dim_0,dim_0)), Domain::equalsTo(1.0));
+
 	      As["1"][sign_sector_][0][0].add_values({0,0},1./2);
 	      As["1"][sign_sector_][0][0].add_values({dim_0,dim_0},1./2);
   
 
 //   //     // The "c" terms first row and column in block 0
        int i=0;
+      
       for(auto it=operators_.begin(); it!=operators_.end(); ++it)
        {
 	 auto op=*it;
@@ -241,7 +236,8 @@ public:
 	sectors_.insert({it->first, Block});
 
       }
-     initialize_XT();
+
+      initialize_XT();
      std::cout<< "size TI map "<< TI_map_.size()<<std::endl;
      std::cout<< "size total refs "<< total_refs_.size()<<std::endl;
 
@@ -290,6 +286,8 @@ As_[it->first][it_sign_sector->first]={};
 
 	 b.second.generate_TI_map_xy(mat_terms);
    std::cout<<"sizes "<< mat_terms.size()<< " adn "<<TI_map_.size()<<std::endl;
+ 
+
 
        }
    
@@ -504,8 +502,7 @@ void fix_constrains(){
       }
    
     }
-        //std::cout<< "Finished generating the XX constraints ones "<<ones<<std::endl;
-      //for(int i=0; i<total_refs_.size(); i++)
+       
       for(auto a: total_refs_)
       {
         if(a.first!="1" && a.first!="0")
@@ -535,8 +532,7 @@ void fix_constrains(){
        
       ee=Expr::add(ee, Expr::dot(Cs_[sign_symm_sector.first][i][j],(Xs_[sign_symm_sector.first][i][j])));
      
-      //ee=Expr::add(ee, Expr::dot(zeros_[sign_symm_sector.first][i][j],Expr::neg(Xs_[sign_symm_sector.first][i][j])));
-
+    
       } } }
       return ee;
   }
