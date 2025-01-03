@@ -224,15 +224,17 @@ new_op_y=translation_y(op2, j, L_);
 		   }
 		        	 for(auto op_p: all_p)
 	   { 
-	     
-	       auto it=mat_terms.find(print_op(op_p));
+	     auto all_d8sym=generate_all_d8(op_p,  L_);
+		 for(auto d8s: all_d8sym)
+		 {
+	       auto it=mat_terms.find(print_op(d8s));
 		  if(it != mat_terms.end())
 		 	{
 				
 	    TI_map_.insert({print_op(op), { it->first,1}});
 		 return;
 		 	}
-			      auto op_mirror=mirror(op_p);
+			      auto op_mirror=mirror(d8s);
 	       it=mat_terms.find(print_op(op_mirror));
 	       if(it != mat_terms.end())
 	       {
@@ -243,7 +245,7 @@ new_op_y=translation_y(op2, j, L_);
 		   }
 			
 		
-	
+	   }
 	   }
 	
 	
