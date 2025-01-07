@@ -18,100 +18,46 @@ using namespace monty;
 
 void test_multiple_blocks_higher_order_2d_rdm()
 {
-//   std::cout<< "WARNING! Takes a lot of memory"<<std::endl;
-//   int Lx=4;
-//   int Ly=4;
-//  basis_structure states=get_basis_2d(Lx, 2);
-
- 
-// for(auto a: states)
-// {
-
-// 	std::cout<<"sec "<< a.first<< " and size "<< a.second.size()<< " and "<<a.second.size()/(Lx*Lx)<<std::endl;
-// }
-
-//     Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
-//     auto basis =momentum_symmetry_solver_dual(Lx,states,M,"xyz");
-//   //   // for(auto a: basis.TI_map_)
-//   //   //  {std::cout<< a.first << " -> "<<a.second.first<<std::endl;}
-//      double J=1;
-//      double Delta=1.;
-    
-  //    auto b=define_xxz2d_sos( basis.total_refs_,basis.TI_map_, J, Delta, Ly, Lx);
- 
-  //       basis.set_b(b);
-  //       basis.fix_constrains();
-  //      auto h=basis.get_costfunction();
-	// //   std::cout<<C->toString()<<std::endl;
-	  
-	// // //   {std::pair<int,int> a(0,0);
-	// // //   std::pair<int,int> b(1,0);
-	// // // //generate_rmds_primal({a, b},basis.total_refs_,basis.TI_map_ , basis.variables_, Lx, M);
-	// // //   }
-	// // //     {std::pair<int,int> a(0,0);
-	// // //   std::pair<int,int> b(0,1);
-	// // //    std::pair<int,int> c(0,2);
-	// // // //generate_rmds_primal({a, b, c},basis.total_refs_,basis.TI_map_ , basis.variables_, Lx, M);
-	// // //   }
-  //   basis.M_->objective(ObjectiveSense::Minimize, h);
-	// 	  basis.M_->dataReport();
-	//   M->setLogHandler([=](const std::string & msg) { std::cout << msg << std::flush; } );
-  //   basis.M_->solve();
-	  
-	  
-  //   std::cout << "Solution : " << std::endl;
-  //   std::cout<<std::setprecision(9)<<M->primalObjValue()<<std::endl;
-	  
-   //double sol=M->primalObjValue(); //-0.720847431
-	  
-
-	  //	   if(std::abs(sol+0.44670126)>1e-06)
-	  // {std::cout<<"error, not converging properly"<<std::endl;}
-	    return;
-}
-
-void test_multiple_blocks_higher_order_2d_rdm_sos()
-{
   std::cout<< "WARNING! Takes a lot of memory"<<std::endl;
   int Lx=4;
   int Ly=4;
-
-    basis_structure states=get_basis_2d(Lx, 2, -2, true);
+ basis_structure states=get_basis_2d(Lx, 1, 0, true);
 
  
 for(auto a: states)
 {
 
 	std::cout<<"sec "<< a.first<< " and size "<< a.second.size()<< " and "<<a.second.size()/(Lx*Lx)<<std::endl;
+	for(auto l: a.second)
+	{
+	//	std::cout<< print_op(l)<<std::endl;
+	}
 }
 
     Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
-    auto basis =momentum_symmetry_solver_sos(Lx,states,M,"xyz");
-  //   // for(auto a: basis.TI_map_)
-  //   //  {std::cout<< a.first << " -> "<<a.second.first<<std::endl;}
+    auto basis =momentum_symmetry_solver_dual(Lx,states,M,"xyz");
+    //for(auto a: basis.TI_map_)
+     //{std::cout<< a.first << " -> "<<a.second.first<<std::endl;}
      double J=1;
      double Delta=1.;
     
      auto b=define_xxz2d_sos( basis.total_refs_,basis.TI_map_, J, Delta, Ly, Lx);
- std::cout<< "x"<<std::endl;
+ 
         basis.set_b(b);
-        
         basis.fix_constrains();
        auto h=basis.get_costfunction();
-	// //   std::cout<<C->toString()<<std::endl;
+	//   std::cout<<C->toString()<<std::endl;
 	  
-	// // //   {std::pair<int,int> a(0,0);
-	// // //   std::pair<int,int> b(1,0);
-	// // // //generate_rmds_primal({a, b},basis.total_refs_,basis.TI_map_ , basis.variables_, Lx, M);
-	// // //   }
+	  {std::pair<int,int> a(0,0);
+	  std::pair<int,int> b(0,1);
+	//generate_rmds_primal({a, b},basis.total_refs_,basis.TI_map_ , basis.y_, Lx, M);
+	  }
 	// // //     {std::pair<int,int> a(0,0);
-	// // //   std::pair<int,int> b(0,1);
+	// // //   std::pair<int,intget_basis_2d(Lx, 3, -3, true);> b(0,1);
 	// // //    std::pair<int,int> c(0,2);
 	// // // //generate_rmds_primal({a, b, c},basis.total_refs_,basis.TI_map_ , basis.variables_, Lx, M);
 	// // //   }
-
-  std::cout<< "starting solving SDP"<<std::endl;
-    basis.M_->objective(ObjectiveSense::Maximize, h);
+    basis.M_->objective(ObjectiveSense::Minimize, h);
 		  basis.M_->dataReport();
 	  M->setLogHandler([=](const std::string & msg) { std::cout << msg << std::flush; } );
     basis.M_->solve();
@@ -127,158 +73,99 @@ for(auto a: states)
 	  // {std::cout<<"error, not converging properly"<<std::endl;}
 	    return;
 }
-void test_x()
+
+void test_multiple_blocks_higher_order_2d_rdm_sos()
 {
+  std::cout<< "WARNING! Takes a lot of memory"<<std::endl;
   int Lx=4;
   int Ly=4;
-//  basis_structure states=get_basis_2d(Lx, 1,0);
-//  basis_structure states_2=get_basis_2d(Lx, 1, -1);
-// //  basis_structure states;
-// //   std::vector<op_vec> v_block_0;
-// //   std::vector<op_vec> v_block_1;
-// //   std::vector<op_vec> v_block_2;
-// //   std::vector<op_vec> v_block_3;
-// //   states.insert({0, v_block_0});
-// //   states.insert({1, v_block_1});
-// //   states.insert({2, v_block_2});
-// //   states.insert({3, v_block_3});
 
-// //   op_vec v0={spin_op("x", {0,0}, Lx),spin_op("x", {0, 3}, Lx)};
-// //     op_vec v1={spin_op("x", {0,0}, Lx),spin_op("x", {1, 3}, Lx)};
-// //  states[0].push_back(v0);
-// //   states[0].push_back(v1);
-// //    basis_structure states_2;
-// //   std::vector<op_vec> v_block_0_x;
-// //   std::vector<op_vec> v_block_1_x;
-// //   std::vector<op_vec> v_block_2_x;
-// //   std::vector<op_vec> v_block_3_x;
-// //   states_2.insert({0, v_block_0_x});
-// //   states_2.insert({1, v_block_1_x});
-// //   states_2.insert({2, v_block_2_x});
-// //   states_2.insert({3, v_block_3_x});
-// //    v0={spin_op("x", {0,0}, Lx),spin_op("x", {0, 3}, Lx)};
-// //     v1={spin_op("x", {0,0}, Lx),spin_op("x", {3, 1}, Lx)};
-// //  states_2[0].push_back(v0);
-// //   states_2[0].push_back(v1);
-
-// for(auto a: states)
-// {
-
-// 	std::cout<<"sec "<< a.first<< " and size "<< a.second.size()<< " and "<<a.second.size()/(Lx*Lx)<<std::endl;
-//   for(auto x: a.second)
-//   {
-//     std::cout<<print_op(x)<<std::endl;
-//   }
-// }
-// for(auto a: states_2)
-// {
-
-// 	std::cout<<"sec "<< a.first<< " and size "<< a.second.size()<< " and "<<a.second.size()/(Lx*Lx)<<std::endl;
-//    for(auto x: a.second)
-//   {
-//     std::cout<<print_op(x)<<std::endl;
-//   }
-// }
+    basis_structure states=get_basis_2d(Lx, 1, 0, true);
 
 
-//     Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
-//      Model::t M_2= new Model("sdo1"); auto _M_2 = finally([&]() { M_2->dispose(); });
-//     auto basis =momentum_symmetry_solver_sos(Lx,states,M,"xyz");
-//     std::cout<<"##########################################################################################"<<std::endl;
-//      auto basis_2 =momentum_symmetry_solver_sos(Lx,states_2,M_2,"xyz");
-//      int i=0;
+for(auto a: states)
+{
 
+	std::cout<<"sec "<< a.first<< " and size "<< a.second.size()<< " and "<<a.second.size()/(Lx*Lx)<<std::endl;
+	  //for(auto n:a.second)
+     //{std::cout<<print_op(n)<<std::endl;}
+}
 
+    Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
+    auto basis =momentum_symmetry_solver_sos(Lx,states,M,"xyz");
+    // for(auto a: basis.TI_map_)
+    //  {std::cout<< a.first << " -> "<<a.second.first<<std::endl;}
+  for(auto k: basis.total_refs_)
+  {
 
-// for(auto a: basis.total_refs_)
-// {
-//   bool in=false;
-//  for(auto b: basis_2.total_refs_)
-// {
-//   if(a.first==b.first)
-//   {
-
-//     in=true;
- 
-//   }
-// }
-//   if(!in)
-// {
-// std::cout<<a.first<<std::endl;
-//     i+=1;
-// }
-
-// } 
-
-// std::cout<< "i "<<i<<std::endl;
-
-//     Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
-//     int tot=3;
-// matrix_organizer C;
-// matrix_organizer Ctilde;
-// for(int i=0; i<tot; i++)
-// {
-// C.add_values({i,i},1);
-// Ctilde.add_values({i,i},1);
-// }
-
-// matrix_organizer A;
-// A.add_values({1,0},1);
-// A.add_values({0,1},1);
-
-// matrix_organizer B;
-// B.add_values({2,0},1);
-// B.add_values({0,2},1);
-// std::vector<double> b;
-// b.push_back(0);
-// b.push_back(1);
-// b.push_back(1);
-// b.push_back(0);
-// std::vector<Expression::t> Xs;
-// auto x1=M->variable("1", Domain::inPSDCone(tot));
-// Xs.push_back(Expr::neg(x1));
-// auto x2=M->variable("2", Domain::inPSDCone(tot));
-// Xs.push_back(Expr::neg(x2));
-
-//  Expression::t expressions_1 =Expr::constTerm( 0.);
-//     //expressions_1->index(0)=Expr::add(expressions_1->index(0), Expr::dot(A.make_matrix(tot,tot),(x1) ));
-//     expressions_1=Expr::add(expressions_1, Expr::dot(A.make_matrix(tot,tot),(x1) ));
-
-// //    expressions_1->index(1)=Expr::add(expressions_1->index(1), Expr::dot(B.make_matrix(tot,tot),(x2) ));
-
-// //    expressions_1->index(1)=Expr::add(expressions_1->index(1), Expr::dot(B.make_matrix(tot,tot),(x2) ));
-// M->constraint( expressions_1, Domain::equalsTo(b[1]));
-// //M->constraint(  Expr::dot(A.make_matrix(tot,tot),(x1) ), Domain::equalsTo(b[1]));
-// //M->constraint( expressions_1->index(1), Domain::equalsTo(b[2]));
-
-//  Expression::t ee=Expr::constTerm(0.);
-//         ee=Expr::sub(ee, Expr::dot(C.make_matrix(tot,tot),(x1)));
-//         //ee=Expr::add(ee, Expr::dot(Ctilde.make_matrix(tot,tot),(Xs[1])));
-
-//   //   auto basis =momentum_symmetry_solver_sos(Lx,states,M,"xyz");
-
-//   //    double J=1;
-//   //    double Delta=1.;
+//	std::cout<<k.first<<std::endl; 
+  }
+     double J=1;
+     double Delta=1.;
     
-//   //    auto b=define_xxz2d_sos( basis.total_refs_,basis.TI_map_, J, Delta, Ly, Lx);
- 
-//   //       basis.set_b(b);
-//   //       basis.fix_constrains();
-//   //      auto h=basis.get_costfunction();
-// 	// // //   std::cout<<C->toString()<<std::endl;
+     auto b=define_xxz2d_sos( basis.total_refs_,basis.TI_map_, J, Delta, Ly, Lx);
+ std::cout<< "x"<<std::endl;
+        basis.set_b(b);
+        
+        basis.fix_constrains();
+       auto h=basis.get_costfunction();
+	// //   std::cout<<C->toString()<<std::endl;
+	  
+	  {std::pair<int,int> a(0,0);
+	  std::pair<int,int> b(1,0);
+	//generate_rmds_primal({a, b},basis.total_refs_,basis.TI_map_ , basis.variables_, Lx, M);
+	  }
+	    {std::pair<int,int> a(0,0);
+	  std::pair<int,int> b(0,1);
+	   std::pair<int,int> c(0,2);
+	//generate_rmds_primal({a, b, c},basis.total_refs_,basis.TI_map_ , basis.variables_, Lx, M);
+	  }
+
+  std::cout<< "starting solving SDP"<<std::endl;
+    basis.M_->objective(ObjectiveSense::Maximize, h);
+		  basis.M_->dataReport();
+	  M->setLogHandler([=](const std::string & msg) { std::cout << msg << std::flush; } );
+    basis.M_->solve();
+	  auto cons=M->getConstraint(0)->dual();
+    std::cout<<cons<<std::endl;
+	  
+    std::cout << "Solution : " << std::endl;
+    std::cout<<std::setprecision(9)<<M->primalObjValue()<<std::endl;
+	  
+// //    //double sol=M->primalObjValue(); //-0.720847431
 	  
 
-//     M->objective(ObjectiveSense::Maximize, ee);
-// 		 M->dataReport();
-// 	  M->setLogHandler([=](const std::string & msg) { std::cout << msg << std::flush; } );
-//    M->solve();
-	  
-	  
-//     std::cout << "Solution : " << std::endl;
-//     std::cout<<std::setprecision(9)<<M->primalObjValue()<<std::endl;
-	
+// // 	  //	   if(std::abs(sol+0.44670126)>1e-06)
+// // 	  // {std::cout<<"error, not converging properly"<<std::endl;}
 	    return;
 }
+void test_x()
+{
+   
+ int Lx=4;
+  int Ly=4;
+
+    auto states=get_basis_2d_new(Lx, 2);
+	std::vector<int> sizes(4,0);
+	for(auto sign: states)
+{
+// 	std::cout<< "sign "<<sign.first<<std::endl;
+// 	for(auto b: sign.second)
+// 	{
+// 		for(auto g: b)
+// 		{
+// 			std::cout<<print_op(g)<<std::endl;
+// 		}
+ 		sizes[sign.first]+=sign.second.size();
+ 	}
+// }
+// std::cout<< "sizes "<<std::endl;
+for(auto b: sizes)
+{std::cout<<b<<std::endl;}
+
+	    return;
+}
+
 void test_y()
 {
   int L=4;
@@ -287,6 +174,39 @@ void test_y()
 std::cout<< print_op(vec)<<std::endl;
  auto [fac, nf] =get_normal_form(vec);
  std::cout<< fac << " and "<< print_op(nf)<<std::endl;
+
+	    return;
+}
+
+void test_d8_symm()
+{
+  int L=6;
+//  op_vec vec={spin_op("x", {0,0}, {L,L}),spin_op("x", {1,1}, {L,L}),spin_op("y", {2,1}, {L,L})};
+// std::cout<< print_op(vec)<<std::endl;
+// auto all_d8=generate_all_d8(vec,  L);
+// std::cout<< "start "<<std::endl;
+// for(auto b: all_d8)
+// {
+// std::cout<<print_op(b)<<std::endl;
+
+// }
+//s_[x,(1,0)]s_[y,(2,0)]s_[x,(4,3)]s_[y,(5,3)]
+// s_[x,(1,0)]s_[y,(2,0)]s_[x,(4,3)]s_[y,(5,3)]
+// s_[x,(0,5)]s_[y,(0,4)]s_[x,(3,2)]s_[y,(3,1)]
+// s_[x,(5,0)]s_[y,(4,0)]s_[x,(2,3)]s_[y,(1,3)]
+// s_[x,(0,1)]s_[y,(0,2)]s_[x,(3,4)]s_[y,(3,5)]
+// s_[x,(5,0)]s_[y,(4,0)]s_[x,(2,3)]s_[y,(1,3)]
+// s_[x,(0,1)]s_[y,(0,2)]s_[x,(3,4)]s_[y,(3,5)]
+// s_[x,(1,0)]s_[y,(2,0)]s_[x,(4,3)]s_[y,(5,3)]
+// s_[x,(0,5)]s_[y,(0,4)]s_[x,(3,2)]s_[y,(3,1)]
+op_vec vec={spin_op("x", {1,0}, {L,L}),spin_op("y", {2,0}, {L,L}),spin_op("x", {4,3}, {L,L}),spin_op("y", {5,3}, {L,L})};
+std::cout<<print_op(vec)<<std::endl;
+auto all_d8=generate_all_d8(vec,  L);
+for(auto b: all_d8)
+{
+std::cout<<print_op(b)<<std::endl;
+
+}
 	    return;
 }
 

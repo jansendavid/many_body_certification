@@ -148,6 +148,10 @@ block_shifts[0].push_back(dim_0);
 //              // to do, correct so that all terms appearing here appear in map
               auto construct= generate_single_G_element_sos(*it1, *it2, pos_y, pos_x);
               std::complex<double> total_prefactor=construct.prefac_*FT_factor_x*FT_factor_y;
+              if(std::abs(total_prefactor)<1e-9)
+              {
+              std::cout<< "fact"<<std::endl;
+              }
               if(std::abs(total_prefactor.real())>1e-9)
               {
 
@@ -240,7 +244,16 @@ public:
       initialize_XT();
      std::cout<< "size TI map "<< TI_map_.size()<<std::endl;
      std::cout<< "size total refs "<< total_refs_.size()<<std::endl;
-
+//      std::cout<<"TI"<<std::endl;
+//          for(auto k: TI_map_)
+//     {
+//       std::cout<< k.first<< " -> "<<k.second.first<<std::endl;
+//     }
+// std::cout<<"TI end"<<std::endl;
+    for(auto k: total_refs_)
+    {
+     // std::cout<< k.first<<std::endl;
+    }
 
       for(auto it =total_refs_.begin(); it!=total_refs_.end(); it++)
       {

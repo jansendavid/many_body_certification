@@ -225,8 +225,9 @@ new_op_y=translation_y(op2, j, L_);
 		        	 for(auto op_p: all_p)
 	   { 
 	     auto all_d8sym=generate_all_d8(op_p,  L_);
+		
 		 for(auto d8s: all_d8sym)
-		 {
+		 {	
 	       auto it=mat_terms.find(print_op(d8s));
 		  if(it != mat_terms.end())
 		 	{
@@ -234,7 +235,9 @@ new_op_y=translation_y(op2, j, L_);
 	    TI_map_.insert({print_op(op), { it->first,1}});
 		 return;
 		 	}
+		
 			      auto op_mirror=mirror(d8s);
+				
 	       it=mat_terms.find(print_op(op_mirror));
 	       if(it != mat_terms.end())
 	       {
@@ -345,11 +348,14 @@ public:
 		
 		TI_map_.insert({print_op(vec), { "0",1}});
 	   }
+// diagonal elements
 
     for(auto it2=it1; it2!=operators_.end(); ++it2)
       {
 
-
+		//if(it2!=it1)
+		{
+			//std::cout<<"xx"<<std::endl;
 	auto op_cp=*it2;
 	
 
@@ -388,7 +394,7 @@ public:
 
 
      check_if_operator_exists(vec_tot, mat_terms);
-
+	  }
 
 	  }
      	  }
