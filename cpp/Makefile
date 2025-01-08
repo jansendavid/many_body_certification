@@ -85,8 +85,8 @@ momentum_test: src/momentum_test.cpp
 #sos
 test_ham_spins_dual: sos/test_ham_spins_dual.cpp
 	g++ -std=c++11 sos/test_ham_spins_dual.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
-test_ham_spins_sos: sos/test_ham_spins_sos.cpp
-	g++ -std=c++11 sos/test_ham_spins_sos.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
+test_ham_spins_sos: include/sos/test_ham_spins_sos.cpp
+	g++ -std=c++11 include/sos/test_ham_spins_sos.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
 
 test_bilayer: tests/test_bilayer.cpp
 	g++ -std=c++11 tests/test_bilayer.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
