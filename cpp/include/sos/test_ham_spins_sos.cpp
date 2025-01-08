@@ -7,7 +7,7 @@
 #include"spins.hpp"
 #include<unordered_map>
 #include <Eigen/Dense>
-#include"complex_momentum_symm.hpp"
+
 #include <Eigen/Sparse>
 #include"util.hpp"
 using namespace mosek::fusion;

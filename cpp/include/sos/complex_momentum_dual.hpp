@@ -163,17 +163,6 @@ if(i!=j)
 		As[construct.op_][sign_sector_][mat_pos_x][mat_pos_y].add_values({j+shift+dim, i+shift+dim},1./2*total_prefactor.real());
 }
               }
-                  if(std::abs(total_prefactor.imag())>1e-9)
-              {
-               	As[construct.op_][sign_sector_][mat_pos_x][mat_pos_y].add_values({i+shift,dim+j+shift},1./2*total_prefactor.imag());
-		            As[construct.op_][sign_sector_][mat_pos_x][mat_pos_y].add_values({ j+shift,dim+i+shift},-1./2*total_prefactor.imag());
-if(i!=j)
-{
- 
-   	As[construct.op_][sign_sector_][mat_pos_x][mat_pos_y].add_values({j+shift,dim+i+shift},1./2*total_prefactor.imag());
-	  As[construct.op_][sign_sector_][mat_pos_x][mat_pos_y].add_values({ i+shift,dim+j+shift},-1./2*total_prefactor.imag());
-}
-              }
 
 
            }
