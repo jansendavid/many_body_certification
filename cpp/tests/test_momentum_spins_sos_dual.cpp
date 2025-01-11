@@ -21,12 +21,12 @@ int main()
    // test_multiple_blocks_higher_order();
      // test_multiple_blocks_2d();
   //test_multiple_blocks_higher_order_2d();
- // test_multiple_blocks_higher_order_2d_rdm();
+  test_multiple_blocks_higher_order_2d_rdm();
    //test_multiple_blocks_higher_order_2d_rdm_sos();
      //test_x();
       //test_y();
       //test_d8_symm();
-    test_primal_and_dual();
+    //test_primal_and_dual();
   //  test_load_basis();
          return 0;
 }
