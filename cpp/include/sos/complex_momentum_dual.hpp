@@ -320,6 +320,7 @@ std::map<std::string, Matrix::t> generate_rmds_primal_cp(rdm_operator sites, std
 {
  
   std::map<std::string, Matrix::t> sigmas_temp_;
+   std::map<std::string, mat_type> rdms_eigen_;
   mat_type pauliI=mat_type::Zero(2,2);
         pauliI(0,0) = 1;
         pauliI(1,1) = 1;
@@ -340,47 +341,48 @@ std::map<std::string, Matrix::t> generate_rmds_primal_cp(rdm_operator sites, std
   int degree=sites.size();
   std::vector<std::string> terms;
   std::map<std::string, mat_type > sigma_map;
+  
   sigma_map.insert({"1",pauliI});
   sigma_map.insert({"x",pauliX});
   sigma_map.insert({"y",pauliY});
   sigma_map.insert({"z",pauliZ});
   
   auto dirs=std::vector<std::string>{"1","x", "y", "z"};
-   std::vector<std::string> tots;
+   std::set<std::string> tots;
     
         for(auto d1: dirs)
 	 {
 
 	   if(degree==1)
-	     {tots.push_back(d1); continue;}
+	     {tots.insert(d1); continue;}
 	          for(auto d2: dirs)
 	 {
 	   	   if(degree==2)
-	     {tots.push_back(d1+d2); continue;}
+	     {tots.insert(d1+d2); continue;}
 	   	          for(auto d3: dirs)
 	 {
 	   	   	   if(degree==3)
-	     {tots.push_back(d1+d2+d3); continue;}
+	     {tots.insert(d1+d2+d3); continue;}
 			   for(auto d4: dirs)
 	 {
 	   	   	   if(degree==4)
-	     {tots.push_back(d1+d2+d3+d4); continue;}
+	     {tots.insert(d1+d2+d3+d4); continue;}
        		   for(auto d5: dirs)
 	 {
 	   	   	   if(degree==5)
-	     {tots.push_back(d1+d2+d3+d4+d5); continue;}
+	     {tots.insert(d1+d2+d3+d4+d5); continue;}
        		   for(auto d6: dirs)
 	 {
 	   	   	   if(degree==6)
-	     {tots.push_back(d1+d2+d3+d4+d5+d6); continue;}
+	     {tots.insert(d1+d2+d3+d4+d5+d6); continue;}
        		   for(auto d7: dirs)
 	 {
 	   	   	   if(degree==7)
-	     {tots.push_back(d1+d2+d3+d4+d5+d6+d7); continue;}
+	     {tots.insert(d1+d2+d3+d4+d5+d6+d7); continue;}
        		   for(auto d8: dirs)
 	 {
 	   	   	   if(degree==8)
-	     {tots.push_back(d1+d2+d3+d4+d5+d6+d7+d8); continue;}
+	     {tots.insert(d1+d2+d3+d4+d5+d6+d7+d8); continue;}
 	 }
 	 }
 	 }
@@ -394,13 +396,14 @@ std::map<std::string, Matrix::t> generate_rmds_primal_cp(rdm_operator sites, std
        std::vector<Expression::t> matrices;
   
 double prefac=1;
-
+//
+ std::cout<< "start "<< tots.size()<<std::endl;
        for(auto t: tots)
 	 {
  
 	   mat_type mat;
 	    op_vec state;
-	   
+	  
 	   for(int i=0; i<t.size(); i++)
 	     {
         
@@ -424,13 +427,19 @@ double prefac=1;
 
 	 }
 
+//if matrix element exists I only
      if(print_op(state)=="1")
      {
    
         mat=mat/std::
         pow(2, degree);
-     auto Alpha=get_sparse_from_eigen(mat);
-     sigmas_temp_.insert({"1", Alpha});
+        if(rdms_eigen_.find("1")!=rdms_eigen_.end())
+        {
+          rdms_eigen_["1"]+=mat;
+        }
+        else{
+          rdms_eigen_.insert({"1", mat});
+        }
      }
      else{
 
@@ -441,19 +450,37 @@ double prefac=1;
 auto [state_from_map, coeff]=TI_map_.at(print_op(nf));
             if(state_from_map=="0")
             {
+              // if contribution is zero I just move on
             
               continue;}
- assert(std::abs((fac*coeff).imag())<1e-9);
+              else{
 
+                assert(std::abs((fac*coeff).imag())<1e-9);
   	     mat=mat*(fac*coeff).real()/std::pow(2, degree);
-         auto Alpha=get_sparse_from_eigen(mat);
-       
 
-  sigmas_temp_.insert({state_from_map, Alpha});
+                if(rdms_eigen_.find(state_from_map)!=rdms_eigen_.end())
+                {
+                  //std::cout<< "heieh "<<state_from_map<<std::endl;
+            //       // If element already exists, I just add the matrix
+               rdms_eigen_[state_from_map]+=mat;
+                 }
+                 else{
+                //   std::cout<< "not exist "<<state_from_map<<std::endl;
+            //       // element does not exist, I add a new matrix to the map
+              rdms_eigen_.insert({state_from_map, mat});
+                 }
+                 //rdms_eigen_.insert({state_from_map, mat});
     }	
+     }
 	 
  }
-
+ // convert to mosek format
+ for(auto eigen_matrix: rdms_eigen_)
+ {
+   auto Alpha=get_sparse_from_eigen(eigen_matrix.second);
+     
+     sigmas_temp_.insert({eigen_matrix.first, Alpha});
+ }
   return sigmas_temp_;
 }
 void generate_rdms(rdms_struct rdms, std::map<std::string, op_vec>& mat_terms)
@@ -623,6 +650,7 @@ void fix_constrains(){
               continue;
           
              }
+             else{
            if(op.first=="1")
            {
              if(As_[op.first][sign_symm_sector.first][i][j].has_elements_)
@@ -644,7 +672,7 @@ void fix_constrains(){
            }
           
          }
-
+        }
 
         }
       } 
@@ -659,8 +687,8 @@ void fix_constrains(){
     {
     int el=total_refs_.at(string_and_matrix.first);
     auto a=lambda_.second;
-
-    expressions_[el]=Expr::add(expressions_[el],Expr::neg(Expr::dot(lambda_.second,string_and_matrix.second )) );
+// why not neg (Expr::dot(lambda_.second,string_and_matrix.second )) ?
+    expressions_[el]=Expr::add(expressions_[el],(Expr::dot(lambda_.second,string_and_matrix.second )) );
     }
   }
  }

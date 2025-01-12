@@ -24,10 +24,10 @@ void test_multiple_blocks_higher_order_2d_rdm()
  auto map_sec=get_sector_map();
     basis_structure states=get_states();
     get_order_one_monomials(states, map_sec, Lx, true);
-     get_order_two_monomials(states, map_sec, Lx,3, -3,true);
+     get_order_two_monomials(states, map_sec, Lx,1, -1,true);
    // get_order_three_monomials(states, map_sec, Lx, true);
 
-get_order_four_monomials(states, map_sec, Lx, true);
+//get_order_four_monomials(states, map_sec, Lx, true);
 
  
 for(auto a: states)
@@ -98,13 +98,13 @@ auto data=get_rdms(Lx,Lx);
 //  data.add_operator(newstate);
 rdms_struct rdms(data);
 
-// for(auto a: states)
-// {
+for(auto a: states)
+{
 
-// 	std::cout<<"sec "<< a.first<< " and size "<< a.second.size()<< " and "<<a.second.size()/(Lx*Lx)<<std::endl;
-// 	  //for(auto n:a.second)
-//      //{std::cout<<print_op(n)<<std::endl;}
-// }
+	std::cout<<"sec "<< a.first<< " and size "<< a.second.size()<< " and "<<a.second.size()/(Lx*Lx)<<std::endl;
+	  //for(auto n:a.second)
+     //{std::cout<<print_op(n)<<std::endl;}
+}
 
     Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
     auto basis =momentum_symmetry_solver_sos(Lx,states,M,rdms,"xyz");

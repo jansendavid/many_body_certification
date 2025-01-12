@@ -70,60 +70,60 @@ return data;
 bool found_operator(std::set<std::string> list_of_op, op_vec vec, int Lx, int Ly)
 {
   bool results=false;
-    auto all_ty=generate_all_translations_y(op, Ly,1);
+  //   auto all_ty=generate_all_translations_y(op, Ly,1);
 		  
 	
-	 for(auto op_ty: all_ty)
-	   {
-	    auto all_t=generate_all_translations(op_ty, Lx);
+	//  for(auto op_ty: all_ty)
+	//    {
+	//     auto all_t=generate_all_translations(op_ty, Lx);
 	
-	     for(auto op_t: all_t)
-	       {
-			auto it=mat_terms.find(print_op(op_t));
-			if(it != mat_terms.end())
-			{
+	//      for(auto op_t: all_t)
+	//        {
+	// 		auto it=mat_terms.find(print_op(op_t));
+	// 		if(it != mat_terms.end())
+	// 		{
 				
-	    TI_map_.insert({print_op(op), { it->first,1}});
-		return;
-			}
-			std::vector<op_vec> all_p;	
-			if(permuts_=="xyz" or permuts_=="yxz" or permuts_=="zxy" or permuts_=="zyx")
-		   {
-	      all_p=generate_all_permutations_xyz(op_t);
-		   }
-		 else if(permuts_=="xy")
-		   {
-		     all_p=generate_all_permutations_xy(op_t);
-		   }
-		        	 for(auto op_p: all_p)
-	   { 
-	     auto all_d8sym=generate_all_d8(op_p,  L_);
+	//     TI_map_.insert({print_op(op), { it->first,1}});
+	// 	return;
+	// 		}
+	// 		std::vector<op_vec> all_p;	
+	// 		if(permuts_=="xyz" or permuts_=="yxz" or permuts_=="zxy" or permuts_=="zyx")
+	// 	   {
+	//       all_p=generate_all_permutations_xyz(op_t);
+	// 	   }
+	// 	 else if(permuts_=="xy")
+	// 	   {
+	// 	     all_p=generate_all_permutations_xy(op_t);
+	// 	   }
+	// 	        	 for(auto op_p: all_p)
+	//    { 
+	//      auto all_d8sym=generate_all_d8(op_p,  L_);
 		
-		 for(auto d8s: all_d8sym)
-		 {	
-	       auto it=mat_terms.find(print_op(d8s));
-		  if(it != mat_terms.end())
-		 	{
+	// 	 for(auto d8s: all_d8sym)
+	// 	 {	
+	//        auto it=mat_terms.find(print_op(d8s));
+	// 	  if(it != mat_terms.end())
+	// 	 	{
 				
-	    TI_map_.insert({print_op(op), { it->first,1}});
-		 return;
-		 	}
+	//     TI_map_.insert({print_op(op), { it->first,1}});
+	// 	 return;
+	// 	 	}
 		
-			      auto op_mirror=mirror(d8s);
+	// 		      auto op_mirror=mirror(d8s);
 				
-	       it=mat_terms.find(print_op(op_mirror));
-	       if(it != mat_terms.end())
-	       {
-			TI_map_.insert({print_op(op), { it->first,1}});
-			 return;
-	   		}
+	//        it=mat_terms.find(print_op(op_mirror));
+	//        if(it != mat_terms.end())
+	//        {
+	// 		TI_map_.insert({print_op(op), { it->first,1}});
+	// 		 return;
+	//    		}
 	       
-		   }
+	// 	   }
 			
 		
-	   }
-	   }
-     }
+	//    }
+	//    }
+  //    }
 
   return results;
 }
@@ -1436,6 +1436,18 @@ std::vector<std::string> dirs={"x","y","z"};
 	     
        {
         op_vec v0={spin_op(s1, {0,0}, {L,L}),spin_op(s2, {1,0}, {L,L}),spin_op(s3, {0,1}, {L,L}),spin_op(s4, {1,1}, {L,L})};
+        auto [fac, vec] =get_normal_form(v0);
+	 
+         if(use_symm)
+        {
+add_state_with_symmetries(states, v0, map_sec, L);
+        }
+        else{
+          add_state(states, v0, map_sec);
+        }
+		 }
+          {
+        op_vec v0={spin_op(s1, {0,0}, {L,L}),spin_op(s2, {1,0}, {L,L}),spin_op(s3, {2,0}, {L,L}),spin_op(s4, {3,0}, {L,L})};
         auto [fac, vec] =get_normal_form(v0);
 	 
          if(use_symm)
