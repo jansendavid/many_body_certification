@@ -36,6 +36,16 @@ public:
     
     return spin_op(dir_,new_sites, offset_ );
   }
+     spin_op get_flipped_layer()
+  {
+    // assumes LxL lattice and order ....y,x
+    assert(site_.size()==3);
+    auto new_sites=site_;
+
+    new_sites[0]=(site_[0]+1)%2;
+ 
+    return spin_op(dir_,new_sites, offset_ );
+  }
  spin_op get_translated(int j, int L)
   {
     auto new_sites=site_;

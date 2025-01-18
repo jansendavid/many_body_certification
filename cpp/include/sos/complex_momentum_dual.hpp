@@ -203,6 +203,7 @@ public:
   Model::t M_;
   std::map<int, momentum_block_eff> sectors_;
   std::string sector_;
+  bool bilayer_;
 
   
   std::map<std::string, std::pair<std::string, std::complex<double>>> TI_map_;
@@ -215,7 +216,7 @@ public:
   std::map<rdm_operator, std::map<std::string, Matrix::t>> sigmas_;
   bool compute_rdms_{false};
   
-  momentum_basis_xy(int L, basis_structure operators,Model::t M, rdms_struct rdms, std::string permuts="xyz"):L_(L),operators_(operators), M_(M)
+  momentum_basis_xy(int L, basis_structure operators,Model::t M, rdms_struct rdms, std::string permuts="xyz", bool bilayer=false):L_(L),operators_(operators), M_(M), bilayer_(bilayer)
   {
         FT_=Eigen::MatrixXcd(L,L);
     for(int i=0; i<L; i++)
@@ -287,7 +288,7 @@ As_[it->first][it_sign_sector->first]={};
    for(auto& b : sectors_)
        {
 
-	 b.second.generate_TI_map_xy(mat_terms);
+	 b.second.generate_TI_map_xy(mat_terms, bilayer_);
    std::cout<<"sizes "<< mat_terms.size()<< " adn "<<TI_map_.size()<<std::endl;
        }
     
@@ -446,7 +447,7 @@ double prefac=1;
           
        auto [fac, nf] =get_normal_form(state);
  
-        sectors_.at(0).check_if_operator_exists(nf, mat_terms);
+        sectors_.at(0).check_if_operator_exists(nf, mat_terms, bilayer_);
 auto [state_from_map, coeff]=TI_map_.at(print_op(nf));
             if(state_from_map=="0")
             {
@@ -498,7 +499,7 @@ void generate_rdms(rdms_struct rdms, std::map<std::string, op_vec>& mat_terms)
 class momentum_symmetry_solver_dual: public momentum_basis_xy{
 public:
    Variable::t y_;
-momentum_symmetry_solver_dual(int L, basis_structure operators,Model::t M, rdms_struct rdms, std::string permuts="xyz"):momentum_basis_xy(L, operators,M, rdms,permuts)
+momentum_symmetry_solver_dual(int L, basis_structure operators,Model::t M, rdms_struct rdms, std::string permuts="xyz", bool bilayer=false):momentum_basis_xy(L, operators,M, rdms,permuts, bilayer)
 {
 y_=M_->variable("T", total_refs_.size());
      // fix 1
@@ -586,7 +587,7 @@ public:
   // here we store the C matrices (the constants)
    std::map<int,std::vector<std::vector<Matrix::t>>> Cs_;
    std::map<int,std::vector<std::vector<Matrix::t>>> zeros_;
-momentum_symmetry_solver_sos(int L, basis_structure operators,Model::t M, rdms_struct rdms,std::string permuts="xyz"):momentum_basis_xy(L, operators,M,rdms, permuts)
+momentum_symmetry_solver_sos(int L, basis_structure operators,Model::t M, rdms_struct rdms,std::string permuts="xyz", bool bilayer=false):momentum_basis_xy(L, operators,M,rdms, permuts, bilayer)
 {
      
      for(auto sign_symm_sector :sectors_)
