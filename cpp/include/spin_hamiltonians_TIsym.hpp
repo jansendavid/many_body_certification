@@ -118,7 +118,7 @@ vals[el_t]+=coeff*fac_t.real()*coeff_map_t.real()/4.;
     {
    
      
-	  op_vec v_p={spin_op(term.first, {0,0}, {Lx, Ly}),spin_op(term.second, {2,0}, {Lx, Ly})};	  
+	  op_vec v_p={spin_op(term.first, {0,0}, {Lx, Ly}),spin_op(term.second, {1,1}, {Lx, Ly})};	  
       auto [fac_p, nf_p] =get_normal_form(v_p);
      
       auto [ key_p,coeff_map_p]=map.at(print_op(nf_p));  
@@ -135,7 +135,7 @@ vals[el_t]+=coeff*fac_t.real()*coeff_map_t.real()/4.;
   vals[el_p]+=coeff*fac_p.real()*coeff_map_p.real()/4.;
        }
    
-      op_vec v_t={spin_op(term.first, {0,0}, {Lx, Ly}),spin_op(term.second, {0,2}, {Lx, Ly})};
+      op_vec v_t={spin_op(term.first, {0,0}, {Lx, Ly}),spin_op(term.second, {1,Lx-1}, {Lx, Ly})};
       auto [fac_t, nf_t] =get_normal_form(v_t);
       auto [ key_t,coeff_map_t]=map.at(print_op(nf_t));  
       auto el_t=refs.at(key_t);
