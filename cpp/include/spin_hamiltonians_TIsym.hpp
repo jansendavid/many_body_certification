@@ -119,7 +119,7 @@ std::vector<double> define_heisenberg_bilayer_sos( std::map<std::string, int> re
  
     
     }
-// J x
+// J perpendicular
     for(auto term:dirs)
     {
 

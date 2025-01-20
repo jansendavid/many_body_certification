@@ -102,8 +102,10 @@ for(auto a: states)
 {
 
 	std::cout<<"sec "<< a.first<< " and size "<< a.second.size()<< " and "<<a.second.size()/(Lx*Lx)<<std::endl;
-	  //for(auto n:a.second)
-     //{std::cout<<print_op(n)<<std::endl;}
+  
+	  for(auto n:a.second)
+     {std::cout<<print_op(n)<<std::endl;}
+     std::cout<<"###################################"<<std::endl;
 }
 
     Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });

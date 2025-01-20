@@ -223,10 +223,10 @@ std::vector<int> offsets_={layers, Ly, Lx};
 	 
          if(use_symm)
         {
-add_state_with_symmetries(states, v0, map_sec, Lx);
+add_state_with_symmetries(states, vec, map_sec, Lx);
         }
         else{
-          add_state(states, v0, map_sec);
+          add_state(states, vec, map_sec);
         }
 		 }
           {
@@ -235,10 +235,10 @@ add_state_with_symmetries(states, v0, map_sec, Lx);
 	 
          if(use_symm)
         {
-add_state_with_symmetries(states, v0, map_sec, Lx);
+add_state_with_symmetries(states, vec, map_sec, Lx);
         }
         else{
-          add_state(states, v0, map_sec);
+          add_state(states, vec, map_sec);
         }
 		 }
             } }}}}
@@ -253,30 +253,34 @@ data.add_operator(newstate);
 data.add_operator(newstate_2);
     rdm_operator newstate_3({{0,0,0}, {1,0,1}});
 data.add_operator(newstate_3);
-//   rdm_operator newstate_x({{0,0,0}, {0,0,1}});
-// data.add_operator(newstate_);
-// if(dim>=4)
-// {
-//     rdm_operator newstate({{0,0,0}, {0,0,1}, {0,2}});
-// data.add_operator(newstate);
-//  rdm_operator newstate_1({{0,0}, {0,1}, {0,2},{0,3}});
-// data.add_operator(newstate_1);
-//  rdm_operator newstate_2({{0,0}, {0,1}, {0,2},{0,3},{1,1}});
-// data.add_operator(newstate_2);
-//  rdm_operator newstate_3({{0,0}, {0,1}, {0,2},{0,3},{1,1},{1,2}});
-// data.add_operator(newstate_3);
-//  rdm_operator newstate_4({{0,0}, {0,1}, {0,2},{0,3},{1,1},{1,2},{1,3}});
-// data.add_operator(newstate_4);
-//  rdm_operator newstate_5({{0,0}, {0,1}, {0,2},{0,3},{1,1},{1,2},{1,3},{2,2}});
-// data.add_operator(newstate_5);
+  rdm_operator newstate_4({{0,0,0}, {0,1,1}});
+data.add_operator(newstate_4);
+ rdm_operator newstate_5({{0,0,0}, {1,1,1}});
+data.add_operator(newstate_5);
+ rdm_operator newstate_6({{1,0,0}, {1,1,1}});
+data.add_operator(newstate_6);
 
-//  rdm_operator newstate_55({{0,0}, {2,1}, {0,2},{2,3},{1,1},{1,2},{1,3},{2,2}});
-// data.add_operator(newstate_55);
-// //  rdm_operator newstate_6({{0,0}, {0,1}, {0,2},{0,3},{1,1},{1,2},{1,3},{2,2},{3,3}});
-// // data.add_operator(newstate_6);
-// //  rdm_operator newstate_7({{0,0}, {0,1}, {0,2},{0,3},{1,1},{1,2},{1,3},{2,2},{3,3}});
-// // data.add_operator(newstate_7);
-// }
+if(dim>=4)
+{
+     rdm_operator newstate({{0,0,0}, {0,0,1}, {0,1,0}});
+ data.add_operator(newstate);
+
+   rdm_operator newstate_1({{0,0,0}, {0,1,0}, {0,0,1}});
+ data.add_operator(newstate_1);
+ rdm_operator newstate_2({{0,0,0}, {0,1,0}, {0,1,1}});
+ data.add_operator(newstate_2);
+
+  rdm_operator newstate_3({{0,0,0}, {1,1,0}, {1,1,1}});
+ data.add_operator(newstate_3);
+
+  rdm_operator newstate_4({{0,0,0}, {1,1,0}, {0,1,1}});
+ data.add_operator(newstate_4);
+  rdm_operator newstate_5({{1,0,0}, {0,1,0}, {0,1,1}});
+ data.add_operator(newstate_5);
+
+
+
+ }
 // if(dim>=6)
 // {
 //     rdm_operator newstate({{0,0}, {0,1}, {0,2},{0,3},{0,4}});
