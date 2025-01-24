@@ -64,3 +64,16 @@ void test_write_to_numpy()
   std::cout<< M_->primalObjValue()  <<std::endl;
     store_matrix_to_numpy("to_numpy_test.npy", 3, X);
   return; }
+
+void test_extract_basis_from_file()
+{
+  int L=4;
+
+ auto basis=load_basis_from_file("test_basis_bilayer.txt", L, true);
+ for(auto b: basis)
+ {
+std::cout<<print_op(b)<<std::endl;
+
+ }
+  return;
+}

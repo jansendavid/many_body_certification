@@ -7,6 +7,323 @@ using namespace mosek::fusion;
 using namespace monty;
 std::shared_ptr<ndarray<int,1>>    nint(const std::vector<int> &X)    { return new_array_ptr<int>(X); }
 std::shared_ptr<ndarray<double,1>> ndou(const std::vector<double> &X) { return new_array_ptr<double>(X); }
+struct rdm_operator{
+  
+  std::vector<std::vector<int>> op_;
+  rdm_operator(std::vector<std::vector<int>> op): op_(op){};
+rdm_operator(){};
+unsigned int size()
+{
+  return op_.size();
+}
+std::vector<int> at(int i)
+{
+  return op_[i];
+}
+ bool operator <(const rdm_operator& rhs) const
+    {
+        return op_ < rhs.op_;
+    }
+
+};
+struct rdms_struct{
+  // struct to manage the reduced density matrices
+  // store a vector with operator and each opertor has vector of its sites
+std::vector<rdm_operator> rdms;
+rdms_struct(std::vector<rdm_operator> rdms): rdms(rdms){};
+rdms_struct(){};
+void add_operator(rdm_operator new_operator_indices)
+{ 
+  // appends operators, e.g. (1,2)(0,3) (2,2)
+  rdms.push_back(new_operator_indices);
+
+}
+unsigned int size()
+{
+  return rdms.size();
+}
+};
+rdms_struct  get_rdms(int Lx, int dim)
+{
+  rdms_struct data;
+     
+        rdm_operator newstate({{0,0}, {0,1}});
+data.add_operator(newstate);
+if(dim>=4)
+{
+    rdm_operator newstate({{0,0}, {0,1}, {0,2}});
+data.add_operator(newstate);
+ rdm_operator newstate_1({{0,0}, {0,1}, {0,2},{0,3}});
+data.add_operator(newstate_1);
+ rdm_operator newstate_2({{0,0}, {0,1}, {0,2},{0,3},{1,1}});
+data.add_operator(newstate_2);
+ rdm_operator newstate_3({{0,0}, {0,1}, {0,2},{0,3},{1,1},{1,2}});
+data.add_operator(newstate_3);
+ rdm_operator newstate_4({{0,0}, {0,1}, {0,2},{0,3},{1,1},{1,2},{1,3}});
+data.add_operator(newstate_4);
+ rdm_operator newstate_5({{0,0}, {0,1}, {0,2},{0,3},{1,1},{1,2},{1,3},{2,2}});
+data.add_operator(newstate_5);
+
+ rdm_operator newstate_55({{0,0}, {2,1}, {0,2},{2,3},{1,1},{1,2},{1,3},{2,2}});
+data.add_operator(newstate_55);
+//  rdm_operator newstate_6({{0,0}, {0,1}, {0,2},{0,3},{1,1},{1,2},{1,3},{2,2},{3,3}});
+// data.add_operator(newstate_6);
+//  rdm_operator newstate_7({{0,0}, {0,1}, {0,2},{0,3},{1,1},{1,2},{1,3},{2,2},{3,3}});
+// data.add_operator(newstate_7);
+}
+if(dim>=6)
+{
+    rdm_operator newstate({{0,0}, {0,1}, {0,2},{0,3},{0,4}});
+data.add_operator(newstate);
+ rdm_operator newstate_1({{0,0}, {0,1}, {0,2},{0,3},{0,4},{0,5}});
+data.add_operator(newstate_1);
+}
+  
+return data;
+
+}
+bool found_operator(std::set<std::string> list_of_op, op_vec vec, int Lx, int Ly)
+{
+  bool results=false;
+  //   auto all_ty=generate_all_translations_y(op, Ly,1);
+		  
+	
+	//  for(auto op_ty: all_ty)
+	//    {
+	//     auto all_t=generate_all_translations(op_ty, Lx);
+	
+	//      for(auto op_t: all_t)
+	//        {
+	// 		auto it=mat_terms.find(print_op(op_t));
+	// 		if(it != mat_terms.end())
+	// 		{
+				
+	//     TI_map_.insert({print_op(op), { it->first,1}});
+	// 	return;
+	// 		}
+	// 		std::vector<op_vec> all_p;	
+	// 		if(permuts_=="xyz" or permuts_=="yxz" or permuts_=="zxy" or permuts_=="zyx")
+	// 	   {
+	//       all_p=generate_all_permutations_xyz(op_t);
+	// 	   }
+	// 	 else if(permuts_=="xy")
+	// 	   {
+	// 	     all_p=generate_all_permutations_xy(op_t);
+	// 	   }
+	// 	        	 for(auto op_p: all_p)
+	//    { 
+	//      auto all_d8sym=generate_all_d8(op_p,  L_);
+		
+	// 	 for(auto d8s: all_d8sym)
+	// 	 {	
+	//        auto it=mat_terms.find(print_op(d8s));
+	// 	  if(it != mat_terms.end())
+	// 	 	{
+				
+	//     TI_map_.insert({print_op(op), { it->first,1}});
+	// 	 return;
+	// 	 	}
+		
+	// 		      auto op_mirror=mirror(d8s);
+				
+	//        it=mat_terms.find(print_op(op_mirror));
+	//        if(it != mat_terms.end())
+	//        {
+	// 		TI_map_.insert({print_op(op), { it->first,1}});
+	// 		 return;
+	//    		}
+	       
+	// 	   }
+			
+		
+	//    }
+	//    }
+  //    }
+
+  return results;
+}
+rdms_struct  translation_invariant_rdms_2nd(int Lx, int Ly)
+{
+  rdms_struct data;
+  std::string s="x";
+//   std::set<std::string> list_of_operators;
+//   for(int i=0; i<Lx; i++)
+//   {
+//     for(int j=0; j<Lx; j++)
+//     {
+//       if(i!=0 and j!=0)
+//       {
+//         op_vec v0={spin_op(s, {0,0}, {Ly,Lx}),spin_op(s, {i,j},{Ly,Lx})};
+//         auto [fac, vec] =get_normal_form(v0);
+//         std::vector<std::vector<int>> states;
+//         for(auto O: vec)
+//         {
+//           states.push_back(O.sites_);
+//         }
+//         rdm_operator newstate(states);
+     
+// data.add_operator(newstate);
+//       }
+//     }
+//   }
+  
+return data;
+
+}
+
+rdms_struct translation_invariant_rdms_3d(int Lx, int Ly)
+{
+ rdms_struct data;
+  std::vector<std::vector<int>> combs;
+  for(int i=0; i<Lx; i++)
+  {
+    for(int j=0; j<Lx; j++)
+    {
+      if(i!=0 and j!=0)
+      {
+      combs.push_back({i,j});
+    }
+    }
+  }
+    for(auto p: combs)
+    {
+         for(auto o: combs)
+    {
+        for(auto l: combs)
+    {
+      if(p!=o and p!=l and o!=l)
+      {
+        rdm_operator newstate({{0,0}, {o}, {p}, {l}});
+    data.add_operator(newstate);
+      }
+    }
+    }
+    }
+
+
+ return data;
+
+}
+rdms_struct  translation_invariant_rdms_4th(int Lx, int Ly)
+{
+  rdms_struct  data;
+  std::vector<std::vector<int>> combs;
+  for(int i=0; i<Lx; i++)
+  {
+    for(int j=0; j<Lx; j++)
+    {
+      if(i!=0 and j!=0)
+      {
+      combs.push_back({i,j});
+    }
+    }
+  }
+    for(auto p: combs)
+    {
+         for(auto o: combs)
+    {
+        for(auto l: combs)
+    {
+          for(auto m: combs)
+    {
+      std::set<std::vector<int>> set_={p,o,l,m};
+
+      if(set_.size()==4)
+      {
+        rdm_operator newstate({{0,0}, {o}, {p}, {l}, {m}});
+    data.add_operator(newstate);
+      }
+    }
+    }
+    }
+    }
+
+return data;
+
+}
+// std::vector<std::vector<std::vector<int>>>  translation_invariant_rdms_5th(int Lx, int Ly)
+// {
+//   std::vector<std::vector<std::vector<int>>> data;
+//   std::vector<std::vector<int>> combs;
+//   for(int i=0; i<Lx; i++)
+//   {
+//     for(int j=0; j<Lx; j++)
+//     {
+//       if(i!=0 and j!=0)
+//       {
+//       combs.push_back({i,j});
+//     }
+//     }
+//   }
+//     for(auto m: combs)
+//     {
+//          for(auto l: combs)
+//     {
+//         for(auto n: combs)
+//     {
+//           for(auto o: combs)
+//     {
+//               for(auto p: combs)
+//     {
+//       std::set<std::vector<int>> set_={m,l,n,o,p};
+
+//       if(set_.size()==5)
+//       {
+//         std::vector<std::vector<int>> newstate={{0,0}, {m}, {l}, {n}, {o}, {p}};
+//     data.push_back(newstate);
+//       }
+//     }
+//     }
+//     }
+//     }
+//     }
+
+// return data;
+
+// }
+// std::vector<std::vector<std::vector<int>>>  translation_invariant_rdms_6th(int Lx, int Ly)
+// {
+//   std::vector<std::vector<std::vector<int>>> data;
+//   std::vector<std::vector<int>> combs;
+//   for(int i=0; i<Lx; i++)
+//   {
+//     for(int j=0; j<Lx; j++)
+//     {
+//       if(i!=0 and j!=0)
+//       {
+//       combs.push_back({i,j});
+//     }
+//     }
+//   }
+//     for(auto m: combs)
+//     {
+//          for(auto l: combs)
+//     {
+//         for(auto n: combs)
+//     {
+//           for(auto o: combs)
+//     {
+//               for(auto p: combs)
+//     {
+//                  for(auto q: combs)
+//     {
+//       std::set<std::vector<int>> set_={m,l,n,o,p, q};
+
+//       if(set_.size()==6)
+//       {
+//         std::vector<std::vector<int>> newstate={{0,0}, {m}, {l}, {n}, {o}, {p},{q}};
+//     data.push_back(newstate);
+//       }
+//     }
+//     }
+//     }
+//     }
+//     }
+//     }
+
+// return data;
+
+// }
 op_vec apply_group_trafo(op_vec op,Eigen::Matrix2i mat, int L )
 {
 
@@ -406,7 +723,19 @@ op_vec mirror(op_vec op){
     }
      auto [fac, nf] =get_normal_form(vec);
     
-   
+  
+  assert(fac.imag()<1e-9);
+  return nf;
+}
+op_vec flip_layer(op_vec op){
+  op_vec vec;
+  for(int i=0; i<op.size(); i++)
+    {
+      vec.push_back(op[i].get_flipped_layer());
+    }
+     auto [fac, nf] =get_normal_form(vec);
+    
+  
   assert(fac.imag()<1e-9);
   return nf;
 }
@@ -772,99 +1101,50 @@ add_state_with_symmetries(states, v0, map_sec, L);
   }
 
 
-   basis_structure get_basis_bilayer_2d(int Lx, int Ly, int layers, int r, int start,bool use_symm)
-  {
-std::set <std::string> states_strings;
- basis_structure states;
-      std::vector<op_vec> v_block_0;
-  std::vector<op_vec> v_block_1;
-  std::vector<op_vec> v_block_2;
-  std::vector<op_vec> v_block_3;
-  states.insert({0, v_block_0});
-  states.insert({1, v_block_1});
-  states.insert({2, v_block_2});
-  states.insert({3, v_block_3});
-  std::map<std::pair<int,int>, int> map_sec;
-      map_sec.insert({std::pair<int,int>(1,1), 0});
-  map_sec.insert({std::pair<int,int>(1,-1), 1});
-  map_sec.insert({std::pair<int,int>(-1,1), 2});
-    map_sec.insert({std::pair<int,int>(-1,-1), 3});
+//    basis_structure get_basis_bilayer_2d(int Lx, int Ly, int layers, int r, int start,bool use_symm)
+//   {
+// std::set <std::string> states_strings;
+//  basis_structure states;
+//       std::vector<op_vec> v_block_0;
+//   std::vector<op_vec> v_block_1;
+//   std::vector<op_vec> v_block_2;
+//   std::vector<op_vec> v_block_3;
+//   states.insert({0, v_block_0});
+//   states.insert({1, v_block_1});
+//   states.insert({2, v_block_2});
+//   states.insert({3, v_block_3});
+//   std::map<std::pair<int,int>, int> map_sec;
+//       map_sec.insert({std::pair<int,int>(1,1), 0});
+//   map_sec.insert({std::pair<int,int>(1,-1), 1});
+//   map_sec.insert({std::pair<int,int>(-1,1), 2});
+//     map_sec.insert({std::pair<int,int>(-1,-1), 3});
  
-       std::vector<std::string> dirs={"x","y","z"};
+//        std::vector<std::string> dirs={"x","y","z"};
        
  
-for(int i=0; i<2;i++)
-{
-	   for(auto s: dirs){
+// for(int i=0; i<2;i++)
+// {
+// 	   for(auto s: dirs){
 	    
-	     op_vec v0={spin_op(s, {i,0,0}, {layers,Ly, Lx})};
-       const bool is_in = states_strings.find(print_op(v0)) != states_strings.end();
+// 	     op_vec v0={spin_op(s, {i,0,0}, {layers,Ly, Lx})};
+//        const bool is_in = states_strings.find(print_op(v0)) != states_strings.end();
 
-       {
-        if(use_symm)
-        {
-add_state_with_symmetries(states, v0, map_sec, Ly);
-        }
-        else{
-          add_state(states, v0, map_sec);
-        }
+//        {
+//         if(use_symm)
+//         {
+// add_state_with_symmetries(states, v0, map_sec, Ly);
+//         }
+//         else{
+//           add_state(states, v0, map_sec);
+//         }
         
         
-       }
+//        }
 
 
-	    }
-}
-for(int n=0; n<2; n++)
-{
-  for(int m=0; m<2; m++)
-{
-    for(int i=start; i<=r; i++)
-      {
-     
-          for(int j=start; j<=r; j++)
-      {
-        for(auto s1: dirs){
-	     
-       for(auto s2: dirs){
-       {
-        
-        if(i!=0 or j!=0)
-        {
-          int ind1=(Ly+i)%Ly;
-          int ind2=(Lx+j)%Lx;
-        op_vec v0={spin_op(s1, {n,0,0}, {layers,Ly, Lx}),spin_op(s2, {m,ind1, ind2}, {layers,Ly, Lx})};
-
-	
-        auto [fac, vec] =get_normal_form(v0);
-         const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
-
-      //if(not is_in)
-       {
     
-         if(use_symm)
-        {
-add_state_with_symmetries(states, v0, map_sec, Ly);
-        }
-        else{
-          add_state(states, v0, map_sec);
-        }
-        }
-      
-
-	     
-        }
-		 }
-		   
-	    }
-     }
-      }
-      }
- 
-}
-}
-       return states;
-  }
+  
+		 
 
 struct monomial_struct_2d
 {
@@ -1134,6 +1414,18 @@ std::vector<std::string> dirs={"x","y","z"};
 	     
        {
         op_vec v0={spin_op(s1, {0,0}, {L,L}),spin_op(s2, {1,0}, {L,L}),spin_op(s3, {0,1}, {L,L}),spin_op(s4, {1,1}, {L,L})};
+        auto [fac, vec] =get_normal_form(v0);
+	 
+         if(use_symm)
+        {
+add_state_with_symmetries(states, v0, map_sec, L);
+        }
+        else{
+          add_state(states, v0, map_sec);
+        }
+		 }
+          {
+        op_vec v0={spin_op(s1, {0,0}, {L,L}),spin_op(s2, {1,0}, {L,L}),spin_op(s3, {2,0}, {L,L}),spin_op(s4, {3,0}, {L,L})};
         auto [fac, vec] =get_normal_form(v0);
 	 
          if(use_symm)

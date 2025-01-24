@@ -7,12 +7,14 @@
 #include"util.hpp"
 #include"complex_momentum_parent.hpp"
 #include<cassert>
+#include"reduced_dms.hpp"
 using namespace mosek::fusion;
 using namespace monty;
 
 using namespace mosek::fusion;
 using namespace monty;
 using symmetry_sector =std::map<int,std::vector<std::vector<matrix_organizer>>>;
+
 // implementing momentum symmetrie in x and y direction
 class momentum_block_eff: public momentum_block_child{
 public:
@@ -148,6 +150,7 @@ block_shifts[0].push_back(dim_0);
 //              // to do, correct so that all terms appearing here appear in map
               auto construct= generate_single_G_element_sos(*it1, *it2, pos_y, pos_x);
               std::complex<double> total_prefactor=construct.prefac_*FT_factor_x*FT_factor_y;
+              //assert(std::abs(total_prefactor)<1e-9); maybe not include values  that are zero
               if(std::abs(total_prefactor)<1e-9)
               {
               std::cout<< "fact"<<std::endl;
@@ -200,16 +203,20 @@ public:
   Model::t M_;
   std::map<int, momentum_block_eff> sectors_;
   std::string sector_;
+  bool bilayer_;
 
   
   std::map<std::string, std::pair<std::string, std::complex<double>>> TI_map_;
   std::map<std::string, int> total_refs_;
   Eigen::MatrixXcd FT_;
-   std::vector<double> b_;
+   Parameter::t b_;
    // contains the matrices As, for each sign symmetrye we have LxL blocks
   std::map<std::string, symmetry_sector> As_;
+  //for the reduced density matrix
+  std::map<rdm_operator, std::map<std::string, Matrix::t>> sigmas_;
+  bool compute_rdms_{false};
   
-  momentum_basis_xy(int L, basis_structure operators,Model::t M, std::string permuts="xyz"):L_(L),operators_(operators), M_(M)
+  momentum_basis_xy(int L, basis_structure operators,Model::t M, rdms_struct rdms, std::string permuts="xyz", bool bilayer=false):L_(L),operators_(operators), M_(M), bilayer_(bilayer)
   {
         FT_=Eigen::MatrixXcd(L,L);
     for(int i=0; i<L; i++)
@@ -230,15 +237,10 @@ public:
 
       }
 
-      initialize_XT();
+      initialize_XT(rdms);
      std::cout<< "size TI map "<< TI_map_.size()<<std::endl;
      std::cout<< "size total refs "<< total_refs_.size()<<std::endl;
-//      std::cout<<"TI"<<std::endl;
-//          for(auto k: TI_map_)
-//     {
-//       std::cout<< k.first<< " -> "<<k.second.first<<std::endl;
-//     }
-// std::cout<<"TI end"<<std::endl;
+
     for(auto k: total_refs_)
     {
      // std::cout<< k.first<<std::endl;
@@ -280,20 +282,24 @@ As_[it->first][it_sign_sector->first]={};
         return;
  
   }; 
-  void initialize_XT()
+  void initialize_XT(rdms_struct rdms)
   {
     std::map<std::string, op_vec> mat_terms;
    for(auto& b : sectors_)
        {
 
-	 b.second.generate_TI_map_xy(mat_terms);
+	 b.second.generate_TI_map_xy(mat_terms, bilayer_);
    std::cout<<"sizes "<< mat_terms.size()<< " adn "<<TI_map_.size()<<std::endl;
- 
-
-
        }
+    
    
+    if(rdms.size()>0)
+    {
+       generate_rdms(rdms, mat_terms);
+    }
   
+
+
 
    int new_index=0;
    for(auto a: mat_terms)
@@ -305,18 +311,197 @@ As_[it->first][it_sign_sector->first]={};
        
        new_index+=1;
      }
+     b_=M_->parameter("b",total_refs_.size());
   }
 void set_b( std::vector<double> b )
 {
 
-  b_=b;
+     auto a=monty::new_array_ptr<double>(b);
+    b_->setValue(a);
 }
+std::map<std::string, Matrix::t> generate_rmds_primal_cp(rdm_operator sites, std::vector<int> offset, std::map<std::string, op_vec>& mat_terms)//,std::map<std::string, int> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, Variable::t var,int Lx)
+{
+ 
+  std::map<std::string, Matrix::t> sigmas_temp_;
+   std::map<std::string, mat_type> rdms_eigen_;
+  mat_type pauliI=mat_type::Zero(2,2);
+        pauliI(0,0) = 1;
+        pauliI(1,1) = 1;
 
+        //pauliI.makeCompressed();
+        mat_type pauliZ=mat_type::Zero(2,2);
+        pauliZ(0,0) = 1;
+        pauliZ(1,1) = -1;
+
+        //pauliZ.makeCompressed();
+        mat_type pauliX=mat_type::Zero(2,2);
+        pauliX(0,1) = 1;
+        pauliX(1,0) = 1;
+
+        mat_type pauliY=mat_type::Zero(2,2);
+        pauliY(0,1) = std::complex<double>(0,-1);
+        pauliY(1,0) = std::complex<double>(0,1);
+  int degree=sites.size();
+  std::vector<std::string> terms;
+  std::map<std::string, mat_type > sigma_map;
+  
+  sigma_map.insert({"1",pauliI});
+  sigma_map.insert({"x",pauliX});
+  sigma_map.insert({"y",pauliY});
+  sigma_map.insert({"z",pauliZ});
+  
+  auto dirs=std::vector<std::string>{"1","x", "y", "z"};
+   std::set<std::string> tots;
+    
+        for(auto d1: dirs)
+	 {
+
+	   if(degree==1)
+	     {tots.insert(d1); continue;}
+	          for(auto d2: dirs)
+	 {
+	   	   if(degree==2)
+	     {tots.insert(d1+d2); continue;}
+	   	          for(auto d3: dirs)
+	 {
+	   	   	   if(degree==3)
+	     {tots.insert(d1+d2+d3); continue;}
+			   for(auto d4: dirs)
+	 {
+	   	   	   if(degree==4)
+	     {tots.insert(d1+d2+d3+d4); continue;}
+       		   for(auto d5: dirs)
+	 {
+	   	   	   if(degree==5)
+	     {tots.insert(d1+d2+d3+d4+d5); continue;}
+       		   for(auto d6: dirs)
+	 {
+	   	   	   if(degree==6)
+	     {tots.insert(d1+d2+d3+d4+d5+d6); continue;}
+       		   for(auto d7: dirs)
+	 {
+	   	   	   if(degree==7)
+	     {tots.insert(d1+d2+d3+d4+d5+d6+d7); continue;}
+       		   for(auto d8: dirs)
+	 {
+	   	   	   if(degree==8)
+	     {tots.insert(d1+d2+d3+d4+d5+d6+d7+d8); continue;}
+	 }
+	 }
+	 }
+	 }
+	 }
+	 }
+	 }
+	 }
+       int dim=std::pow(2, degree);
+     
+       std::vector<Expression::t> matrices;
+  
+double prefac=1;
+//
+ std::cout<< "start "<< tots.size()<<std::endl;
+       for(auto t: tots)
+	 {
+ 
+	   mat_type mat;
+	    op_vec state;
+	  
+	   for(int i=0; i<t.size(); i++)
+	     {
+        
+ 	       std::string key=t.substr(i,1);
+         
+	       if(key!="1")
+		 {
+	       state.push_back(spin_op(key, sites.at(i), offset));
+		 }
+	       if(i==0)
+		 {
+		   mat=sigma_map[key];
+  
+		 }
+	       else
+		 {
+		
+		   mat=Eigen::KroneckerProduct(mat,sigma_map[key]).eval();
+      
+	     }
+
+	 }
+
+//if matrix element exists I only
+     if(print_op(state)=="1")
+     {
+   
+        mat=mat/std::
+        pow(2, degree);
+        if(rdms_eigen_.find("1")!=rdms_eigen_.end())
+        {
+          rdms_eigen_["1"]+=mat;
+        }
+        else{
+          rdms_eigen_.insert({"1", mat});
+        }
+     }
+     else{
+
+          
+       auto [fac, nf] =get_normal_form(state);
+ 
+        sectors_.at(0).check_if_operator_exists(nf, mat_terms, bilayer_);
+auto [state_from_map, coeff]=TI_map_.at(print_op(nf));
+            if(state_from_map=="0")
+            {
+              // if contribution is zero I just move on
+            
+              continue;}
+              else{
+
+                assert(std::abs((fac*coeff).imag())<1e-9);
+  	     mat=mat*(fac*coeff).real()/std::pow(2, degree);
+
+                if(rdms_eigen_.find(state_from_map)!=rdms_eigen_.end())
+                {
+                  //std::cout<< "heieh "<<state_from_map<<std::endl;
+            //       // If element already exists, I just add the matrix
+               rdms_eigen_[state_from_map]+=mat;
+                 }
+                 else{
+                //   std::cout<< "not exist "<<state_from_map<<std::endl;
+            //       // element does not exist, I add a new matrix to the map
+              rdms_eigen_.insert({state_from_map, mat});
+                 }
+                 //rdms_eigen_.insert({state_from_map, mat});
+    }	
+     }
+	 
+ }
+ // convert to mosek format
+ for(auto eigen_matrix: rdms_eigen_)
+ {
+   auto Alpha=get_sparse_from_eigen(eigen_matrix.second);
+     
+     sigmas_temp_.insert({eigen_matrix.first, Alpha});
+ }
+  return sigmas_temp_;
+}
+void generate_rdms(rdms_struct rdms, std::map<std::string, op_vec>& mat_terms)
+{
+
+  auto offset=operators_[0][0][0].offset_;; // change this to be derived from baso
+  for(auto site : rdms.rdms)
+  {
+  auto sigmas_temp=generate_rmds_primal_cp(site, offset, mat_terms);
+  sigmas_.insert({site, sigmas_temp});
+  }
+        return;
+}
 };
 class momentum_symmetry_solver_dual: public momentum_basis_xy{
 public:
    Variable::t y_;
-momentum_symmetry_solver_dual(int L, basis_structure operators,Model::t M, std::string permuts="xyz"):momentum_basis_xy(L, operators,M, permuts)
+momentum_symmetry_solver_dual(int L, basis_structure operators,Model::t M, rdms_struct rdms, std::string permuts="xyz", bool bilayer=false):momentum_basis_xy(L, operators,M, rdms,permuts, bilayer)
 {
 y_=M_->variable("T", total_refs_.size());
      // fix 1
@@ -369,13 +554,27 @@ void fix_constrains(){
 
     }
     std::cout<< "Finished generating the PSD constraints"<<std::endl;
+    for(auto state: sigmas_)
+    {
+      Expression::t ee=Expr::constTerm(state.second["1"]);
+      //matrices[0]
+      for(auto op_string: state.second)
+      {
+          if(op_string.first!="1")
+          {
+            ee=Expr::add(ee, Expr::mul(y_->index(total_refs_[op_string.first]),op_string.second));
+          }
+      }
+      M_->constraint(ee, Domain::inPSDCone());
+    }
+    std::cout<< "Finished density matrices "<<std::endl;
   return;
 }
    Expression::t get_costfunction()
   {
    
-    auto b_arr = monty::new_array_ptr<double>(b_);
-    return Expr::dot(b_arr,y_);
+
+    return Expr::dot(b_,y_);
   }
 
 };
@@ -384,10 +583,13 @@ void fix_constrains(){
 class momentum_symmetry_solver_sos: public momentum_basis_xy{
 public:
    std::map<int,std::vector<std::vector<Expression::t>>> Xs_;
+   // Lambdas are the Lagrangian stemmeing from psd density matrices
+   std::map<rdm_operator,Expression::t> Lambdas_;
+   
   // here we store the C matrices (the constants)
    std::map<int,std::vector<std::vector<Matrix::t>>> Cs_;
    std::map<int,std::vector<std::vector<Matrix::t>>> zeros_;
-momentum_symmetry_solver_sos(int L, basis_structure operators,Model::t M, std::string permuts="xyz"):momentum_basis_xy(L, operators,M, permuts)
+momentum_symmetry_solver_sos(int L, basis_structure operators,Model::t M, rdms_struct rdms,std::string permuts="xyz", bool bilayer=false):momentum_basis_xy(L, operators,M,rdms, permuts, bilayer)
 {
      
      for(auto sign_symm_sector :sectors_)
@@ -414,36 +616,26 @@ momentum_symmetry_solver_sos(int L, basis_structure operators,Model::t M, std::s
         }
 
         }
- 
+        
+      
+        int i=0;
+        for(auto op : rdms.rdms)
+         {
+           auto dm_dim=std::pow(2,op.size() );
+      
+           auto beta=M_->variable("betas_"+std::to_string(i), Domain::inPSDCone(2*dm_dim));
+           i++;
+           Lambdas_[op]=Expr::neg(beta);
+         }
+    
 }
-bool check_if_op(op_vec v0, std::string nam)
-{
 
-           auto all_t=generate_all_translations(v0, L_);
-	  bool found=false;
-	  
-	     	 for(auto op_t: all_t)
-	   {
-          auto all_ty=generate_all_translations_y(op_t, L_,1);
-	     for(auto op_ty: all_ty)
-	      {
-  if(nam==print_op(op_ty))
-  {std::cout<< nam<<std::endl;
-  found==true;
- 
-  }
-     }
-        }
-return found;
-}
 
 void fix_constrains(){
  
 
 
-    //std::map<std::string, Expression::t> expressions_;
     std::vector<Expression::t> expressions_(total_refs_.size(),Expr::constTerm( 0) );
-    //Expression::t expressions_ =Expr::constTerm( total_refs_.size(),0.);
 
     for(auto sign_symm_sector :sectors_)
     {
@@ -459,21 +651,16 @@ void fix_constrains(){
           int matrix_dimension=2*sign_symm_sector.second.block_shifts[i][j];
             if(op.first=="0"){
               continue;
-          //     if(As_[op.first][sign_symm_sector.first][i][j].has_elements_)
-          //   {
-              
-          // //     auto zero=As_[op.first][sign_symm_sector.first][i][j].make_matrix(matrix_dimension,matrix_dimension);
-          // //   zeros_[sign_symm_sector.first][i].push_back(zero);
-          //   }
+          
              }
+             else{
            if(op.first=="1")
            {
              if(As_[op.first][sign_symm_sector.first][i][j].has_elements_)
            {
             auto C=As_[op.first][sign_symm_sector.first][i][j].make_matrix(matrix_dimension,matrix_dimension);
             Cs_[sign_symm_sector.first][i].push_back(C);
-           // std::cout<< C->toString()<<std::endl;
-            //ones+=1;
+           
            }
             }
            else{
@@ -481,29 +668,34 @@ void fix_constrains(){
            {
 
             int el=total_refs_.at(op.first);
-            //std::cout<< el <<" x "<<op.first <<" "<<As_[op.first][sign_symm_sector.first][i][j].make_matrix(matrix_dimension,matrix_dimension)->toString()<<std::endl;
+           
             expressions_[el]=Expr::add(expressions_[el], Expr::dot(As_[op.first][sign_symm_sector.first][i][j].make_matrix(matrix_dimension,matrix_dimension),(Xs_[sign_symm_sector.first][i][j]) ));
             
            }
            }
           
          }
-
+        }
 
         }
       } 
       }
 
-        for(auto sign_symm_sector :sectors_)
-    {
-     
 
-      for(auto l : Cs_[sign_symm_sector.first])
-      {
-     
-      }
-   
+ for(auto lambda_: Lambdas_)
+ {
+  for(auto string_and_matrix:sigmas_[lambda_.first])
+  {
+    if(string_and_matrix.first!="1")
+    {
+    int el=total_refs_.at(string_and_matrix.first);
+    auto a=lambda_.second;
+// why not neg (Expr::dot(lambda_.second,string_and_matrix.second )) ?
+    expressions_[el]=Expr::add(expressions_[el],(Expr::dot(lambda_.second,string_and_matrix.second )) );
     }
+  }
+ }
+    
        
       for(auto a: total_refs_)
       {
@@ -511,8 +703,8 @@ void fix_constrains(){
         {
         
           int el=total_refs_.at(a.first);
-         
-        M_->constraint( expressions_[el], Domain::equalsTo(-1*b_[el]));
+         //=-1*b[el]
+        M_->constraint( Expr::add(expressions_[el], b_->index(el)), Domain::equalsTo(0.));
          
         }
       }
@@ -536,6 +728,14 @@ void fix_constrains(){
      
     
       } } }
+//Adding matrices for the positive definite constrain of the RDMs
+  for(auto lambda_: Lambdas_)
+  {
+    
+     ee=Expr::add(ee, Expr::dot(lambda_.second,sigmas_[lambda_.first]["1"] ));
+
+  }
+
       return ee;
   }
 

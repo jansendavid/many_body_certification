@@ -163,7 +163,7 @@ new_op_y=translation_y(op2, j, L_);
 
 
 
-    void check_if_operator_exists(op_vec op,std::map<std::string, op_vec>& mat_terms){
+    void check_if_operator_exists(op_vec op,std::map<std::string, op_vec>& mat_terms, bool bilayer){
       // check if the operator is contained in functions
 	 
        if(op.size()<1)
@@ -244,6 +244,24 @@ new_op_y=translation_y(op2, j, L_);
 			TI_map_.insert({print_op(op), { it->first,1}});
 			 return;
 	   		}
+			if(bilayer)
+			{
+				auto op_flip_layer=flip_layer(d8s);
+				it=mat_terms.find(print_op(op_flip_layer));
+	       if(it != mat_terms.end())
+	       {
+			TI_map_.insert({print_op(op), { it->first,1}});
+			 return;
+	   		}
+				op_flip_layer=flip_layer(op_mirror);
+				it=mat_terms.find(print_op(op_flip_layer));
+	       if(it != mat_terms.end())
+	       {
+			TI_map_.insert({print_op(op), { it->first,1}});
+			 return;
+	   		}
+
+			}
 	       
 		   }
 			
@@ -277,63 +295,63 @@ public:
   momentum_block_child(int L,std::vector<op_vec> operators, Model::t M,   int sign_sector, TI_map_type& TI_map,std::map<std::string, int>& total_refs, Eigen::MatrixXcd& FT, std::string sector_label="",  std::string permuts="xyz"):sign_sector_(sign_sector),  momentum_block_base(L, operators, M,TI_map, total_refs,FT, sector_label, permuts){
     
   }
-    void generate_TI_map(std::map<std::string, op_vec>& mat_terms){
-    // generate all elemenets
+//     void generate_TI_map(std::map<std::string, op_vec>& mat_terms){
+//     // generate all elemenets
 
-     int index=0;
-     for(auto it1=operators_.begin(); it1!=operators_.end(); ++it1)
-       {
-	 auto [fac, vec] =get_normal_form(*it1);
-	 if(sign_sector_==0)
-	   {
-	 check_if_operator_exists(vec, mat_terms);
-	   }
-	   else{
+//      int index=0;
+//      for(auto it1=operators_.begin(); it1!=operators_.end(); ++it1)
+//        {
+// 	 auto [fac, vec] =get_normal_form(*it1);
+// 	 if(sign_sector_==0)
+// 	   {
+// 	 check_if_operator_exists(vec, mat_terms);
+// 	   }
+// 	   else{
 		
-		TI_map_.insert({print_op(vec), { "0",1}});
-	   }
+// 		TI_map_.insert({print_op(vec), { "0",1}});
+// 	   }
 
-    for(auto it2=it1; it2!=operators_.end(); ++it2)
-      {
+//     for(auto it2=it1; it2!=operators_.end(); ++it2)
+//       {
 
 
-	auto op_cp=*it2;
-	for(int n=0; n<L_;n++ )
-	  {
+// 	auto op_cp=*it2;
+// 	for(int n=0; n<L_;n++ )
+// 	  {
 
-	    op_vec new_op;
+// 	    op_vec new_op;
 	    
-	    if(n>0)
-	      {
+// 	    if(n>0)
+// 	      {
 	
-		new_op=translation(op_cp, n, L_);
-	      }
-	    else{
-	      new_op=op_cp;}
+// 		new_op=translation(op_cp, n, L_);
+// 	      }
+// 	    else{
+// 	      new_op=op_cp;}
 
-     auto op_dagg_first=dagger_operator(*it1);
-	auto [fac_dagg,v_x]=get_normal_form(op_dagg_first);
-	assert(std::abs(fac_dagg.imag())<1e-9);
-     v_x.insert(v_x.end(), new_op.begin(),new_op.end());
+//      auto op_dagg_first=dagger_operator(*it1);
+// 	auto [fac_dagg,v_x]=get_normal_form(op_dagg_first);
+// 	assert(std::abs(fac_dagg.imag())<1e-9);
+//      v_x.insert(v_x.end(), new_op.begin(),new_op.end());
 
 
-     auto [fac_tot, vec_tot] =get_normal_form(v_x);
+//      auto [fac_tot, vec_tot] =get_normal_form(v_x);
      
 
-     check_if_operator_exists(vec_tot, mat_terms);
+//      check_if_operator_exists(vec_tot, mat_terms);
 
 
-     	  }
+//      	  }
 
      
      
-       }
-   }
-   return;
-	}
+//        }
+//    }
+//    return;
+// 	}
 	
 
-   void generate_TI_map_xy(std::map<std::string, op_vec>& mat_terms){
+   void generate_TI_map_xy(std::map<std::string, op_vec>& mat_terms, bool bilayer){
 //     // generate all elemenets with translation symmetrie in x and y direction
 
      int index=0;
@@ -342,7 +360,7 @@ public:
 	 auto [fac, vec] =get_normal_form(*it1);
 	 if(sign_sector_==0)
 	   {
-	 check_if_operator_exists(vec, mat_terms);
+	 check_if_operator_exists(vec, mat_terms, bilayer);
 	   }
 	   else{
 		
@@ -393,7 +411,7 @@ public:
      auto [fac_tot, vec_tot] =get_normal_form(v_x);
 
 
-     check_if_operator_exists(vec_tot, mat_terms);
+     check_if_operator_exists(vec_tot, mat_terms, bilayer);
 	  }
 
 	  }

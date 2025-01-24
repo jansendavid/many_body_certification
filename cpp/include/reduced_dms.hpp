@@ -217,3 +217,4 @@ if(std::abs((fac*coeff).imag())>1e-9){std::cout<< "value error"<<std::endl;}
 M->constraint((Expr::add(new_array_ptr(matrices))), Domain::inPSDCone());
   return;
 }
+
