@@ -279,6 +279,22 @@ if(dim>=4)
  data.add_operator(newstate_5);
 
 
+    rdm_operator newstate_x({{0,0,0}, {0,0,1}, {0,1,0},{1,1,0}});
+ data.add_operator(newstate_x);
+
+   rdm_operator newstate_x1({{0,0,0}, {0,1,0}, {0,0,1},{1,0,1}});
+ data.add_operator(newstate_x1);
+ rdm_operator newstate_x2({{0,0,0}, {0,1,0}, {0,1,1},{1,1,1}});
+ data.add_operator(newstate_x2);
+
+  rdm_operator newstate_x3({{0,0,0}, {1,1,0}, {1,1,1}, {1,2,1}});
+ data.add_operator(newstate_x3);
+
+  rdm_operator newstate_x4({{0,0,0}, {1,1,0}, {0,1,1},{0,1,2}});
+ data.add_operator(newstate_x4);
+  rdm_operator newstate_x5({{1,0,0}, {0,1,0}, {0,1,1},{1,2,2}});
+ data.add_operator(newstate_x5);
+
 
  }
 // if(dim>=6)

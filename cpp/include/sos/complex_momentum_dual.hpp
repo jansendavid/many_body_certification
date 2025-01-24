@@ -209,7 +209,7 @@ public:
   std::map<std::string, std::pair<std::string, std::complex<double>>> TI_map_;
   std::map<std::string, int> total_refs_;
   Eigen::MatrixXcd FT_;
-   std::vector<double> b_;
+   Parameter::t b_;
    // contains the matrices As, for each sign symmetrye we have LxL blocks
   std::map<std::string, symmetry_sector> As_;
   //for the reduced density matrix
@@ -311,11 +311,13 @@ As_[it->first][it_sign_sector->first]={};
        
        new_index+=1;
      }
+     b_=M_->parameter("b",total_refs_.size());
   }
 void set_b( std::vector<double> b )
 {
 
-  b_=b;
+     auto a=monty::new_array_ptr<double>(b);
+    b_->setValue(a);
 }
 std::map<std::string, Matrix::t> generate_rmds_primal_cp(rdm_operator sites, std::vector<int> offset, std::map<std::string, op_vec>& mat_terms)//,std::map<std::string, int> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, Variable::t var,int Lx)
 {
@@ -571,8 +573,8 @@ void fix_constrains(){
    Expression::t get_costfunction()
   {
    
-    auto b_arr = monty::new_array_ptr<double>(b_);
-    return Expr::dot(b_arr,y_);
+
+    return Expr::dot(b_,y_);
   }
 
 };
@@ -701,8 +703,8 @@ void fix_constrains(){
         {
         
           int el=total_refs_.at(a.first);
-         
-        M_->constraint( expressions_[el], Domain::equalsTo(-1*b_[el]));
+         //=-1*b[el]
+        M_->constraint( Expr::add(expressions_[el], b_->index(el)), Domain::equalsTo(0.));
          
         }
       }
