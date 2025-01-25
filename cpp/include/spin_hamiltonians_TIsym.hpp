@@ -234,11 +234,13 @@ std::vector<double> define_heisenberg_bilayer_sos( std::map<std::string, int> re
     
     }
 // J_x
+for(int i=0; i<layers; i++)
+{
         for(auto term:dirs)
     {
 
     {
-	  op_vec v_p={spin_op(term.first, {0,0,0}, {layers, Lx, Ly}),spin_op(term.second, {1,0,1}, {layers, Lx, Ly})};	  
+	  op_vec v_p={spin_op(term.first, {i,0,0}, {layers, Lx, Ly}),spin_op(term.second, {(i+1)%layers,0,1}, {layers, Lx, Ly})};	  
       auto [fac_p, nf_p] =get_normal_form(v_p);
      
       auto [ key_p,coeff_map_p]=map.at(print_op(nf_p));  
@@ -258,7 +260,7 @@ std::vector<double> define_heisenberg_bilayer_sos( std::map<std::string, int> re
    
    
     {
-	  op_vec v_p={spin_op(term.first, {0,0,0}, {layers, Lx, Ly}),spin_op(term.second, {1,1,0}, {layers, Lx, Ly})};	  
+	  op_vec v_p={spin_op(term.first, {i,0,0}, {layers, Lx, Ly}),spin_op(term.second, {(i+1)%layers,1,0}, {layers, Lx, Ly})};	  
       auto [fac_p, nf_p] =get_normal_form(v_p);
      
       auto [ key_p,coeff_map_p]=map.at(print_op(nf_p));  
@@ -278,6 +280,7 @@ std::vector<double> define_heisenberg_bilayer_sos( std::map<std::string, int> re
    
     
     }
+}
 
   return vals; 
     
