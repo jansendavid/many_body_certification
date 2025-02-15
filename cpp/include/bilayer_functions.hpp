@@ -330,8 +330,7 @@ rdms_struct  get_rdms_bilayer(int Lx, int dim, bool bilayer)
 
            for(int m=0; m<layers; m++)
      {
-        for(int i=0; i<Lx; i++)
-     {
+     int i=0;
               for(int j=0; j<Lx; j++)
      {
           for(int a=0; a<Lx; a++)
@@ -395,7 +394,7 @@ set_with_vector.insert({o,d,e});
      }
      }
      }
-     }
+     
 
 
   if(dim>=4)
@@ -410,8 +409,7 @@ set_with_vector.insert({o,d,e});
      {
                   for(int p=0; p<layers; p++)
      {
-  for(int i=0; i<Lx; i++)
-     {
+  int i=0;
               for(int j=0; j<Lx; j++)
      {
       {
@@ -509,7 +507,7 @@ set_with_vector.insert({o,d,e});
      }
      }
      }
-     }
+     
 }
  
 
