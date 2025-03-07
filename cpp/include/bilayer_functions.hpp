@@ -283,13 +283,24 @@ rdms_struct  get_rdms_bilayer(int Lx, int dim, bool bilayer)
   std::vector<std::string> rdm_ops={};
   
      std::string s="x";
+ for(int n=0; n<layers; n++)
      {
-    std::set<std::vector<int>> set_with_vector;
-set_with_vector.insert({0,0,0});
-set_with_vector.insert( {0,0,1});
+
+           for(int m=0; m<layers; m++)
+     {
+     int i=0;
+              for(int j=0; j<Lx; j++)
+     {
+          for(int a=0; a<Lx; a++)
+     {
+              for(int b=0; b<Lx; b++)
+     {
+std::set<std::vector<int>> set_with_vector;
+set_with_vector.insert({n,i,j});
+set_with_vector.insert( {m,a,b});
     if(set_with_vector.size()==2)
     {
-     op_vec v0={spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 1), {layers, Lx,Lx})};
+     op_vec v0={spin_op(s, {n,i,j}, {layers, Lx,Lx}),spin_op(s, {m,a,b}, {layers, Lx,Lx})};
      auto [coeff, nf] =get_normal_form(v0);
      auto found=see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
      if(! found)
@@ -298,66 +309,22 @@ set_with_vector.insert( {0,0,1});
       rdm_operator newstate({nf[0].site_, nf[1].site_});
       data.add_operator(newstate);
      }
-    }
      }
-          {
-    std::set<std::vector<int>> set_with_vector;
-set_with_vector.insert({0,0,0});
-set_with_vector.insert( {1,0,1});
-    if(set_with_vector.size()==2)
-    {
-     op_vec v0={spin_op(s,*next(set_with_vector.begin(), 0), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 1), {layers, Lx,Lx})};
-     auto [coeff, nf] =get_normal_form(v0);
-     auto found=see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
-     if(! found)
-     {
-      rdm_ops.push_back(print_op(v0));
-      rdm_operator newstate({nf[0].site_, nf[1].site_});
-      data.add_operator(newstate);
+
+
      }
-    }
      }
-          {
-    std::set<std::vector<int>> set_with_vector;
-set_with_vector.insert({0,0,0});
-set_with_vector.insert( {0,1,1});
-    if(set_with_vector.size()==2)
-    {
-     op_vec v0={spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 1), {layers, Lx,Lx})};
-     auto [coeff, nf] =get_normal_form(v0);
-     auto found=see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
-     if(! found)
-     {
-      rdm_ops.push_back(print_op(v0));
-      rdm_operator newstate({nf[0].site_, nf[1].site_});
-      data.add_operator(newstate);
      }
-    }
      }
-          {
-    std::set<std::vector<int>> set_with_vector;
-set_with_vector.insert({0,0,0});
-set_with_vector.insert( {0,1,1});
-    if(set_with_vector.size()==2)
-    {
-     op_vec v0={spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 1), {layers, Lx,Lx})};
-     auto [coeff, nf] =get_normal_form(v0);
-     auto found=see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
-     if(! found)
-     {
-      rdm_ops.push_back(print_op(v0));
-      rdm_operator newstate({nf[0].site_, nf[1].site_});
-      data.add_operator(newstate);
      }
-    }
-     }
+     std::cout<< "number of two site denisty matrices "<<data.size()<<std::endl;
 if(dim>=3)
 {
   {
           std::set<std::vector<int>> set_with_vector;
 set_with_vector.insert({0,0,0});
 set_with_vector.insert({0,0,1});
-set_with_vector.insert({0,1,0});
+set_with_vector.insert({0,0,1});
     if(set_with_vector.size()==3)
     {
      op_vec v0={spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 1), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx,Lx})};
@@ -374,7 +341,7 @@ set_with_vector.insert({0,1,0});
   {
           std::set<std::vector<int>> set_with_vector;
 set_with_vector.insert({0,0,0});
-set_with_vector.insert({0,0,1});
+set_with_vector.insert({0,1,0});
 set_with_vector.insert({0,1,1});
     if(set_with_vector.size()==3)
     {
@@ -392,7 +359,7 @@ set_with_vector.insert({0,1,1});
   {
           std::set<std::vector<int>> set_with_vector;
 set_with_vector.insert({0,0,0});
-set_with_vector.insert({1,0,1});
+set_with_vector.insert({1,0,0});
 set_with_vector.insert({0,1,0});
     if(set_with_vector.size()==3)
     {
@@ -444,6 +411,7 @@ set_with_vector.insert({1,2,0});
 }
 }
 }
+ std::cout<< "after three "<<data.size()<<std::endl;
 if(dim>=4)
 {
           {
@@ -460,7 +428,7 @@ if(dim>=4)
      if(! found)
      {
       rdm_ops.push_back(print_op(v0));
-      rdm_operator newstate({nf[0].site_, nf[1].site_,nf[2].site_});
+      rdm_operator newstate({nf[0].site_, nf[1].site_,nf[2].site_,nf[3].site_});
       data.add_operator(newstate);
      }
 
@@ -481,7 +449,7 @@ if(dim>=4)
      if(! found)
      {
       rdm_ops.push_back(print_op(v0));
-      rdm_operator newstate({nf[0].site_, nf[1].site_,nf[2].site_});
+      rdm_operator newstate({nf[0].site_, nf[1].site_,nf[2].site_,nf[3].site_});
       data.add_operator(newstate);
      }
 
@@ -502,7 +470,158 @@ if(dim>=4)
      if(! found)
      {
       rdm_ops.push_back(print_op(v0));
+      rdm_operator newstate({nf[0].site_, nf[1].site_,nf[2].site_,nf[3].site_});
+      data.add_operator(newstate);
+     }
+
+
+      }
+          }
+}
+std::cout<< "after four "<<data.size()<<std::endl;
+ 
+if(dim>=5)
+{
+          {
+        std::set<std::vector<int>> set_with_vector;
+      set_with_vector.insert({0,0,0});
+      set_with_vector.insert( {1,1,0});
+      set_with_vector.insert( {0,1,0});
+      set_with_vector.insert( {0,2,0});
+      set_with_vector.insert( {0,3,0});
+      
+      if(set_with_vector.size()==5)
+    {
+ op_vec v0={spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx,Lx}),spin_op(s,*next(set_with_vector.begin(), 1), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 3), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 4), {layers, Lx,Lx})};
+     auto [coeff, nf] =get_normal_form(v0);
+     auto found=see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
+     if(! found)
+     {
+      rdm_ops.push_back(print_op(v0));
+      rdm_operator newstate({nf[0].site_, nf[1].site_,nf[2].site_,nf[3].site_,nf[4].site_});
+      data.add_operator(newstate);
+      std::cout<<"new op size "<< newstate.size()<<std::endl;
+     }
+
+
+      }
+          }
+                 {
+        std::set<std::vector<int>> set_with_vector;
+      set_with_vector.insert({0,0,0});
+      set_with_vector.insert( {1,1,0});
+      set_with_vector.insert( {0,1,1});
+      set_with_vector.insert( {1,2,2});
+      set_with_vector.insert( {1,2,3});
+      if(set_with_vector.size()==5)
+    {
+ op_vec v0={spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx,Lx}),spin_op(s,*next(set_with_vector.begin(), 1), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 3), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 4), {layers, Lx,Lx})};
+     auto [coeff, nf] =get_normal_form(v0);
+     auto found=see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
+     if(! found)
+     {
+      rdm_ops.push_back(print_op(v0));
+      rdm_operator newstate({nf[0].site_, nf[1].site_,nf[2].site_,nf[3].site_,nf[4].site_});
+      data.add_operator(newstate);
+     }
+
+
+      }
+          }
+                 {
+        std::set<std::vector<int>> set_with_vector;
+      set_with_vector.insert({0,0,0});
+      set_with_vector.insert( {0,1,1});
+      set_with_vector.insert( {0,2,0});
+      set_with_vector.insert( {1,3,1});
+      set_with_vector.insert( {1,3,2});
+      if(set_with_vector.size()==4)
+    {
+ op_vec v0={spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx,Lx}),spin_op(s,*next(set_with_vector.begin(), 1), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 3), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 4), {layers, Lx,Lx})};
+     auto [coeff, nf] =get_normal_form(v0);
+     auto found=see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
+     if(! found)
+     {
+      rdm_ops.push_back(print_op(v0));
+      rdm_operator newstate({nf[0].site_, nf[1].site_,nf[2].site_,nf[3].site_,nf[4].site_});
+      data.add_operator(newstate);
+     }
+
+
+      }
+          }
+}
+
+ 
+std::cout<< "after five "<<data.size()<<std::endl;
+
+if(dim>=6)
+{
+  
+          if(Lx>5){
+        std::set<std::vector<int>> set_with_vector;
+      set_with_vector.insert({0,0,0});
+      set_with_vector.insert( {0,1,0});
+      set_with_vector.insert( {0,1,0});
+      set_with_vector.insert( {0,2,0});
+      set_with_vector.insert( {0,4,0});
+      set_with_vector.insert( {0,5,0});
+      
+      if(set_with_vector.size()==6)
+    {
+ op_vec v0={spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx,Lx}),spin_op(s,*next(set_with_vector.begin(), 1), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 3), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 4), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 5), {layers, Lx,Lx})};
+     auto [coeff, nf] =get_normal_form(v0);
+     auto found=see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
+     if(! found)
+     {
+      rdm_ops.push_back(print_op(v0));
+      rdm_operator newstate({nf[0].site_, nf[1].site_,nf[2].site_,nf[3].site_,nf[4].site_,nf[6].site_});
+      data.add_operator(newstate);
+     }
+
+
+      }
+          }
+                 {
+        std::set<std::vector<int>> set_with_vector;
+      set_with_vector.insert({0,0,0});
+      set_with_vector.insert( {1,1,0});
+      set_with_vector.insert( {0,1,1});
+      set_with_vector.insert( {1,2,2});
+      set_with_vector.insert( {1,2,3});
+      set_with_vector.insert( {1,3,3});
+      if(set_with_vector.size()==5)
+    {
+ op_vec v0={spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx,Lx}),spin_op(s,*next(set_with_vector.begin(), 1), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 3), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 4), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 5), {layers, Lx,Lx})};
+     auto [coeff, nf] =get_normal_form(v0);
+     auto found=see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
+     if(! found)
+     {
+      rdm_ops.push_back(print_op(v0));
       rdm_operator newstate({nf[0].site_, nf[1].site_,nf[2].site_});
+      data.add_operator(newstate);
+     }
+
+
+      }
+          }
+                 {
+        std::set<std::vector<int>> set_with_vector;
+      set_with_vector.insert({0,0,0});
+      set_with_vector.insert( {0,1,1});
+      set_with_vector.insert( {0,2,0});
+      set_with_vector.insert( {1,3,1});
+      set_with_vector.insert( {1,3,2});
+      set_with_vector.insert( {0,3,2});
+      if(set_with_vector.size()==6)
+    {
+ op_vec v0={spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx,Lx}),spin_op(s,*next(set_with_vector.begin(), 1), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 3), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 4), {layers, Lx,Lx}),spin_op(s, *next(set_with_vector.begin(), 5), {layers, Lx,Lx})};
+     auto [coeff, nf] =get_normal_form(v0);
+     auto found=see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
+     if(! found)
+     {
+      rdm_ops.push_back(print_op(v0));
+      rdm_operator newstate({nf[0].site_, nf[1].site_,nf[2].site_,nf[3].site_,nf[4].site_,nf[5].site_});
       data.add_operator(newstate);
      }
 
@@ -513,6 +632,9 @@ if(dim>=4)
 
  
 
+
+
+ 
  std::cout<< "total number of density operators= "<<data.size()<<std::endl;
 return data;
 

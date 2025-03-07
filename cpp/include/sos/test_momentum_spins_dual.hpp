@@ -87,11 +87,15 @@ void test_multiple_blocks_higher_order_2d_rdm_sos()
     auto map_sec=get_sector_map();
     basis_structure states=get_states();
     get_order_one_monomials(states, map_sec, Lx, true);
-     get_order_two_monomials(states, map_sec, Lx,3, -3,true);
+      get_order_two_monomials(states, map_sec, Lx,3, -3,true);
     get_order_three_monomials(states, map_sec, Lx, true);
+    get_order_four_monomials(states, map_sec, Lx, true);
+ basis_structure states_2;
+states_2.insert(std::pair<int, std::vector<op_vec>>{0, states[0]});
+states_2.insert(std::pair<int, std::vector<op_vec>>{1, states[1]});
 
-get_order_four_monomials(states, map_sec, Lx, true);
-auto data=get_rdms(Lx,Lx);
+
+ auto data=get_rdms(Lx,Lx);
 //translation_invariant_rdms_4th(Lx, Ly);
 //  rdms_struct data;
 //  rdm_operator newstate({{0,0}, {1,1}});
@@ -101,15 +105,15 @@ rdms_struct rdms(data);
 for(auto a: states)
 {
 
-	std::cout<<"sec "<< a.first<< " and size "<< a.second.size()<< " and "<<a.second.size()/(Lx*Lx)<<std::endl;
+ std::cout<<"sec "<< a.first<< " and size "<< a.second.size()<< " and "<<a.second.size()/(Lx*Lx)<<std::endl;
   
-	  for(auto n:a.second)
-     {std::cout<<print_op(n)<<std::endl;}
-     std::cout<<"###################################"<<std::endl;
+	//   for(auto n:a.second)
+  //    {std::cout<<print_op(n)<<std::endl;}
+  //    std::cout<<"###################################"<<std::endl;
 }
 
     Model::t M = new Model("sdo1"); auto _M = finally([&]() { M->dispose(); });
-    auto basis =momentum_symmetry_solver_sos(Lx,states,M,rdms,"xyz");
+    auto basis =momentum_symmetry_solver_sos(Lx,states_2,M,rdms,"xyz");
 //     // for(auto a: basis.TI_map_)
     //  {std::cout<< a.first << " -> "<<a.second.first<<std::endl;}
 //   for(auto k: basis.total_refs_)

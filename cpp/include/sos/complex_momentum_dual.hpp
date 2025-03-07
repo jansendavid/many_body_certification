@@ -342,6 +342,8 @@ std::map<std::string, Matrix::t> generate_rmds_primal_cp(rdm_operator sites, std
         pauliY(0,1) = std::complex<double>(0,-1);
         pauliY(1,0) = std::complex<double>(0,1);
   int degree=sites.size();
+
+  std::cout<< "degree "<< degree<<std::endl;
   std::vector<std::string> terms;
   std::map<std::string, mat_type > sigma_map;
   
@@ -400,7 +402,7 @@ std::map<std::string, Matrix::t> generate_rmds_primal_cp(rdm_operator sites, std
   
 double prefac=1;
 //
- std::cout<< "start "<< tots.size()<<std::endl;
+
        for(auto t: tots)
 	 {
  
@@ -489,9 +491,12 @@ auto [state_from_map, coeff]=TI_map_.at(print_op(nf));
 void generate_rdms(rdms_struct rdms, std::map<std::string, op_vec>& mat_terms)
 {
 
-  auto offset=operators_[0][0][0].offset_;; // change this to be derived from baso
+  auto offset=operators_[0][0][0].offset_; // change this to be derived from baso
+  int i=0;
   for(auto site : rdms.rdms)
   {
+   
+    i++;
   auto sigmas_temp=generate_rmds_primal_cp(site, offset, mat_terms);
   sigmas_.insert({site, sigmas_temp});
   }
