@@ -18,6 +18,29 @@ using string_pair=std::pair<std::string, std::string>;
 
 // HAMILTONIANS WHEN USING TRANSLATION SYMMETRY 
 // NOTE: all are of the form vec{S_i}vec{S_j}
+
+std::vector<double> define_correlation_function_sos( std::map<std::string, int> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, std::pair<std::string,std::string> dirs,std::pair<std::vector<int>,std::vector<int>> pos,int Ly, int Lx)
+{
+
+  std::vector<double> vals(refs.size(), 0);
+
+  
+	op_vec v_p={spin_op(dirs.first, pos.second, {Lx, Ly}),spin_op(dirs.first, pos.first, {Lx, Ly})};	  
+      auto [fac_p, nf_p] =get_normal_form(v_p);
+     
+      auto [ key_p,coeff_map_p]=map.at(print_op(nf_p));  
+    
+      auto el_p=refs.at(key_p);
+
+        vals[el_p]+=fac_p.real()*coeff_map_p.real()/4.;
+       
+   
+
+  return vals; 
+    
+
+}
+
 std::pair<std::string, std::complex<double>>  find_index_of_operator(op_vec op,std::map<std::string, std::pair<std::string, std::complex<double>>> map,int Lx, int Ly,   std::string permuts, bool bilayer)
 {
       // check if the operator is contained in functions
@@ -98,6 +121,7 @@ std::pair<std::string, std::complex<double>>  find_index_of_operator(op_vec op,s
 std::pair<std::string, std::complex<double>>  output({"does not exist", 0.});
 	 return output;
   }
+
 
 std::vector<double> define_xxz2d_sos( std::map<std::string, int> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, double J, double Delta, int Ly, int Lx)
 {
