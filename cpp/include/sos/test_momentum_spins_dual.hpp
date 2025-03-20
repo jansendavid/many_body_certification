@@ -94,6 +94,7 @@ void test_multiple_blocks_bounding_observables_2d_rdm_sos()
   //     return;
 }
 
+
 void test_multiple_blocks_bounding_observables_2d_rdm()
 {
   std::cout << "WARNING! Takes a lot of memory" << std::endl;
@@ -159,6 +160,7 @@ void test_multiple_blocks_bounding_observables_2d_rdm()
 
   //  //double sol=M->primalObjValue(); //-0.720847431
 
+
   //   //	   if(std::abs(sol+0.44670126)>1e-06)
   //   // {std::cout<<"error, not converging properly"<<std::endl;}
   //     return;
@@ -218,12 +220,6 @@ void test_multiple_blocks_higher_order_2d_rdm()
 
   std::cout << "Solution : " << std::endl;
   std::cout << std::setprecision(9) << M->primalObjValue() << std::endl;
-
-  //  //double sol=M->primalObjValue(); //-0.720847431
-
-  //   //	   if(std::abs(sol+0.44670126)>1e-06)
-  //   // {std::cout<<"error, not converging properly"<<std::endl;}
-  //     return;
 }
 
 // void test_multiple_blocks_higher_order_2d_rdm_sos()

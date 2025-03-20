@@ -31,4 +31,5 @@ int main()
   // test_multiple_blocks_bounding_observables_2d_rdm();
   test_multiple_blocks_bounding_observables_2d_rdm_sos();
   return 0;
+
 }
