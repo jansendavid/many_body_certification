@@ -53,19 +53,19 @@ rdms_struct get_rdms(int Lx, int dim)
   {
     rdm_operator newstate({{0, 0}, {0, 1}, {0, 2}});
     data.add_operator(newstate);
-    rdm_operator newstate_1({{0, 0}, {0, 1}, {0, 2}, {0, 3}});
-    data.add_operator(newstate_1);
-    rdm_operator newstate_2({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {1, 1}});
-    data.add_operator(newstate_2);
-    rdm_operator newstate_3({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {1, 1}, {1, 2}});
-    data.add_operator(newstate_3);
-    rdm_operator newstate_4({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {1, 1}, {1, 2}, {1, 3}});
-    data.add_operator(newstate_4);
-    rdm_operator newstate_5({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {1, 1}, {1, 2}, {1, 3}, {2, 2}});
-    data.add_operator(newstate_5);
+    // rdm_operator newstate_1({{0, 0}, {0, 1}, {0, 2}, {0, 3}});
+    // data.add_operator(newstate_1);
+    // rdm_operator newstate_2({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {1, 1}});
+    // data.add_operator(newstate_2);
+    // rdm_operator newstate_3({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {1, 1}, {1, 2}});
+    // data.add_operator(newstate_3);
+    // rdm_operator newstate_4({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {1, 1}, {1, 2}, {1, 3}});
+    // data.add_operator(newstate_4);
+    // rdm_operator newstate_5({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {1, 1}, {1, 2}, {1, 3}, {2, 2}});
+    // data.add_operator(newstate_5);
 
-    rdm_operator newstate_55({{0, 0}, {2, 1}, {0, 2}, {2, 3}, {1, 1}, {1, 2}, {1, 3}, {2, 2}});
-    data.add_operator(newstate_55);
+    // rdm_operator newstate_55({{0, 0}, {2, 1}, {0, 2}, {2, 3}, {1, 1}, {1, 2}, {1, 3}, {2, 2}});
+    // data.add_operator(newstate_55);
     //  rdm_operator newstate_6({{0,0}, {0,1}, {0,2},{0,3},{1,1},{1,2},{1,3},{2,2},{3,3}});
     // data.add_operator(newstate_6);
     //  rdm_operator newstate_7({{0,0}, {0,1}, {0,2},{0,3},{1,1},{1,2},{1,3},{2,2},{3,3}});

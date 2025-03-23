@@ -113,9 +113,6 @@ public:
   }
   void generate_block(std::map<std::string, symmetry_sector> &As)
   {
-
-    // //           std::cout<< "start "<<std::endl;
-
     //     const auto start{std::chrono::steady_clock::now()};
 
     int i = 0;
@@ -148,10 +145,6 @@ public:
                 auto construct = generate_single_G_element_sos(*it1, *it2, pos_y, pos_x);
                 std::complex<double> total_prefactor = construct.prefac_ * FT_factor_x * FT_factor_y;
                 // assert(std::abs(total_prefactor)<1e-9); maybe not include values  that are zero
-                if (std::abs(total_prefactor) < 1e-9)
-                {
-                  std::cout << "fact" << std::endl;
-                }
                 if (std::abs(total_prefactor.real()) > 1e-9)
                 {
 
@@ -202,7 +195,6 @@ public:
   std::map<std::string, symmetry_sector> As_;
   // for the reduced density matrix
   std::map<rdm_operator, std::map<std::string, Matrix::t>> sigmas_;
-  bool compute_rdms_{false};
 
   momentum_basis_xy(int L, basis_structure operators, Model::t M, rdms_struct rdms, std::string permuts = "xyz", bool bilayer = false) : L_(L), operators_(operators), M_(M), bilayer_(bilayer)
   {
@@ -271,7 +263,7 @@ public:
     {
 
       b.second.generate_TI_map_xy(mat_terms, bilayer_);
-      std::cout << "sizes " << mat_terms.size() << " adn " << TI_map_.size() << std::endl;
+      std::cout << "sizes " << mat_terms.size() << " and " << TI_map_.size() << std::endl;
     }
 
     if (rdms.size() > 0)
@@ -299,7 +291,7 @@ public:
   void set_energy_vec(std::vector<double> energy_vec, double E_upper, double E_lower)
   {
     energy_vec_ = M_->parameter("energy vec", total_refs_.size());
-    std::cout << "size " << energy_vec.size() << std::endl;
+
     auto a = monty::new_array_ptr<double>(energy_vec);
     energy_vec_->setValue(a);
     bounding_observable_ = true;
@@ -309,126 +301,51 @@ public:
     return;
   }
 
-std::map<std::string, Matrix::t> generate_rmds_primal_cp(rdm_operator sites, std::vector<int> offset, std::map<std::string, op_vec>& mat_terms)//,std::map<std::string, int> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, Variable::t var,int Lx)
-{
- 
-  std::map<std::string, Matrix::t> sigmas_temp_;
-   std::map<std::string, mat_type> rdms_eigen_;
-  mat_type pauliI=mat_type::Zero(2,2);
-        pauliI(0,0) = 1;
-        pauliI(1,1) = 1;
+  std::map<std::string, Matrix::t> generate_rdms_primal_cp(rdm_operator sites, std::vector<int> offset, std::map<std::string, op_vec> &mat_terms) //,std::map<std::string, int> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, Variable::t var,int Lx)
+  {
 
-        //pauliI.makeCompressed();
-        mat_type pauliZ=mat_type::Zero(2,2);
-        pauliZ(0,0) = 1;
-        pauliZ(1,1) = -1;
+    std::map<std::string, Matrix::t> sigmas_temp_;
+    std::map<std::string, mat_type> rdms_eigen_;
+    mat_type pauliI = mat_type::Zero(2, 2);
+    pauliI(0, 0) = 1;
+    pauliI(1, 1) = 1;
 
-        //pauliZ.makeCompressed();
-        mat_type pauliX=mat_type::Zero(2,2);
-        pauliX(0,1) = 1;
-        pauliX(1,0) = 1;
+    // pauliI.makeCompressed();
+    mat_type pauliZ = mat_type::Zero(2, 2);
+    pauliZ(0, 0) = 1;
+    pauliZ(1, 1) = -1;
 
-        mat_type pauliY=mat_type::Zero(2,2);
-        pauliY(0,1) = std::complex<double>(0,-1);
-        pauliY(1,0) = std::complex<double>(0,1);
-  int degree=sites.size();
+    // pauliZ.makeCompressed();
+    mat_type pauliX = mat_type::Zero(2, 2);
+    pauliX(0, 1) = 1;
+    pauliX(1, 0) = 1;
 
-  std::cout<< "degree "<< degree<<std::endl;
-  std::vector<std::string> terms;
-  std::map<std::string, mat_type > sigma_map;
-  
-  sigma_map.insert({"1",pauliI});
-  sigma_map.insert({"x",pauliX});
-  sigma_map.insert({"y",pauliY});
-  sigma_map.insert({"z",pauliZ});
-  
-  auto dirs=std::vector<std::string>{"1","x", "y", "z"};
-   std::set<std::string> tots;
-    
-        for(auto d1: dirs)
-	 {
+    mat_type pauliY = mat_type::Zero(2, 2);
+    pauliY(0, 1) = std::complex<double>(0, -1);
+    pauliY(1, 0) = std::complex<double>(0, 1);
+    int degree = sites.size();
+    std::vector<std::string> terms;
+    std::map<std::string, mat_type> sigma_map;
 
-	   if(degree==1)
-	     {tots.insert(d1); continue;}
-	          for(auto d2: dirs)
-	 {
-	   	   if(degree==2)
-	     {tots.insert(d1+d2); continue;}
-	   	          for(auto d3: dirs)
-	 {
-	   	   	   if(degree==3)
-	     {tots.insert(d1+d2+d3); continue;}
-			   for(auto d4: dirs)
-	 {
-	   	   	   if(degree==4)
-	     {tots.insert(d1+d2+d3+d4); continue;}
-       		   for(auto d5: dirs)
-	 {
-	   	   	   if(degree==5)
-	     {tots.insert(d1+d2+d3+d4+d5); continue;}
-       		   for(auto d6: dirs)
-	 {
-	   	   	   if(degree==6)
-	     {tots.insert(d1+d2+d3+d4+d5+d6); continue;}
-       		   for(auto d7: dirs)
-	 {
-	   	   	   if(degree==7)
-	     {tots.insert(d1+d2+d3+d4+d5+d6+d7); continue;}
-       		   for(auto d8: dirs)
-	 {
-	   	   	   if(degree==8)
-	     {tots.insert(d1+d2+d3+d4+d5+d6+d7+d8); continue;}
-	 }
-	 }
-	 }
-	 }
-	 }
-	 }
-	 }
-	 }
-       int dim=std::pow(2, degree);
-     
-       std::vector<Expression::t> matrices;
-  
-double prefac=1;
-//
+    sigma_map.insert({"1", pauliI});
+    sigma_map.insert({"x", pauliX});
+    sigma_map.insert({"y", pauliY});
+    sigma_map.insert({"z", pauliZ});
 
-       for(auto t: tots)
-	 {
- 
-	   mat_type mat;
-	    op_vec state;
-	  
-	   for(int i=0; i<t.size(); i++)
-	     {
-        
- 	       std::string key=t.substr(i,1);
-         
-	       if(key!="1")
-		 {
-	       state.push_back(spin_op(key, sites.at(i), offset));
-		 }
-	       if(i==0)
-		 {
-		   mat=sigma_map[key];
-  
-		 }
-	       else
-		 {
-		
-		   mat=Eigen::KroneckerProduct(mat,sigma_map[key]).eval();
-      
-	     }
+    auto dirs = std::vector<std::string>{"1", "x", "y", "z"};
+    std::set<std::string> tots;
 
-	 }
+    for (auto d1 : dirs)
+    {
 
-//if matrix element exists I only
-     if(print_op(state)=="1")
-     {
-   
-        mat=mat/std::
-        pow(2, degree);
-        if(rdms_eigen_.find("1")!=rdms_eigen_.end())
+      if (degree == 1)
+      {
+        tots.insert(d1);
+        continue;
+      }
+      for (auto d2 : dirs)
+      {
+        if (degree == 2)
         {
           tots.insert(d1 + d2);
           continue;
@@ -535,7 +452,7 @@ double prefac=1;
 
         auto [fac, nf] = get_normal_form(state);
 
-        sectors_.at(0).check_if_operator_exists(nf, mat_terms, bilayer_);
+        sectors_.at(0).check_if_operator_exists(nf, mat_terms, bilayer_, true);
         auto [state_from_map, coeff] = TI_map_.at(print_op(nf));
         if (state_from_map == "0")
         {
@@ -551,17 +468,14 @@ double prefac=1;
 
           if (rdms_eigen_.find(state_from_map) != rdms_eigen_.end())
           {
-            // std::cout<< "heieh "<<state_from_map<<std::endl;
-            //       // If element already exists, I just add the matrix
+
             rdms_eigen_[state_from_map] += mat;
           }
           else
           {
-            //   std::cout<< "not exist "<<state_from_map<<std::endl;
-            //       // element does not exist, I add a new matrix to the map
+
             rdms_eigen_.insert({state_from_map, mat});
           }
-          // rdms_eigen_.insert({state_from_map, mat});
         }
       }
     }
@@ -570,7 +484,6 @@ double prefac=1;
     {
       auto Alpha = get_sparse_from_eigen(eigen_matrix.second);
 
-
       sigmas_temp_.insert({eigen_matrix.first, Alpha});
     }
     return sigmas_temp_;
@@ -578,14 +491,16 @@ double prefac=1;
   void generate_rdms(rdms_struct rdms, std::map<std::string, op_vec> &mat_terms)
   {
 
-  auto offset=operators_[0][0][0].offset_; // change this to be derived from baso
-  int i=0;
-  for(auto site : rdms.rdms)
-  {
-   
-    i++;
-  auto sigmas_temp=generate_rmds_primal_cp(site, offset, mat_terms);
-  sigmas_.insert({site, sigmas_temp});
+    auto offset = operators_[0][0][0].offset_; // change this to be derived from baso
+    int i = 0;
+    for (auto site : rdms.rdms)
+    {
+
+      i++;
+      auto sigmas_temp = generate_rdms_primal_cp(site, offset, mat_terms);
+      sigmas_.insert({site, sigmas_temp});
+    }
+    return;
   }
 };
 class momentum_symmetry_solver_dual : public momentum_basis_xy
@@ -741,7 +656,7 @@ public:
 
   void fix_constrains()
   {
-    std::cout << "fixing cons " << bounding_observable_ << std::endl;
+
     if (bounding_observable_)
     {
       std::cout << "true bounding observable " << std::endl;
