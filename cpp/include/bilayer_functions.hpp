@@ -619,11 +619,12 @@ rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
       set_with_vector.insert({1, 0, 0});
       set_with_vector.insert({0, 1, 0});
       set_with_vector.insert({1, 1, 1});
-      set_with_vector.insert({1, 1, 1});
+      set_with_vector.insert({1, 1, 0});
       set_with_vector.insert({0, 2, 0});
       set_with_vector.insert({1, 2, 1});
       if (set_with_vector.size() == 6)
       {
+
         op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 3), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 4), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 5), {layers, Lx, Lx})};
         auto [coeff, nf] = get_normal_form(v0);
         auto found = see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
