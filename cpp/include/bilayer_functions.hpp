@@ -106,7 +106,7 @@ void get_order_three_monomials_bilayer(basis_structure &states, std::map<std::pa
       {
 
         {
-          op_vec v0 = {spin_op(s1, {0, 0, 0}, offsets_), spin_op(s2, {0, 1, 0}, offsets_), spin_op(s3, {0, 2, 0}, offsets_)};
+          op_vec v0 = {spin_op(s1, {0, 0, 0}, offsets_), spin_op(s2, {0, 0, 1}, offsets_), spin_op(s3, {0, 0, 2}, offsets_)};
           auto [fac, vec] = get_normal_form(v0);
 
           {
@@ -122,7 +122,7 @@ void get_order_three_monomials_bilayer(basis_structure &states, std::map<std::pa
           }
         }
         {
-          op_vec v0 = {spin_op(s1, {0, 0, 0}, offsets_), spin_op(s2, {0, 0, 1}, offsets_), spin_op(s3, {1, Lx - 1, 1}, offsets_)};
+          op_vec v0 = {spin_op(s1, {0, 0, 0}, offsets_), spin_op(s2, {0, 0, 1}, offsets_), spin_op(s3, {1, 1, 1}, offsets_)};
           auto [fac, vec] = get_normal_form(v0);
 
           {
@@ -138,7 +138,7 @@ void get_order_three_monomials_bilayer(basis_structure &states, std::map<std::pa
           }
         }
         {
-          op_vec v0 = {spin_op(s1, {1, 0, 0}, offsets_), spin_op(s2, {0, 1, 0}, offsets_), spin_op(s3, {1, 1, 1}, offsets_)};
+          op_vec v0 = {spin_op(s1, {1, 0, 0}, offsets_), spin_op(s2, {0, 1, 0}, offsets_), spin_op(s3, {1, 2, 1}, offsets_)};
           auto [fac, vec] = get_normal_form(v0);
 
           {
@@ -173,7 +173,7 @@ void get_order_four_monomials_bilayer(basis_structure &states, std::map<std::pai
           {
 
             {
-              op_vec v0 = {spin_op(s1, {0, 0, 0}, offsets_), spin_op(s2, {1, 1, 0}, offsets_), spin_op(s3, {0, 0, 1}, offsets_), spin_op(s4, {1, 1, 1}, offsets_)};
+              op_vec v0 = {spin_op(s1, {0, 0, 0}, offsets_), spin_op(s2, {1, 0, 0}, offsets_), spin_op(s3, {0, 0, 1}, offsets_), spin_op(s4, {1, 1, 0}, offsets_)};
               auto [fac, vec] = get_normal_form(v0);
 
               if (use_symm)
@@ -186,7 +186,7 @@ void get_order_four_monomials_bilayer(basis_structure &states, std::map<std::pai
               }
             }
             {
-              op_vec v0 = {spin_op(s1, {0, 0, 0}, offsets_), spin_op(s2, {1, 1, 0}, offsets_), spin_op(s3, {0, 2, 0}, offsets_), spin_op(s4, {1, 3, 0}, {offsets_})};
+              op_vec v0 = {spin_op(s1, {0, 0, 0}, offsets_), spin_op(s2, {1, 0, 0}, offsets_), spin_op(s3, {0, 1, 1}, offsets_), spin_op(s4, {1, 1, 1}, {offsets_})};
               auto [fac, vec] = get_normal_form(v0);
 
               if (use_symm)
@@ -278,35 +278,38 @@ rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
   std::vector<std::string> rdm_ops = {};
 
   std::string s = "x";
-  for (int n = 0; n < layers; n++)
+  if (dim >= 2)
   {
-
-    for (int m = 0; m < layers; m++)
+    for (int n = 0; n < layers; n++)
     {
-      int i = 0;
-      for (int j = 0; j < Lx; j++)
+
+      for (int m = 0; m < layers; m++)
       {
-        for (int a = 0; a < Lx; a++)
+        int i = 0;
+        for (int j = 0; j < Lx; j++)
         {
-          for (int b = 0; b < Lx; b++)
+          for (int a = 0; a < Lx; a++)
           {
-            std::set<std::vector<int>> set_with_vector;
-            set_with_vector.insert({n, i, j});
-            set_with_vector.insert({m, a, b});
-            if (set_with_vector.size() == 2)
+            for (int b = 0; b < Lx; b++)
             {
-              op_vec v0 = {spin_op(s, {n, i, j}, {layers, Lx, Lx}), spin_op(s, {m, a, b}, {layers, Lx, Lx})};
-              auto [coeff, nf] = get_normal_form(v0);
-              auto found = see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
-              if (!found)
+              std::set<std::vector<int>> set_with_vector;
+              set_with_vector.insert({n, i, j});
+              set_with_vector.insert({m, a, b});
+              if (set_with_vector.size() == 2)
               {
-                rdm_ops.push_back(print_op(v0));
-                rdm_operator newstate;
-                for (auto site_op : nf)
+                op_vec v0 = {spin_op(s, {n, i, j}, {layers, Lx, Lx}), spin_op(s, {m, a, b}, {layers, Lx, Lx})};
+                auto [coeff, nf] = get_normal_form(v0);
+                auto found = see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
+                if (!found)
                 {
-                  newstate.op_.push_back(site_op.site_);
+                  rdm_ops.push_back(print_op(v0));
+                  rdm_operator newstate;
+                  for (auto site_op : nf)
+                  {
+                    newstate.op_.push_back(site_op.site_);
+                  }
+                  data.add_operator(newstate);
                 }
-                data.add_operator(newstate);
               }
             }
           }

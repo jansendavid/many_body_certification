@@ -164,11 +164,7 @@ public:
 	{
 		// rdm_check check if exist, if not print something
 		//  check if the operator is contained in functions
-		// std::cout << "DEBUG" << rdm_check << std::endl;
-		// if (rdm_check)
-		// {
-		// 	std::cout << "rdm check XYY" << std::endl;
-		// }
+
 		if (op.size() < 1)
 		{
 

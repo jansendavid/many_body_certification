@@ -217,6 +217,7 @@ public:
     }
 
     initialize_XT(rdms);
+
     std::cout << "size TI map " << TI_map_.size() << std::endl;
     std::cout << "size total refs " << total_refs_.size() << std::endl;
 
@@ -265,12 +266,13 @@ public:
       b.second.generate_TI_map_xy(mat_terms, bilayer_);
       std::cout << "sizes " << mat_terms.size() << " and " << TI_map_.size() << std::endl;
     }
-
+    auto size_without_rdms = mat_terms.size();
     if (rdms.size() > 0)
     {
       generate_rdms(rdms, mat_terms);
     }
-
+    assert(size_without_rdms == mat_terms.size());
+    std::cout << "sizes after rdm " << mat_terms.size() << " and " << TI_map_.size() << std::endl;
     int new_index = 0;
     for (auto a : mat_terms)
     {
@@ -279,6 +281,7 @@ public:
 
       new_index += 1;
     }
+
     b_ = M_->parameter("b", total_refs_.size());
   }
   void set_b(std::vector<double> b)
@@ -456,10 +459,7 @@ public:
         auto [state_from_map, coeff] = TI_map_.at(print_op(nf));
         if (state_from_map == "0")
         {
-          // if contribution is zero I just move on
-
-          continue;
-        }
+                }
         else
         {
 
@@ -493,6 +493,7 @@ public:
 
     auto offset = operators_[0][0][0].offset_; // change this to be derived from baso
     int i = 0;
+    std::cout << "rdms size " << rdms.rdms.size() << std::endl;
     for (auto site : rdms.rdms)
     {
 
