@@ -173,19 +173,6 @@ void get_order_four_monomials_bilayer(basis_structure &states, std::map<std::pai
           {
 
             {
-              op_vec v0 = {spin_op(s1, {0, 0, 0}, offsets_), spin_op(s2, {1, 0, 0}, offsets_), spin_op(s3, {0, 0, 1}, offsets_), spin_op(s4, {1, 1, 0}, offsets_)};
-              auto [fac, vec] = get_normal_form(v0);
-
-              if (use_symm)
-              {
-                add_state_with_symmetries(states, vec, map_sec, Lx);
-              }
-              else
-              {
-                add_state(states, vec, map_sec);
-              }
-            }
-            {
               op_vec v0 = {spin_op(s1, {0, 0, 0}, offsets_), spin_op(s2, {1, 0, 0}, offsets_), spin_op(s3, {0, 1, 1}, offsets_), spin_op(s4, {1, 1, 1}, {offsets_})};
               auto [fac, vec] = get_normal_form(v0);
 

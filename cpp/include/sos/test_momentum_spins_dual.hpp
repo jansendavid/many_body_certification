@@ -229,9 +229,10 @@ void test_multiple_blocks_higher_order_2d_rdm_sos()
   basis_structure states = get_states();
   get_order_one_monomials(states, map_sec, Lx, true);
   get_order_two_monomials(states, map_sec, Lx, 3, -3, true);
-  // get_order_three_monomials(states, map_sec, Lx, true);
+  get_order_three_monomials(states, map_sec, Lx, true);
 
   // get_order_four_monomials(states, map_sec, Lx, true);
+
   auto data = get_rdms(Lx, Lx);
   // translation_invariant_rdms_4th(Lx, Ly);
   //   rdms_struct data;
