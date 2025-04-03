@@ -145,6 +145,7 @@ public:
                 auto construct = generate_single_G_element_sos(*it1, *it2, pos_y, pos_x);
                 std::complex<double> total_prefactor = construct.prefac_ * FT_factor_x * FT_factor_y;
                 // assert(std::abs(total_prefactor)<1e-9); maybe not include values  that are zero
+
                 if (std::abs(total_prefactor.real()) > 1e-9)
                 {
 
@@ -155,6 +156,24 @@ public:
                     As[construct.op_][sign_sector_][mat_pos_x][mat_pos_y].add_values({j + shift, i + shift}, 1. / 2 * total_prefactor.real());
                     As[construct.op_][sign_sector_][mat_pos_x][mat_pos_y].add_values({j + shift + dim, i + shift + dim}, 1. / 2 * total_prefactor.real());
                   }
+                }
+                if (std::abs(total_prefactor.imag()) > 1e-9)
+                {
+                  // assert(i != j);
+                  //  X^T[0,1]-X[0,1]=-H[0,1]
+                  As[construct.op_][sign_sector_][mat_pos_x][mat_pos_y].add_values({i + shift, j + shift + dim}, -1. / 2 * total_prefactor.imag());
+                  As[construct.op_][sign_sector_][mat_pos_x][mat_pos_y].add_values({j + shift, i + shift + dim}, 1. / 2 * total_prefactor.imag());
+
+                  if (i != j)
+                  {
+
+                    As[construct.op_][sign_sector_][mat_pos_x][mat_pos_y].add_values({i + shift + dim, j + shift}, 1. / 2 * total_prefactor.imag());
+                    As[construct.op_][sign_sector_][mat_pos_x][mat_pos_y].add_values({j + shift + dim, i + shift}, -1. / 2 * total_prefactor.imag());
+                  }
+                  // if (i != j)
+                  // {
+                  //   As[construct.op_][sign_sector_][mat_pos_x][mat_pos_y].add_values({i + shift, j + shift + dim}, 1. / 2 * total_prefactor.imag());
+                  // }
                 }
               }
             }
@@ -459,7 +478,7 @@ public:
         auto [state_from_map, coeff] = TI_map_.at(print_op(nf));
         if (state_from_map == "0")
         {
-                }
+        }
         else
         {
 
