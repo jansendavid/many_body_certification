@@ -5,390 +5,372 @@
 #include <cmath>
 #include "fusion.h"
 #include <bits/stdc++.h>
-#include"spins.hpp"
-#include<unordered_map>
+#include "spins.hpp"
+#include <unordered_map>
 #include <Eigen/Dense>
-#include"symmetries.hpp"
+#include "symmetries.hpp"
 using namespace mosek::fusion;
 using namespace monty;
-using string_pair=std::pair<std::string, std::string>;
+using string_pair = std::pair<std::string, std::string>;
 
 // file with spin hamiltonians for translation invariant system
 
-
-// HAMILTONIANS WHEN USING TRANSLATION SYMMETRY 
+// HAMILTONIANS WHEN USING TRANSLATION SYMMETRY
 // NOTE: all are of the form vec{S_i}vec{S_j}
 
-std::vector<double> define_correlation_function_sos( std::map<std::string, int> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, std::pair<std::string,std::string> dirs,std::pair<std::vector<int>,std::vector<int>> pos,int Ly, int Lx)
+std::vector<double> define_correlation_function_sos(std::map<std::string, int> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, std::pair<std::string, std::string> dirs, std::pair<std::vector<int>, std::vector<int>> pos, int Ly, int Lx)
 {
 
-  std::vector<double> vals(refs.size(), 0);
+      std::vector<double> vals(refs.size(), 0);
 
-  
-	op_vec v_p={spin_op(dirs.first, pos.second, {Lx, Ly}),spin_op(dirs.first, pos.first, {Lx, Ly})};	  
-      auto [fac_p, nf_p] =get_normal_form(v_p);
-     
-      auto [ key_p,coeff_map_p]=map.at(print_op(nf_p));  
-    
-      auto el_p=refs.at(key_p);
+      op_vec v_p = {spin_op(dirs.first, pos.second, {Lx, Ly}), spin_op(dirs.first, pos.first, {Lx, Ly})};
+      auto [fac_p, nf_p] = get_normal_form(v_p);
+      assert(abs(fac_p.imag()) < 1e-9);
+      auto [key_p, coeff_map_p] = map.at(print_op(nf_p));
+      assert(abs(coeff_map_p.imag()) < 1e-9);
+      auto el_p = refs.at(key_p);
 
-        vals[el_p]+=fac_p.real()*coeff_map_p.real()/4.;
-       
-   
+      vals[el_p] += fac_p.real() * coeff_map_p.real() / 4.;
 
-  return vals; 
-    
-
+      return vals;
 }
 
-std::pair<std::string, std::complex<double>>  find_index_of_operator(op_vec op,std::map<std::string, std::pair<std::string, std::complex<double>>> map,int Lx, int Ly,   std::string permuts, bool bilayer)
+std::vector<double> define_balyer_correlation_sos(std::map<std::string, int> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, std::pair<std::string, std::string> dirs, std::pair<std::vector<int>, std::vector<int>> pos, int layers, int Ly, int Lx)
+{
+
+      std::vector<double> vals(refs.size(), 0);
+      op_vec v_p = {spin_op(dirs.first, pos.first, {layers, Lx, Ly}), spin_op(dirs.second, pos.second, {layers, Lx, Ly})};
+
+      auto [fac_p, nf_p] = get_normal_form(v_p);
+      assert(abs(fac_p.imag()) < 1e-9);
+      auto [key_p, coeff_map_p] = map.at(print_op(nf_p));
+      assert(abs(coeff_map_p.imag()) < 1e-9);
+      auto el_p = refs.at(key_p);
+
+      vals[el_p] += fac_p.real() * coeff_map_p.real() / 4.;
+
+      return vals;
+}
+
+std::pair<std::string, std::complex<double>> find_index_of_operator(op_vec op, std::map<std::string, std::pair<std::string, std::complex<double>>> map, int Lx, int Ly, std::string permuts, bool bilayer)
 {
       // check if the operator is contained in functions
-	 
-		
-      auto all_ty=generate_all_translations_y(op, Ly,1);
-		  	
-	 for(auto op_ty: all_ty)
-	   {
-	    auto all_t=generate_all_translations(op_ty, Lx);
-	
-	     for(auto op_t: all_t)
-	       {
-			auto it=map.find(print_op(op_t));
-			if(it != map.end())
-			{
-		return map[print_op(op_t)];
-			}
-			std::vector<op_vec> all_p;	
-			if(permuts=="xyz" or permuts=="yxz" or permuts=="zxy" or permuts=="zyx")
-		   {
-	      all_p=generate_all_permutations_xyz(op_t);
-		   }
-		 else if(permuts=="xy")
-		   {
-		     all_p=generate_all_permutations_xy(op_t);
-		   }
-		        	 for(auto op_p: all_p)
-	   { 
-	     auto all_d8sym=generate_all_d8(op_p,  Lx);
-		
-		 for(auto d8s: all_d8sym)
-		 {	
-	       auto it=map.find(print_op(d8s));
-		  if(it != map.end())
-		 	{
-				
-	    
-		 return map[print_op(d8s)];
-		 	}
-		
-			      auto op_mirror=mirror(d8s);
-				
-	       it=map.find(print_op(op_mirror));
-	       if(it != map.end())
-	       {
-			
-			 return map[print_op(op_mirror)];
-	   		}
-			if(bilayer)
-			{
-				auto op_flip_layer=flip_layer(d8s);
-				it=map.find(print_op(op_flip_layer));
-	       if(it != map.end())
-	       {
-			
-			 return map[print_op(op_flip_layer)];
-	   		}
-				op_flip_layer=flip_layer(op_mirror);
-				it=map.find(print_op(op_flip_layer));
-	       if(it != map.end())
-	       {
-			
-			 return map[print_op(op_flip_layer)];
-	   		}
 
-			}
-	       
-		   }
-			
-		
-	   }
-	   }
-	
-	
-	}
+      auto all_ty = generate_all_translations_y(op, Ly, 1);
+
+      for (auto op_ty : all_ty)
+      {
+            auto all_t = generate_all_translations(op_ty, Lx);
+
+            for (auto op_t : all_t)
+            {
+                  auto it = map.find(print_op(op_t));
+                  if (it != map.end())
+                  {
+                        return map[print_op(op_t)];
+                  }
+                  std::vector<op_vec> all_p;
+                  if (permuts == "xyz" or permuts == "yxz" or permuts == "zxy" or permuts == "zyx")
+                  {
+                        all_p = generate_all_permutations_xyz(op_t);
+                  }
+                  else if (permuts == "xy")
+                  {
+                        all_p = generate_all_permutations_xy(op_t);
+                  }
+                  for (auto op_p : all_p)
+                  {
+                        auto all_d8sym = generate_all_d8(op_p, Lx);
+
+                        for (auto d8s : all_d8sym)
+                        {
+                              auto it = map.find(print_op(d8s));
+                              if (it != map.end())
+                              {
+
+                                    return map[print_op(d8s)];
+                              }
+
+                              auto op_mirror = mirror(d8s);
+
+                              it = map.find(print_op(op_mirror));
+                              if (it != map.end())
+                              {
+
+                                    return map[print_op(op_mirror)];
+                              }
+                              if (bilayer)
+                              {
+                                    auto op_flip_layer = flip_layer(d8s);
+                                    it = map.find(print_op(op_flip_layer));
+                                    if (it != map.end())
+                                    {
+
+                                          return map[print_op(op_flip_layer)];
+                                    }
+                                    op_flip_layer = flip_layer(op_mirror);
+                                    it = map.find(print_op(op_flip_layer));
+                                    if (it != map.end())
+                                    {
+
+                                          return map[print_op(op_flip_layer)];
+                                    }
+                              }
+                        }
+                  }
+            }
+      }
       // does not exist
-std::pair<std::string, std::complex<double>>  output({"does not exist", 0.});
-	 return output;
-  }
-
-
-std::vector<double> define_xxz2d_sos( std::map<std::string, int> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, double J, double Delta, int Ly, int Lx)
-{
-    std::vector<string_pair> dirs{string_pair("x","x"),string_pair("z","z"),string_pair("y","y")};
-  std::vector<double> vals(refs.size(), 0);
-
-  for(auto term:dirs)
-    {
-   
-     
-	  op_vec v_p={spin_op(term.first, {0,0}, {Lx, Ly}),spin_op(term.second, {1,0}, {Lx, Ly})};	  
-      auto [fac_p, nf_p] =get_normal_form(v_p);
-     
-      auto [ key_p,coeff_map_p]=map.at(print_op(nf_p));  
-    
-      auto el_p=refs.at(key_p);
- 
-      double coeff=J;
-      if(term==string_pair("z","z")){coeff=Delta;}
-      
-      if(std::abs(fac_p.imag())>1e-9 or std::abs(coeff_map_p.imag())>1e-9){
-	std::cout<< "error: Hamiltonian contains complex elements "<<std::endl;
-      }
-      {
-
-  vals[el_p]+=coeff*fac_p.real()*coeff_map_p.real()/4.;
-       }
-   
-      op_vec v_t={spin_op(term.first, {0,0}, {Lx, Ly}),spin_op(term.second, {0,1}, {Lx, Ly})};
-      auto [fac_t, nf_t] =get_normal_form(v_t);
-      auto [ key_t,coeff_map_t]=map.at(print_op(nf_t));  
-      auto el_t=refs.at(key_t);
-      coeff=J;
-      if(term==string_pair("z","z")){coeff=Delta;}
-      
-      if(std::abs(fac_t.imag())>1e-9 or std::abs(coeff_map_t.imag())>1e-9){
-	std::cout<< "error: Hamiltonian contains complex elements "<<std::endl;
-      }
-    
-      {
-  
-vals[el_t]+=coeff*fac_t.real()*coeff_map_t.real()/4.;
-	
-      }
-    
-    
-    }
-
-  return vals; 
-    
-
-}
-std::vector<double> define_J1J22d_sos( std::map<std::string, int> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, double J1,double J2, int Ly, int Lx)
-{
-    std::vector<string_pair> dirs{string_pair("x","x"),string_pair("z","z"),string_pair("y","y")};
-  std::vector<double> vals(refs.size(), 0);
-// J1 nearest neighbour interaction
-  for(auto term:dirs)
-    {
-   
-     
-	  op_vec v_p={spin_op(term.first, {0,0}, {Lx, Ly}),spin_op(term.second, {1,0}, {Lx, Ly})};	  
-      auto [fac_p, nf_p] =get_normal_form(v_p);
-    
-      auto [ key_p,coeff_map_p]=map.at(print_op(nf_p));  
-    
-      auto el_p=refs.at(key_p);
- 
-      double coeff=J1;
- 
-      if(std::abs(fac_p.imag())>1e-9 or std::abs(coeff_map_p.imag())>1e-9){
-	std::cout<< "error: Hamiltonian contains complex elements "<<std::endl;
-      }
-      {
-
-  vals[el_p]+=coeff*fac_p.real()*coeff_map_p.real()/4.;
-       }
-   
-      op_vec v_t={spin_op(term.first, {0,0}, {Lx, Ly}),spin_op(term.second, {0,1}, {Lx, Ly})};
-      auto [fac_t, nf_t] =get_normal_form(v_t);
-      auto [ key_t,coeff_map_t]=map.at(print_op(nf_t));  
-      auto el_t=refs.at(key_t);
-
-      if(std::abs(fac_t.imag())>1e-9 or std::abs(coeff_map_t.imag())>1e-9){
-	std::cout<< "error: Hamiltonian contains complex elements "<<std::endl;
-      }
-    
-      {
-  
-vals[el_t]+=coeff*fac_t.real()*coeff_map_t.real()/4.;
-	
-      }
-    
-    
-    }
-// J2 next nearest neighbour interaction
- for(auto term:dirs)
-    {
-   
-     
-	  op_vec v_p={spin_op(term.first, {0,0}, {Lx, Ly}),spin_op(term.second, {1,1}, {Lx, Ly})};	  
-      auto [fac_p, nf_p] =get_normal_form(v_p);
-     
-      auto [ key_p,coeff_map_p]=map.at(print_op(nf_p));  
-    
-      auto el_p=refs.at(key_p);
- 
-      double coeff=J2;
- 
-      if(std::abs(fac_p.imag())>1e-9 or std::abs(coeff_map_p.imag())>1e-9){
-	std::cout<< "error: Hamiltonian contains complex elements "<<std::endl;
-      }
-      {
-
-  vals[el_p]+=coeff*fac_p.real()*coeff_map_p.real()/4.;
-       }
-   
-      op_vec v_t={spin_op(term.first, {0,0}, {Lx, Ly}),spin_op(term.second, {1,Lx-1}, {Lx, Ly})};
-      auto [fac_t, nf_t] =get_normal_form(v_t);
-      auto [ key_t,coeff_map_t]=map.at(print_op(nf_t));  
-      auto el_t=refs.at(key_t);
-
-      if(std::abs(fac_t.imag())>1e-9 or std::abs(coeff_map_t.imag())>1e-9){
-	std::cout<< "error: Hamiltonian contains complex elements "<<std::endl;
-      }
-    
-      {
-  
-vals[el_t]+=coeff*fac_t.real()*coeff_map_t.real()/4.;
-	
-      }
-    
-    
-    }
-
-  return vals; 
-    
-
-}
-std::vector<double> define_heisenberg_bilayer_sos( std::map<std::string, int> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, double J_perpendicular,double J_parallel, double J_x,int layers, int Ly, int Lx,std::string permuts, bool bilayer)
-{
-    std::vector<string_pair> dirs{string_pair("x","x"),string_pair("z","z"),string_pair("y","y")};
-  std::vector<double> vals(refs.size(), 0);
-// J_parallel terms
-
-  for(auto term:dirs)
-    {
-   for(int i=0; i<2; i++)
-   {
-    {
-	  op_vec v_p={spin_op(term.first, {i,0,0}, {layers, Lx, Ly}),spin_op(term.second, {i,1,0}, {layers, Lx, Ly})};	  
-      auto [fac_p, nf_p] =get_normal_form(v_p);
-      std::cout<< "op " <<print_op(nf_p)<<std::endl;
-      auto [ key_p,coeff_map_p]=find_index_of_operator(nf_p,map,Lx,Ly,permuts,bilayer);
-      assert(key_p!="does not exist");
-  
-      auto el_p=refs.at(key_p);
- 
-
-      
-      if(std::abs(fac_p.imag())>1e-9 or std::abs(coeff_map_p.imag())>1e-9){
-	std::cout<< "error: Hamiltonian contains complex elements "<<std::endl;
-      }
-      {
-
-  vals[el_p]+=J_parallel*fac_p.real()*coeff_map_p.real()/4.;
-       }
-    }
-     {
-	  op_vec v_p={spin_op(term.first, {i,0,0}, {layers, Lx, Ly}),spin_op(term.second, {i,0,1}, {layers, Lx, Ly})};	  
-      auto [fac_p, nf_p] =get_normal_form(v_p);
-     
-      auto [ key_p,coeff_map_p]=find_index_of_operator(nf_p,map,Lx,Ly,permuts,bilayer); 
-    
-      auto el_p=refs.at(key_p);
- 
-
-      
-      if(std::abs(fac_p.imag())>1e-9 or std::abs(coeff_map_p.imag())>1e-9){
-	std::cout<< "error: Hamiltonian contains complex elements "<<std::endl;
-      }
-      {
-
-  vals[el_p]+=J_parallel*fac_p.real()*coeff_map_p.real()/4.;
-       }
-    }
-   }
- 
-    
-    }
-// J perpendicular
-    for(auto term:dirs)
-    {
-
-    {
-	  op_vec v_p={spin_op(term.first, {0,0,0}, {layers, Lx, Ly}),spin_op(term.second, {1,0,0}, {layers, Lx, Ly})};	  
-      auto [fac_p, nf_p] =get_normal_form(v_p);
-     
-      auto [ key_p,coeff_map_p]=find_index_of_operator(nf_p,map,Lx,Ly,permuts,bilayer);  
-    
-      auto el_p=refs.at(key_p);
- 
-
-      
-      if(std::abs(fac_p.imag())>1e-9 or std::abs(coeff_map_p.imag())>1e-9){
-	std::cout<< "error: Hamiltonian contains complex elements "<<std::endl;
-      }
-      {
-
-  vals[el_p]+=J_perpendicular*fac_p.real()*coeff_map_p.real()/4.;
-       }
-    }
-   
-   
- 
-    
-    }
-// J_x
-for(int i=0; i<layers; i++)
-{
-        for(auto term:dirs)
-    {
-
-    {
-	  op_vec v_p={spin_op(term.first, {i,0,0}, {layers, Lx, Ly}),spin_op(term.second, {(i+1)%layers,0,1}, {layers, Lx, Ly})};	  
-      auto [fac_p, nf_p] =get_normal_form(v_p);
-     
-      auto [ key_p,coeff_map_p]=find_index_of_operator(nf_p,map,Lx,Ly,permuts,bilayer);  
-    
-      auto el_p=refs.at(key_p);
- 
-
-      
-      if(std::abs(fac_p.imag())>1e-9 or std::abs(coeff_map_p.imag())>1e-9){
-	std::cout<< "error: Hamiltonian contains complex elements "<<std::endl;
-      }
-      {
-
-  vals[el_p]+=J_x*fac_p.real()*coeff_map_p.real()/4.;
-       }
-    }
-   
-   
-    {
-	  op_vec v_p={spin_op(term.first, {i,0,0}, {layers, Lx, Ly}),spin_op(term.second, {(i+1)%layers,1,0}, {layers, Lx, Ly})};	  
-      auto [fac_p, nf_p] =get_normal_form(v_p);
-     
-      auto [ key_p,coeff_map_p]=find_index_of_operator(nf_p,map,Lx,Ly,permuts,bilayer);  
-    
-      auto el_p=refs.at(key_p);
- 
-
-      
-      if(std::abs(fac_p.imag())>1e-9 or std::abs(coeff_map_p.imag())>1e-9){
-	std::cout<< "error: Hamiltonian contains complex elements "<<std::endl;
-      }
-      {
-
-  vals[el_p]+=J_x*fac_p.real()*coeff_map_p.real()/4.;
-       }
-    }
-   
-    
-    }
+      std::pair<std::string, std::complex<double>> output({"does not exist", 0.});
+      return output;
 }
 
-  return vals; 
-    
+std::vector<double> define_xxz2d_sos(std::map<std::string, int> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, double J, double Delta, int Ly, int Lx)
+{
+      std::vector<string_pair> dirs{string_pair("x", "x"), string_pair("z", "z"), string_pair("y", "y")};
+      std::vector<double> vals(refs.size(), 0);
 
+      for (auto term : dirs)
+      {
+
+            op_vec v_p = {spin_op(term.first, {0, 0}, {Lx, Ly}), spin_op(term.second, {1, 0}, {Lx, Ly})};
+            auto [fac_p, nf_p] = get_normal_form(v_p);
+
+            auto [key_p, coeff_map_p] = map.at(print_op(nf_p));
+
+            auto el_p = refs.at(key_p);
+
+            double coeff = J;
+            if (term == string_pair("z", "z"))
+            {
+                  coeff = Delta;
+            }
+
+            if (std::abs(fac_p.imag()) > 1e-9 or std::abs(coeff_map_p.imag()) > 1e-9)
+            {
+                  std::cout << "error: Hamiltonian contains complex elements " << std::endl;
+            }
+            {
+
+                  vals[el_p] += coeff * fac_p.real() * coeff_map_p.real() / 4.;
+            }
+
+            op_vec v_t = {spin_op(term.first, {0, 0}, {Lx, Ly}), spin_op(term.second, {0, 1}, {Lx, Ly})};
+            auto [fac_t, nf_t] = get_normal_form(v_t);
+            auto [key_t, coeff_map_t] = map.at(print_op(nf_t));
+            auto el_t = refs.at(key_t);
+            coeff = J;
+            if (term == string_pair("z", "z"))
+            {
+                  coeff = Delta;
+            }
+
+            if (std::abs(fac_t.imag()) > 1e-9 or std::abs(coeff_map_t.imag()) > 1e-9)
+            {
+                  std::cout << "error: Hamiltonian contains complex elements " << std::endl;
+            }
+
+            {
+
+                  vals[el_t] += coeff * fac_t.real() * coeff_map_t.real() / 4.;
+            }
+      }
+
+      return vals;
+}
+std::vector<double> define_J1J22d_sos(std::map<std::string, int> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, double J1, double J2, int Ly, int Lx)
+{
+      std::vector<string_pair> dirs{string_pair("x", "x"), string_pair("z", "z"), string_pair("y", "y")};
+      std::vector<double> vals(refs.size(), 0);
+      // J1 nearest neighbour interaction
+      for (auto term : dirs)
+      {
+
+            op_vec v_p = {spin_op(term.first, {0, 0}, {Lx, Ly}), spin_op(term.second, {1, 0}, {Lx, Ly})};
+            auto [fac_p, nf_p] = get_normal_form(v_p);
+
+            auto [key_p, coeff_map_p] = map.at(print_op(nf_p));
+
+            auto el_p = refs.at(key_p);
+
+            double coeff = J1;
+
+            if (std::abs(fac_p.imag()) > 1e-9 or std::abs(coeff_map_p.imag()) > 1e-9)
+            {
+                  std::cout << "error: Hamiltonian contains complex elements " << std::endl;
+            }
+            {
+
+                  vals[el_p] += coeff * fac_p.real() * coeff_map_p.real() / 4.;
+            }
+
+            op_vec v_t = {spin_op(term.first, {0, 0}, {Lx, Ly}), spin_op(term.second, {0, 1}, {Lx, Ly})};
+            auto [fac_t, nf_t] = get_normal_form(v_t);
+            auto [key_t, coeff_map_t] = map.at(print_op(nf_t));
+            auto el_t = refs.at(key_t);
+
+            if (std::abs(fac_t.imag()) > 1e-9 or std::abs(coeff_map_t.imag()) > 1e-9)
+            {
+                  std::cout << "error: Hamiltonian contains complex elements " << std::endl;
+            }
+
+            {
+
+                  vals[el_t] += coeff * fac_t.real() * coeff_map_t.real() / 4.;
+            }
+      }
+      // J2 next nearest neighbour interaction
+      for (auto term : dirs)
+      {
+
+            op_vec v_p = {spin_op(term.first, {0, 0}, {Lx, Ly}), spin_op(term.second, {1, 1}, {Lx, Ly})};
+            auto [fac_p, nf_p] = get_normal_form(v_p);
+
+            auto [key_p, coeff_map_p] = map.at(print_op(nf_p));
+
+            auto el_p = refs.at(key_p);
+
+            double coeff = J2;
+
+            if (std::abs(fac_p.imag()) > 1e-9 or std::abs(coeff_map_p.imag()) > 1e-9)
+            {
+                  std::cout << "error: Hamiltonian contains complex elements " << std::endl;
+            }
+            {
+
+                  vals[el_p] += coeff * fac_p.real() * coeff_map_p.real() / 4.;
+            }
+
+            op_vec v_t = {spin_op(term.first, {0, 0}, {Lx, Ly}), spin_op(term.second, {1, Lx - 1}, {Lx, Ly})};
+            auto [fac_t, nf_t] = get_normal_form(v_t);
+            auto [key_t, coeff_map_t] = map.at(print_op(nf_t));
+            auto el_t = refs.at(key_t);
+
+            if (std::abs(fac_t.imag()) > 1e-9 or std::abs(coeff_map_t.imag()) > 1e-9)
+            {
+                  std::cout << "error: Hamiltonian contains complex elements " << std::endl;
+            }
+
+            {
+
+                  vals[el_t] += coeff * fac_t.real() * coeff_map_t.real() / 4.;
+            }
+      }
+
+      return vals;
+}
+std::vector<double> define_heisenberg_bilayer_sos(std::map<std::string, int> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, double J_perpendicular, double J_parallel, double J_x, int layers, int Ly, int Lx, std::string permuts, bool bilayer)
+{
+      std::vector<string_pair> dirs{string_pair("x", "x"), string_pair("z", "z"), string_pair("y", "y")};
+      std::vector<double> vals(refs.size(), 0);
+      // J_parallel terms
+
+      for (auto term : dirs)
+      {
+            for (int i = 0; i < 2; i++)
+            {
+                  {
+                        op_vec v_p = {spin_op(term.first, {i, 0, 0}, {layers, Lx, Ly}), spin_op(term.second, {i, 1, 0}, {layers, Lx, Ly})};
+                        auto [fac_p, nf_p] = get_normal_form(v_p);
+                        std::cout << "op " << print_op(nf_p) << std::endl;
+                        auto [key_p, coeff_map_p] = find_index_of_operator(nf_p, map, Lx, Ly, permuts, bilayer);
+                        assert(key_p != "does not exist");
+
+                        auto el_p = refs.at(key_p);
+
+                        if (std::abs(fac_p.imag()) > 1e-9 or std::abs(coeff_map_p.imag()) > 1e-9)
+                        {
+                              std::cout << "error: Hamiltonian contains complex elements " << std::endl;
+                        }
+                        {
+
+                              vals[el_p] += J_parallel * fac_p.real() * coeff_map_p.real() / 4.;
+                        }
+                  }
+                  {
+                        op_vec v_p = {spin_op(term.first, {i, 0, 0}, {layers, Lx, Ly}), spin_op(term.second, {i, 0, 1}, {layers, Lx, Ly})};
+                        auto [fac_p, nf_p] = get_normal_form(v_p);
+
+                        auto [key_p, coeff_map_p] = find_index_of_operator(nf_p, map, Lx, Ly, permuts, bilayer);
+
+                        auto el_p = refs.at(key_p);
+
+                        if (std::abs(fac_p.imag()) > 1e-9 or std::abs(coeff_map_p.imag()) > 1e-9)
+                        {
+                              std::cout << "error: Hamiltonian contains complex elements " << std::endl;
+                        }
+                        {
+
+                              vals[el_p] += J_parallel * fac_p.real() * coeff_map_p.real() / 4.;
+                        }
+                  }
+            }
+      }
+      // J perpendicular
+      for (auto term : dirs)
+      {
+
+            {
+                  op_vec v_p = {spin_op(term.first, {0, 0, 0}, {layers, Lx, Ly}), spin_op(term.second, {1, 0, 0}, {layers, Lx, Ly})};
+                  auto [fac_p, nf_p] = get_normal_form(v_p);
+
+                  auto [key_p, coeff_map_p] = find_index_of_operator(nf_p, map, Lx, Ly, permuts, bilayer);
+
+                  auto el_p = refs.at(key_p);
+
+                  if (std::abs(fac_p.imag()) > 1e-9 or std::abs(coeff_map_p.imag()) > 1e-9)
+                  {
+                        std::cout << "error: Hamiltonian contains complex elements " << std::endl;
+                  }
+                  {
+
+                        vals[el_p] += J_perpendicular * fac_p.real() * coeff_map_p.real() / 4.;
+                  }
+            }
+      }
+      // J_x
+      for (int i = 0; i < layers; i++)
+      {
+            for (auto term : dirs)
+            {
+
+                  {
+                        op_vec v_p = {spin_op(term.first, {i, 0, 0}, {layers, Lx, Ly}), spin_op(term.second, {(i + 1) % layers, 0, 1}, {layers, Lx, Ly})};
+                        auto [fac_p, nf_p] = get_normal_form(v_p);
+
+                        auto [key_p, coeff_map_p] = find_index_of_operator(nf_p, map, Lx, Ly, permuts, bilayer);
+
+                        auto el_p = refs.at(key_p);
+
+                        if (std::abs(fac_p.imag()) > 1e-9 or std::abs(coeff_map_p.imag()) > 1e-9)
+                        {
+                              std::cout << "error: Hamiltonian contains complex elements " << std::endl;
+                        }
+                        {
+
+                              vals[el_p] += J_x * fac_p.real() * coeff_map_p.real() / 4.;
+                        }
+                  }
+
+                  {
+                        op_vec v_p = {spin_op(term.first, {i, 0, 0}, {layers, Lx, Ly}), spin_op(term.second, {(i + 1) % layers, 1, 0}, {layers, Lx, Ly})};
+                        auto [fac_p, nf_p] = get_normal_form(v_p);
+
+                        auto [key_p, coeff_map_p] = find_index_of_operator(nf_p, map, Lx, Ly, permuts, bilayer);
+
+                        auto el_p = refs.at(key_p);
+
+                        if (std::abs(fac_p.imag()) > 1e-9 or std::abs(coeff_map_p.imag()) > 1e-9)
+                        {
+                              std::cout << "error: Hamiltonian contains complex elements " << std::endl;
+                        }
+                        {
+
+                              vals[el_p] += J_x * fac_p.real() * coeff_map_p.real() / 4.;
+                        }
+                  }
+            }
+      }
+
+      return vals;
 }

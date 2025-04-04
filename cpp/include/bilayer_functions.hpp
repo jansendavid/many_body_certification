@@ -526,7 +526,7 @@ rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
       set_with_vector.insert({1, 0, 0});
       set_with_vector.insert({0, 1, 1});
       set_with_vector.insert({1, 1, 1});
-      set_with_vector.insert({2, 2, 2});
+      set_with_vector.insert({1, 2, 2});
       if (set_with_vector.size() == 5)
       {
         op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 3), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 4), {layers, Lx, Lx})};
@@ -609,9 +609,9 @@ rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
       set_with_vector.insert({0, 0, 0});
       set_with_vector.insert({0, 0, 1});
       set_with_vector.insert({1, 1, 1});
-      set_with_vector.insert({2, 2, 2});
-      set_with_vector.insert({2, 2, 3});
-      set_with_vector.insert({3, 3, 3});
+      set_with_vector.insert({0, 2, 2});
+      set_with_vector.insert({0, 2, 3});
+      set_with_vector.insert({1, 3, 3});
       if (set_with_vector.size() == 6)
       {
 

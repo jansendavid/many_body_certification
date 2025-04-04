@@ -207,7 +207,7 @@ public:
   Parameter::t b_;
   Parameter::t energy_vec_; // if b is observable then the energy is stored here
   bool bounding_observable_{false};
-  std::map<std::string, double> energy_bounds_; // contains two elements, upper bound lower bound
+  std::map<std::string, Parameter::t> energy_bounds_; // contains two elements, upper bound lower bound
 
   // enforcing constarans ye nergy_vec_<=E_upper
   // contains the matrices As, for each sign symmetrye we have LxL blocks
@@ -312,14 +312,20 @@ public:
   }
   void set_energy_vec(std::vector<double> energy_vec, double E_upper, double E_lower)
   {
-    energy_vec_ = M_->parameter("energy vec", total_refs_.size());
+    if (energy_bounds_.size() < 2)
+    {
+      bounding_observable_ = true;
+      energy_vec_ = M_->parameter("energy vec", total_refs_.size());
+      energy_bounds_["E_upper"] = M_->parameter("E_upper");
+      energy_bounds_["E_lower"] = M_->parameter("E_lower");
+    }
 
     auto a = monty::new_array_ptr<double>(energy_vec);
     energy_vec_->setValue(a);
-    bounding_observable_ = true;
+
     std::cout << "bounding " << bounding_observable_ << std::endl;
-    energy_bounds_["E_upper"] = E_upper;
-    energy_bounds_["E_lower"] = E_lower;
+    energy_bounds_["E_upper"]->setValue(E_upper);
+    energy_bounds_["E_lower"]->setValue(E_lower);
     return;
   }
 
@@ -597,10 +603,10 @@ public:
     if (bounding_observable_)
     {
       std::cout << "introduing bounds" << std::endl;
-      std::cout << " up " << energy_bounds_["E_upper"] << std::endl;
-      std::cout << " up " << energy_bounds_["E_lower"] << std::endl;
-      M_->constraint(Expr::dot(energy_vec_, y_), Domain::lessThan(energy_bounds_["E_upper"]));
-      M_->constraint(Expr::dot(energy_vec_, y_), Domain::greaterThan(energy_bounds_["E_lower"]));
+      // std::cout << " up " << energy_bounds_["E_upper"]->index(0) << std::endl;
+      // std::cout << " up " << energy_bounds_["E_lower"]->index(0) << std::endl;
+      // M_->constraint(Expr::dot(energy_vec_, y_), Domain::lessThan(energy_bounds_["E_upper"]->index(0)));
+      // M_->constraint(Expr::dot(energy_vec_, y_), Domain::greaterThan(energy_bounds_["E_lower"]->index(0)));
     }
     return;
   }
@@ -796,8 +802,9 @@ public:
     }
     if (bounding_observable_)
     {
-      ee = Expr::add(ee, Expr::mul(energy_bouding_variables_[0], -1 * energy_bounds_["E_upper"]));
-      ee = Expr::add(ee, Expr::mul(energy_bouding_variables_[1], -1 * energy_bounds_["E_lower"]));
+      auto d = Expr::mul(energy_bounds_["E_lower"], energy_bouding_variables_[1]);
+      ee = Expr::add(ee, Expr::neg(Expr::mul(energy_bounds_["E_upper"], energy_bouding_variables_[0])));
+      ee = Expr::add(ee, Expr::neg(Expr::mul(energy_bounds_["E_lower"], energy_bouding_variables_[1])));
     }
     return ee;
   }

@@ -45,7 +45,7 @@ void test_multiple_blocks_bounding_observables_2d_rdm_sos()
   Model::t M = new Model("sdo1");
   auto _M = finally([&]()
                     { M->dispose(); });
-  bool maximize = true;
+  bool maximize = false;
   bool bilayer = false;
   auto basis = momentum_symmetry_solver_sos(Lx, states, M, rdms, "xyz", bilayer, maximize);
 
