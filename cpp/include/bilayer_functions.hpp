@@ -447,9 +447,9 @@ rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
     {
       std::set<std::vector<int>> set_with_vector;
       set_with_vector.insert({0, 0, 0});
-      set_with_vector.insert({1, 1, 0});
+      set_with_vector.insert({1, 0, 0});
       set_with_vector.insert({0, 1, 1});
-      set_with_vector.insert({1, 2, 2});
+      set_with_vector.insert({1, 1, 1});
       if (set_with_vector.size() == 4)
       {
         op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 3), {layers, Lx, Lx})};
@@ -498,10 +498,10 @@ rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
     {
       std::set<std::vector<int>> set_with_vector;
       set_with_vector.insert({0, 0, 0});
-      set_with_vector.insert({1, 1, 0});
-      set_with_vector.insert({0, 1, 0});
-      set_with_vector.insert({0, 2, 0});
-      set_with_vector.insert({0, 3, 0});
+      set_with_vector.insert({1, 0, 0});
+      set_with_vector.insert({0, 1, 1});
+      set_with_vector.insert({1, 1, 1});
+      set_with_vector.insert({0, 2, 2});
 
       if (set_with_vector.size() == 5)
       {
@@ -523,10 +523,10 @@ rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
     {
       std::set<std::vector<int>> set_with_vector;
       set_with_vector.insert({0, 0, 0});
-      set_with_vector.insert({1, 1, 0});
+      set_with_vector.insert({1, 0, 0});
       set_with_vector.insert({0, 1, 1});
-      set_with_vector.insert({1, 2, 2});
-      set_with_vector.insert({1, 2, 3});
+      set_with_vector.insert({1, 1, 1});
+      set_with_vector.insert({2, 2, 2});
       if (set_with_vector.size() == 5)
       {
         op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 3), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 4), {layers, Lx, Lx})};
@@ -547,9 +547,9 @@ rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
     {
       std::set<std::vector<int>> set_with_vector;
       set_with_vector.insert({0, 0, 0});
+      set_with_vector.insert({1, 0, 0});
       set_with_vector.insert({0, 1, 1});
-      set_with_vector.insert({0, 2, 0});
-      set_with_vector.insert({1, 3, 1});
+      set_with_vector.insert({1, 1, 1});
       set_with_vector.insert({1, 3, 2});
       if (set_with_vector.size() == 4)
       {
@@ -606,12 +606,39 @@ rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
     {
       std::set<std::vector<int>> set_with_vector;
 
+      set_with_vector.insert({0, 0, 0});
+      set_with_vector.insert({0, 0, 1});
+      set_with_vector.insert({1, 1, 1});
+      set_with_vector.insert({2, 2, 2});
+      set_with_vector.insert({2, 2, 3});
+      set_with_vector.insert({3, 3, 3});
+      if (set_with_vector.size() == 6)
+      {
+
+        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 3), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 4), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 5), {layers, Lx, Lx})};
+        auto [coeff, nf] = get_normal_form(v0);
+        auto found = see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
+        if (!found)
+        {
+          rdm_ops.push_back(print_op(v0));
+          rdm_operator newstate;
+          for (auto site_op : nf)
+          {
+            newstate.op_.push_back(site_op.site_);
+          }
+          data.add_operator(newstate);
+        }
+      }
+    }
+    {
+      std::set<std::vector<int>> set_with_vector;
+
       set_with_vector.insert({1, 0, 0});
       set_with_vector.insert({0, 1, 0});
-      set_with_vector.insert({1, 1, 1});
-      set_with_vector.insert({1, 1, 0});
-      set_with_vector.insert({0, 2, 0});
       set_with_vector.insert({1, 2, 1});
+      set_with_vector.insert({3, 2, 2});
+      set_with_vector.insert({2, 3, 2});
+      set_with_vector.insert({3, 4, 3});
       if (set_with_vector.size() == 6)
       {
 
