@@ -636,9 +636,9 @@ rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
       set_with_vector.insert({1, 0, 0});
       set_with_vector.insert({0, 1, 0});
       set_with_vector.insert({1, 2, 1});
-      set_with_vector.insert({3, 2, 2});
-      set_with_vector.insert({2, 3, 2});
-      set_with_vector.insert({3, 4, 3});
+      set_with_vector.insert({1, 1, 1});
+      set_with_vector.insert({0, 2, 1});
+      set_with_vector.insert({1, 3, 2});
       if (set_with_vector.size() == 6)
       {
 
