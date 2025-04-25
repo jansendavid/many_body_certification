@@ -230,7 +230,10 @@ void test_multiple_blocks_higher_order_2d_rdm_sos()
   get_order_one_monomials(states, map_sec, Lx, true);
   get_order_two_monomials(states, map_sec, Lx, 3, -3, true);
   get_order_three_monomials(states, map_sec, Lx, true);
-
+  basis_structure states_2;
+  states_2[0] = states[0];
+  states_2[1] = states[1];
+  states = states_2;
   // get_order_four_monomials(states, map_sec, Lx, true);
 
   auto data = get_rdms(Lx, Lx);
@@ -273,7 +276,7 @@ void test_multiple_blocks_higher_order_2d_rdm_sos()
 
   std::cout << "Solution : " << std::endl;
   std::cout << std::setprecision(9) << M->primalObjValue() << std::endl;
-
+  // thord order -0.703778105
   return;
 }
 
