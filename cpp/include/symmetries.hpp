@@ -81,64 +81,46 @@ rdms_struct get_rdms(int Lx, int dim)
 
   return data;
 }
-bool found_operator(std::set<std::string> list_of_op, op_vec vec, int Lx, int Ly)
+
+rdms_struct get_rdms_1d(int Lx, int dim)
 {
-  bool results = false;
-  //   auto all_ty=generate_all_translations_y(op, Ly,1);
+  rdms_struct data;
 
-  //  for(auto op_ty: all_ty)
-  //    {
-  //     auto all_t=generate_all_translations(op_ty, Lx);
+  rdm_operator newstate({{0, 0}, {0, 1}});
+  data.add_operator(newstate);
+  if (dim >= 4)
+  {
+    rdm_operator newstate({{0, 0}, {0, 1}, {0, 2}});
+    data.add_operator(newstate);
+    // rdm_operator newstate_1({{0, 0}, {0, 1}, {0, 2}, {0, 3}});
+    // data.add_operator(newstate_1);
+    // rdm_operator newstate_2({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {1, 1}});
+    // data.add_operator(newstate_2);
+    // rdm_operator newstate_3({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {1, 1}, {1, 2}});
+    // data.add_operator(newstate_3);
+    // rdm_operator newstate_4({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {1, 1}, {1, 2}, {1, 3}});
+    // data.add_operator(newstate_4);
+    // rdm_operator newstate_5({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {1, 1}, {1, 2}, {1, 3}, {2, 2}});
+    // data.add_operator(newstate_5);
 
-  //      for(auto op_t: all_t)
-  //        {
-  // 		auto it=mat_terms.find(print_op(op_t));
-  // 		if(it != mat_terms.end())
-  // 		{
+    // rdm_operator newstate_55({{0, 0}, {2, 1}, {0, 2}, {2, 3}, {1, 1}, {1, 2}, {1, 3}, {2, 2}});
+    // data.add_operator(newstate_55);
+    //  rdm_operator newstate_6({{0,0}, {0,1}, {0,2},{0,3},{1,1},{1,2},{1,3},{2,2},{3,3}});
+    // data.add_operator(newstate_6);
+    //  rdm_operator newstate_7({{0,0}, {0,1}, {0,2},{0,3},{1,1},{1,2},{1,3},{2,2},{3,3}});
+    // data.add_operator(newstate_7);
+  }
+  // if (dim >= 6)
+  // {
+  //   rdm_operator newstate({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}});
+  //   data.add_operator(newstate);
+  //   rdm_operator newstate_1({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}});
+  //   data.add_operator(newstate_1);
+  // }
 
-  //     TI_map_.insert({print_op(op), { it->first,1}});
-  // 	return;
-  // 		}
-  // 		std::vector<op_vec> all_p;
-  // 		if(permuts_=="xyz" or permuts_=="yxz" or permuts_=="zxy" or permuts_=="zyx")
-  // 	   {
-  //       all_p=generate_all_permutations_xyz(op_t);
-  // 	   }
-  // 	 else if(permuts_=="xy")
-  // 	   {
-  // 	     all_p=generate_all_permutations_xy(op_t);
-  // 	   }
-  // 	        	 for(auto op_p: all_p)
-  //    {
-  //      auto all_d8sym=generate_all_d8(op_p,  L_);
-
-  // 	 for(auto d8s: all_d8sym)
-  // 	 {
-  //        auto it=mat_terms.find(print_op(d8s));
-  // 	  if(it != mat_terms.end())
-  // 	 	{
-
-  //     TI_map_.insert({print_op(op), { it->first,1}});
-  // 	 return;
-  // 	 	}
-
-  // 		      auto op_mirror=mirror(d8s);
-
-  //        it=mat_terms.find(print_op(op_mirror));
-  //        if(it != mat_terms.end())
-  //        {
-  // 		TI_map_.insert({print_op(op), { it->first,1}});
-  // 		 return;
-  //    		}
-
-  // 	   }
-
-  //    }
-  //    }
-  //    }
-
-  return results;
+  return data;
 }
+
 rdms_struct translation_invariant_rdms_2nd(int Lx, int Ly)
 {
   rdms_struct data;
@@ -234,89 +216,7 @@ rdms_struct translation_invariant_rdms_4th(int Lx, int Ly)
 
   return data;
 }
-// std::vector<std::vector<std::vector<int>>>  translation_invariant_rdms_5th(int Lx, int Ly)
-// {
-//   std::vector<std::vector<std::vector<int>>> data;
-//   std::vector<std::vector<int>> combs;
-//   for(int i=0; i<Lx; i++)
-//   {
-//     for(int j=0; j<Lx; j++)
-//     {
-//       if(i!=0 and j!=0)
-//       {
-//       combs.push_back({i,j});
-//     }
-//     }
-//   }
-//     for(auto m: combs)
-//     {
-//          for(auto l: combs)
-//     {
-//         for(auto n: combs)
-//     {
-//           for(auto o: combs)
-//     {
-//               for(auto p: combs)
-//     {
-//       std::set<std::vector<int>> set_={m,l,n,o,p};
 
-//       if(set_.size()==5)
-//       {
-//         std::vector<std::vector<int>> newstate={{0,0}, {m}, {l}, {n}, {o}, {p}};
-//     data.push_back(newstate);
-//       }
-//     }
-//     }
-//     }
-//     }
-//     }
-
-// return data;
-
-// }
-// std::vector<std::vector<std::vector<int>>>  translation_invariant_rdms_6th(int Lx, int Ly)
-// {
-//   std::vector<std::vector<std::vector<int>>> data;
-//   std::vector<std::vector<int>> combs;
-//   for(int i=0; i<Lx; i++)
-//   {
-//     for(int j=0; j<Lx; j++)
-//     {
-//       if(i!=0 and j!=0)
-//       {
-//       combs.push_back({i,j});
-//     }
-//     }
-//   }
-//     for(auto m: combs)
-//     {
-//          for(auto l: combs)
-//     {
-//         for(auto n: combs)
-//     {
-//           for(auto o: combs)
-//     {
-//               for(auto p: combs)
-//     {
-//                  for(auto q: combs)
-//     {
-//       std::set<std::vector<int>> set_={m,l,n,o,p, q};
-
-//       if(set_.size()==6)
-//       {
-//         std::vector<std::vector<int>> newstate={{0,0}, {m}, {l}, {n}, {o}, {p},{q}};
-//     data.push_back(newstate);
-//       }
-//     }
-//     }
-//     }
-//     }
-//     }
-//     }
-
-// return data;
-
-// }
 op_vec apply_group_trafo(op_vec op, Eigen::Matrix2i mat, int L)
 {
 
@@ -532,7 +432,7 @@ void add_state_with_symmetries_1d(basis_structure &states, op_vec op, std::map<s
   return;
 }
 
-void add_state_with_symmetries(basis_structure &states, op_vec op, std::map<std::pair<int, int>, int> map_sec, int L)
+void add_state_with_symmetries(basis_structure &states, op_vec op, std::map<std::pair<int, int>, int> map_sec, int Ly, int Lx)
 {
   // adds a state to a basis
 
@@ -543,13 +443,13 @@ void add_state_with_symmetries(basis_structure &states, op_vec op, std::map<std:
   bool found = false;
   if (nf.size() > 0)
   {
-    auto all_t = generate_all_translations(nf, L);
+    auto all_t = generate_all_translations(nf, Lx);
     bool found = false;
 
     for (auto op_t : all_t)
     {
 
-      auto all_ty = generate_all_translations_y(op_t, L, 1);
+      auto all_ty = generate_all_translations_y(op_t, Ly, 1);
 
       for (auto op_ty : all_ty)
       {
@@ -567,14 +467,6 @@ void add_state_with_symmetries(basis_structure &states, op_vec op, std::map<std:
       }
     }
 
-    //     auto it = std::find(states.at(map_sec.at(sign)).begin(), states.at(map_sec.at(sign)).end(), op_ty);
-    // if (it!=states.at(map_sec.at(sign)).end())
-    //     {std::cout<<print_op(nf)<< " was "<< print_op(*it)<<std::endl;
-    //       found=true;
-    //     break;}
-
-    //     }
-
     if (!found)
     {
       states.at(map_sec.at(sign)).push_back(nf);
@@ -584,53 +476,6 @@ void add_state_with_symmetries(basis_structure &states, op_vec op, std::map<std:
   return;
 }
 
-void add_state_symm(basis_structure &states, op_vec op, std::map<std::pair<int, int>, int> map_sec, int L, std::string permuts)
-{
-  // adds a state to a basis
-  auto [fac, nf] = get_normal_form(op);
-  auto sign = get_sec(nf);
-  if (nf.size() > 0)
-  {
-    auto all_t = generate_all_translations(nf, L);
-    bool found = false;
-
-    for (auto op_t : all_t)
-    {
-
-      // 	     // generate all y translations, inc=1
-      auto all_ty = generate_all_translations_y(op_t, L, 1);
-      for (auto op_ty : all_ty)
-      {
-        // 	     // generate all permutations
-        // 	 std::vector<op_vec> all_p;
-        // 	 if(permuts=="xyz")
-        // 	   {
-        //    all_p=generate_all_permutations_xyz(op_ty);
-        // 	   }
-        // 	 else if(permuts=="xy")
-        // 	   {
-        // 	     all_p=generate_all_permutations_xy(op_ty);
-        // 	   }
-
-        //   for(auto op_p: all_p)
-        // {
-
-        int cnt = count(states.at(map_sec.at(sign)).begin(), states.at(map_sec.at(sign)).end(), op_ty);
-        if (cnt > 0)
-        {
-          found = true;
-          //}
-        }
-      }
-    }
-    if (not found)
-    {
-      states.at(map_sec.at(sign)).push_back(nf);
-    }
-  }
-
-  return;
-}
 template <class T>
 int getIndex(std::vector<T> v, T K)
 {
@@ -796,363 +641,6 @@ std::vector<op_vec> generate_all_permutations_xyz(op_vec op)
 
   return all_P;
 }
-//   basis_structure get_basis_1d(int L, int r, int start=0)
-//   {
-// std::set <std::string> states_strings;
-//  basis_structure states;
-//       std::vector<op_vec> v_block_0;
-//   std::vector<op_vec> v_block_1;
-//   std::vector<op_vec> v_block_2;
-//   std::vector<op_vec> v_block_3;
-//   states.insert({0, v_block_0});
-//   states.insert({1, v_block_1});
-//   states.insert({2, v_block_2});
-//   states.insert({3, v_block_3});
-//   std::map<std::pair<int,int>, int> map_sec;
-//       map_sec.insert({std::pair<int,int>(1,1), 0});
-//   map_sec.insert({std::pair<int,int>(1,-1), 1});
-//   map_sec.insert({std::pair<int,int>(-1,1), 2});
-//     map_sec.insert({std::pair<int,int>(-1,-1), 3});
-
-//        std::vector<std::string> dirs={"x", "y", "z"};
-
-// 	   for(auto s: dirs){
-
-// 	     op_vec v0={spin_op(s, {0})};
-//        const bool is_in = states_strings.find(print_op(v0)) != states_strings.end();
-//        if(not is_in)
-//        {
-//         //add_state_with_symmetries_1d(states, v0, map_sec, L);
-//        add_state(states, v0, map_sec);
-//        }
-
-// 	    }
-//       int SS=0;
-//       for(int i=1; i<=r; i++)
-//       {
-
-//         for(auto s1: dirs){
-
-//        for(auto s2: dirs){
-//        {
-
-//         op_vec v0={spin_op(s1, {0}),spin_op(s2, {i})};
-
-//         auto [fac, vec] =get_normal_form(v0);
-//          const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
-
-//        if(not is_in)
-//        {
-
-//         //add_state_with_symmetries_1d(states, vec, map_sec, L);
-//         add_state(states, vec, map_sec);
-
-//         }
-
-// 	    }
-//      }
-//       }
-//       }
-
-//        	   for(auto s1: dirs){
-// 	      for(auto s2: dirs){
-//            for(auto s3: dirs){
-
-//        {
-//         op_vec v0={spin_op(s1, {0}),spin_op(s2, {1}),spin_op(s3, {2})};
-//         auto [fac, vec] =get_normal_form(v0);
-// 	         const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
-//        if(not is_in)
-//        {
-//         //add_state_with_symmetries_1d(states, vec, map_sec, L);
-//          add_state(states, vec, map_sec);
-//        }
-
-// 		 }
-
-// 	    }
-//         }
-//      }
-
-//  for(auto s1: dirs){
-// 	      for(auto s2: dirs){
-//            for(auto s3: dirs){
-
-//        {
-//             for(auto s4: dirs){
-
-//        {
-//         op_vec v0={spin_op(s1, {0}, L),spin_op(s2, {1}, L),spin_op(s3, {2}, L),spin_op(s4, {3}, L)};
-//         auto [fac, vec] =get_normal_form(v0);
-// 	     //add_state_with_symmetries_1d(states, vec, map_sec, L);
-//        add_state(states, vec, map_sec);
-// 		 }
-//             } }}}}
-
-//        return states;
-//   }
-
-basis_structure get_basis_2d(int L, int r, int start, bool use_symm)
-{
-  std::set<std::string> states_strings;
-  basis_structure states;
-  std::vector<op_vec> v_block_0;
-  std::vector<op_vec> v_block_1;
-  std::vector<op_vec> v_block_2;
-  std::vector<op_vec> v_block_3;
-  states.insert({0, v_block_0});
-  states.insert({1, v_block_1});
-  states.insert({2, v_block_2});
-  states.insert({3, v_block_3});
-  std::map<std::pair<int, int>, int> map_sec;
-  map_sec.insert({std::pair<int, int>(1, 1), 0});
-  map_sec.insert({std::pair<int, int>(1, -1), 1});
-  map_sec.insert({std::pair<int, int>(-1, 1), 2});
-  map_sec.insert({std::pair<int, int>(-1, -1), 3});
-
-  std::vector<std::string> dirs = {"x", "y", "z"};
-
-  for (auto s : dirs)
-  {
-
-    op_vec v0 = {spin_op(s, {0, 0}, {L, L})};
-    const bool is_in = states_strings.find(print_op(v0)) != states_strings.end();
-    // if(not is_in)
-    {
-      if (use_symm)
-      {
-        add_state_with_symmetries(states, v0, map_sec, L);
-      }
-      else
-      {
-        add_state(states, v0, map_sec);
-      }
-    }
-  }
-
-  for (auto s1 : dirs)
-  {
-    for (auto s2 : dirs)
-    {
-      for (auto s3 : dirs)
-      {
-
-        {
-          op_vec v0 = {spin_op(s1, {0, 0}, {L, L}), spin_op(s2, {0, 1}, {L, L}), spin_op(s3, {1, 1}, {L, L})};
-          auto [fac, vec] = get_normal_form(v0);
-          const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
-          // if(not is_in)
-          {
-
-            if (use_symm)
-            {
-              add_state_with_symmetries(states, v0, map_sec, L);
-            }
-            else
-            {
-              add_state(states, v0, map_sec);
-            }
-          }
-        }
-        {
-          op_vec v0 = {spin_op(s1, {0, 0}, {L, L}), spin_op(s2, {0, 1}, {L, L}), spin_op(s3, {L - 1, 1}, {L, L})};
-          auto [fac, vec] = get_normal_form(v0);
-          const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
-          // if(not is_in)
-          {
-
-            if (use_symm)
-            {
-              add_state_with_symmetries(states, v0, map_sec, L);
-            }
-            else
-            {
-              add_state(states, v0, map_sec);
-            }
-          }
-        }
-        {
-          op_vec v0 = {spin_op(s1, {0, 0}, {L, L}), spin_op(s2, {1, 0}, {L, L}), spin_op(s3, {1, 1}, {L, L})};
-          auto [fac, vec] = get_normal_form(v0);
-          const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
-          // if(not is_in)
-          {
-
-            if (use_symm)
-            {
-              add_state_with_symmetries(states, v0, map_sec, L);
-            }
-            else
-            {
-              add_state(states, v0, map_sec);
-            }
-          }
-        }
-        {
-          op_vec v0 = {spin_op(s1, {0, 0}, {L, L}), spin_op(s2, {L - 1, 0}, {L, L}), spin_op(s3, {L - 1, 1}, {L, L})};
-          auto [fac, vec] = get_normal_form(v0);
-          const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
-          // if(not is_in)
-          {
-
-            if (use_symm)
-            {
-              add_state_with_symmetries(states, v0, map_sec, L);
-            }
-            else
-            {
-              add_state(states, v0, map_sec);
-            }
-          }
-        }
-        {
-          op_vec v0 = {spin_op(s1, {0, 0}, {L, L}), spin_op(s2, {1, 0}, {L, L}), spin_op(s3, {2, 0}, {L, L})};
-          auto [fac, vec] = get_normal_form(v0);
-          const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
-          // if(not is_in)
-          {
-
-            if (use_symm)
-            {
-              add_state_with_symmetries(states, v0, map_sec, L);
-            }
-            else
-            {
-              add_state(states, v0, map_sec);
-            }
-          }
-        }
-        {
-          op_vec v0 = {spin_op(s1, {0, 0}, {L, L}), spin_op(s2, {0, 1}, {L, L}), spin_op(s3, {0, 2}, {L, L})};
-          auto [fac, vec] = get_normal_form(v0);
-          const bool is_in = states_strings.find(print_op(vec)) != states_strings.end();
-          // if(not is_in)
-          {
-
-            if (use_symm)
-            {
-              add_state_with_symmetries(states, v0, map_sec, L);
-            }
-            else
-            {
-              add_state(states, v0, map_sec);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  for (auto s1 : dirs)
-  {
-    for (auto s2 : dirs)
-    {
-      for (auto s3 : dirs)
-      {
-
-        {
-          for (auto s4 : dirs)
-          {
-
-            {
-              op_vec v0 = {spin_op(s1, {0, 0}, {L, L}), spin_op(s2, {1, 0}, {L, L}), spin_op(s3, {0, 1}, {L, L}), spin_op(s4, {1, 1}, {L, L})};
-              auto [fac, vec] = get_normal_form(v0);
-
-              if (use_symm)
-              {
-                add_state_with_symmetries(states, v0, map_sec, L);
-              }
-              else
-              {
-                add_state(states, v0, map_sec);
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  return states;
-}
-
-//    basis_structure get_basis_bilayer_2d(int Lx, int Ly, int layers, int r, int start,bool use_symm)
-//   {
-// std::set <std::string> states_strings;
-//  basis_structure states;
-//       std::vector<op_vec> v_block_0;
-//   std::vector<op_vec> v_block_1;
-//   std::vector<op_vec> v_block_2;
-//   std::vector<op_vec> v_block_3;
-//   states.insert({0, v_block_0});
-//   states.insert({1, v_block_1});
-//   states.insert({2, v_block_2});
-//   states.insert({3, v_block_3});
-//   std::map<std::pair<int,int>, int> map_sec;
-//       map_sec.insert({std::pair<int,int>(1,1), 0});
-//   map_sec.insert({std::pair<int,int>(1,-1), 1});
-//   map_sec.insert({std::pair<int,int>(-1,1), 2});
-//     map_sec.insert({std::pair<int,int>(-1,-1), 3});
-
-//        std::vector<std::string> dirs={"x","y","z"};
-
-// for(int i=0; i<2;i++)
-// {
-// 	   for(auto s: dirs){
-
-// 	     op_vec v0={spin_op(s, {i,0,0}, {layers,Ly, Lx})};
-//        const bool is_in = states_strings.find(print_op(v0)) != states_strings.end();
-
-//        {
-//         if(use_symm)
-//         {
-// add_state_with_symmetries(states, v0, map_sec, Ly);
-//         }
-//         else{
-//           add_state(states, v0, map_sec);
-//         }
-
-//        }
-
-struct monomial_struct_2d
-{
-  int Lx_;
-  int Ly_;
-  // vector where all Lx*Ly monomials are stored
-  std::vector<std::vector<op_vec>> monomials;
-  monomial_struct_2d(op_vec first_op, int Lx, int Ly) : Lx_(Lx), Ly_(Ly)
-  {
-    for (int i = 0; i < Ly_; i++)
-    {
-      monomials.push_back({});
-      for (int j = 0; j < Ly_; j++)
-      {
-        monomials[i].push_back({});
-      }
-    }
-    monomials[0][0] = first_op;
-  }
-  op_vec get(int i, int j)
-  {
-    return monomials[i][j];
-  }
-};
-bool see_if_found(std::pair<int, int> pos, std::set<std::pair<int, int>> elements, int Lx, int Ly)
-{
-  for (int l = 0; l < Ly; l++)
-  {
-    for (int m = 0; m < Lx; m++)
-    {
-      pos.first = (pos.first + l) % Ly;
-      // pos.second=(pos.second+m)%Lx;
-      if (elements.find(pos) != elements.end())
-      {
-        return true;
-      }
-    }
-  }
-  return false;
-}
 
 std::map<std::pair<int, int>, int> get_sector_map()
 {
@@ -1177,7 +665,7 @@ basis_structure get_states()
 
   return states;
 }
-void get_order_one_monomials(basis_structure &states, std::map<std::pair<int, int>, int> &map_sec, int L, bool use_symm)
+void get_order_one_monomials(basis_structure &states, std::map<std::pair<int, int>, int> &map_sec, int Ly, int Lx, bool use_symm)
 {
 
   std::vector<std::string> dirs = {"x", "y", "z"};
@@ -1185,13 +673,13 @@ void get_order_one_monomials(basis_structure &states, std::map<std::pair<int, in
   for (auto s : dirs)
   {
 
-    op_vec v0 = {spin_op(s, {0, 0}, {L, L})};
+    op_vec v0 = {spin_op(s, {0, 0}, {Ly, Lx})};
 
     auto sign = get_sec(v0);
 
     if (use_symm)
     {
-      add_state_with_symmetries(states, v0, map_sec, L);
+      add_state_with_symmetries(states, v0, map_sec, Ly, Lx);
     }
     else
     {
@@ -1200,32 +688,14 @@ void get_order_one_monomials(basis_structure &states, std::map<std::pair<int, in
   }
 }
 
-void get_order_two_monomials(basis_structure &states, std::map<std::pair<int, int>, int> &map_sec, int L, int r, int start, bool use_symm)
+void get_order_two_monomials(basis_structure &states, std::map<std::pair<int, int>, int> &map_sec, int Ly, int Lx, int ry, int rx, int starty, int startx, bool use_symm)
 {
   std::vector<std::string> dirs = {"x", "y", "z"};
-  //    dirs={"x", "y", "z"};
-  //  std::vector<std::pair<int, int>> rvals={{1,0}, {0,1}, {1,1}, {1,3}, {2,0}, {0,2}, {2,1}, {1,2}, {2,2}, {2,3}};
-  //  for(auto s1: dirs){
 
-  //    for(auto s2: dirs)
-  //    {
-  //    //if(s1!=s2)
-  //    {
-  //     for(auto b: rvals)
-  //     {
-  //               op_vec v0={spin_op(s1, {0,0}, {L,L}),spin_op(s2, {b.first, b.second}, {L,L})};
-
-  //     auto [fac, vec] =get_normal_form(v0);
-  //     add_state(states, vec, map_sec);
-  //     }
-  //    }}
-  //  }
-  //       int SS=0;
-
-  for (int i = start; i <= r; i++)
+  for (int i = starty; i <= ry; i++)
   {
 
-    for (int j = start; j <= r; j++)
+    for (int j = startx; j <= rx; j++)
     {
       for (auto s1 : dirs)
       {
@@ -1235,15 +705,15 @@ void get_order_two_monomials(basis_structure &states, std::map<std::pair<int, in
 
           if (i != 0 or j != 0)
           {
-            int ind1 = (L + i) % L;
-            int ind2 = (L + j) % L;
-            op_vec v0 = {spin_op(s1, {0, 0}, {L, L}), spin_op(s2, {ind1, ind2}, {L, L})};
+            int ind1 = (Ly + i) % Ly;
+            int ind2 = (Lx + j) % Lx;
+            op_vec v0 = {spin_op(s1, {0, 0}, {Ly, Lx}), spin_op(s2, {ind1, ind2}, {Ly, Lx})};
 
             auto [fac, vec] = get_normal_form(v0);
 
             if (use_symm)
             {
-              add_state_with_symmetries(states, vec, map_sec, L);
+              add_state_with_symmetries(states, vec, map_sec, Ly, Lx);
             }
             else
             {
@@ -1256,7 +726,7 @@ void get_order_two_monomials(basis_structure &states, std::map<std::pair<int, in
   }
 }
 
-void get_order_three_monomials(basis_structure &states, std::map<std::pair<int, int>, int> &map_sec, int L, bool use_symm)
+void get_order_three_monomials(basis_structure &states, std::map<std::pair<int, int>, int> &map_sec, int Ly, int Lx, bool use_symm)
 {
 
   std::vector<std::string> dirs = {"x", "y", "z"};
@@ -1268,14 +738,14 @@ void get_order_three_monomials(basis_structure &states, std::map<std::pair<int, 
       {
 
         {
-          op_vec v0 = {spin_op(s1, {0, 0}, {L, L}), spin_op(s2, {0, 1}, {L, L}), spin_op(s3, {1, 1}, {L, L})};
+          op_vec v0 = {spin_op(s1, {0, 0}, {Ly, Lx}), spin_op(s2, {0, 1}, {Ly, Lx}), spin_op(s3, {1, 1}, {Ly, Lx})};
           auto [fac, vec] = get_normal_form(v0);
 
           {
 
             if (use_symm)
             {
-              add_state_with_symmetries(states, v0, map_sec, L);
+              add_state_with_symmetries(states, v0, map_sec, Ly, Lx);
             }
             else
             {
@@ -1284,14 +754,14 @@ void get_order_three_monomials(basis_structure &states, std::map<std::pair<int, 
           }
         }
         {
-          op_vec v0 = {spin_op(s1, {0, 0}, {L, L}), spin_op(s2, {0, 1}, {L, L}), spin_op(s3, {L - 1, 1}, {L, L})};
+          op_vec v0 = {spin_op(s1, {0, 0}, {Ly, Lx}), spin_op(s2, {0, 1}, {Ly, Lx}), spin_op(s3, {Ly - 1, 1}, {Ly, Lx})};
           auto [fac, vec] = get_normal_form(v0);
 
           {
 
             if (use_symm)
             {
-              add_state_with_symmetries(states, v0, map_sec, L);
+              add_state_with_symmetries(states, v0, map_sec, Ly, Lx);
             }
             else
             {
@@ -1300,14 +770,14 @@ void get_order_three_monomials(basis_structure &states, std::map<std::pair<int, 
           }
         }
         {
-          op_vec v0 = {spin_op(s1, {0, 0}, {L, L}), spin_op(s2, {1, 0}, {L, L}), spin_op(s3, {1, 1}, {L, L})};
+          op_vec v0 = {spin_op(s1, {0, 0}, {Ly, Lx}), spin_op(s2, {1, 0}, {Ly, Lx}), spin_op(s3, {1, 1}, {Ly, Lx})};
           auto [fac, vec] = get_normal_form(v0);
 
           {
 
             if (use_symm)
             {
-              add_state_with_symmetries(states, v0, map_sec, L);
+              add_state_with_symmetries(states, v0, map_sec, Ly, Lx);
             }
             else
             {
@@ -1316,14 +786,14 @@ void get_order_three_monomials(basis_structure &states, std::map<std::pair<int, 
           }
         }
         {
-          op_vec v0 = {spin_op(s1, {0, 0}, {L, L}), spin_op(s2, {L - 1, 0}, {L, L}), spin_op(s3, {L - 1, 1}, {L, L})};
+          op_vec v0 = {spin_op(s1, {0, 0}, {Ly, Lx}), spin_op(s2, {Ly - 1, 0}, {Ly, Lx}), spin_op(s3, {Ly - 1, 1}, {Ly, Lx})};
           auto [fac, vec] = get_normal_form(v0);
 
           {
 
             if (use_symm)
             {
-              add_state_with_symmetries(states, v0, map_sec, L);
+              add_state_with_symmetries(states, v0, map_sec, Ly, Lx);
             }
             else
             {
@@ -1332,14 +802,14 @@ void get_order_three_monomials(basis_structure &states, std::map<std::pair<int, 
           }
         }
         {
-          op_vec v0 = {spin_op(s1, {0, 0}, {L, L}), spin_op(s2, {1, 0}, {L, L}), spin_op(s3, {2, 0}, {L, L})};
+          op_vec v0 = {spin_op(s1, {0, 0}, {Ly, Lx}), spin_op(s2, {1, 0}, {Ly, Lx}), spin_op(s3, {2, 0}, {Ly, Lx})};
           auto [fac, vec] = get_normal_form(v0);
 
           {
 
             if (use_symm)
             {
-              add_state_with_symmetries(states, v0, map_sec, L);
+              add_state_with_symmetries(states, v0, map_sec, Ly, Lx);
             }
             else
             {
@@ -1348,14 +818,14 @@ void get_order_three_monomials(basis_structure &states, std::map<std::pair<int, 
           }
         }
         {
-          op_vec v0 = {spin_op(s1, {0, 0}, {L, L}), spin_op(s2, {0, 1}, {L, L}), spin_op(s3, {0, 2}, {L, L})};
+          op_vec v0 = {spin_op(s1, {0, 0}, {Ly, Lx}), spin_op(s2, {0, 1}, {Ly, Lx}), spin_op(s3, {0, 2}, {Ly, Lx})};
           auto [fac, vec] = get_normal_form(v0);
 
           {
 
             if (use_symm)
             {
-              add_state_with_symmetries(states, v0, map_sec, L);
+              add_state_with_symmetries(states, v0, map_sec, Ly, Lx);
             }
             else
             {
@@ -1367,7 +837,7 @@ void get_order_three_monomials(basis_structure &states, std::map<std::pair<int, 
     }
   }
 }
-void get_order_four_monomials(basis_structure &states, std::map<std::pair<int, int>, int> &map_sec, int L, bool use_symm)
+void get_order_four_monomials(basis_structure &states, std::map<std::pair<int, int>, int> &map_sec, int Ly, int Lx, bool use_symm)
 {
   std::vector<std::string> dirs = {"x", "y", "z"};
   for (auto s1 : dirs)
@@ -1382,12 +852,12 @@ void get_order_four_monomials(basis_structure &states, std::map<std::pair<int, i
           {
 
             {
-              op_vec v0 = {spin_op(s1, {0, 0}, {L, L}), spin_op(s2, {1, 0}, {L, L}), spin_op(s3, {0, 1}, {L, L}), spin_op(s4, {1, 1}, {L, L})};
+              op_vec v0 = {spin_op(s1, {0, 0}, {Ly, Lx}), spin_op(s2, {1, 0}, {Ly, Lx}), spin_op(s3, {0, 1}, {Ly, Lx}), spin_op(s4, {1, 1}, {Ly, Lx})};
               auto [fac, vec] = get_normal_form(v0);
 
               if (use_symm)
               {
-                add_state_with_symmetries(states, v0, map_sec, L);
+                add_state_with_symmetries(states, v0, map_sec, Ly, Lx);
               }
               else
               {
@@ -1395,12 +865,77 @@ void get_order_four_monomials(basis_structure &states, std::map<std::pair<int, i
               }
             }
             {
-              op_vec v0 = {spin_op(s1, {0, 0}, {L, L}), spin_op(s2, {1, 0}, {L, L}), spin_op(s3, {2, 0}, {L, L}), spin_op(s4, {3, 0}, {L, L})};
+              op_vec v0 = {spin_op(s1, {0, 0}, {Ly, Lx}), spin_op(s2, {1, 0}, {Ly, Lx}), spin_op(s3, {2, 0}, {Ly, Lx}), spin_op(s4, {3, 0}, {Ly, Lx})};
               auto [fac, vec] = get_normal_form(v0);
 
               if (use_symm)
               {
-                add_state_with_symmetries(states, v0, map_sec, L);
+                add_state_with_symmetries(states, v0, map_sec, Ly, Lx);
+              }
+              else
+              {
+                add_state(states, v0, map_sec);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+// some 1d functions
+void get_order_three_monomials_1d(basis_structure &states, std::map<std::pair<int, int>, int> &map_sec, int Ly, int Lx, bool use_symm)
+{
+
+  std::vector<std::string> dirs = {"x", "y", "z"};
+  for (auto s1 : dirs)
+  {
+    for (auto s2 : dirs)
+    {
+      for (auto s3 : dirs)
+      {
+
+        {
+          op_vec v0 = {spin_op(s1, {0, 0}, {Ly, Lx}), spin_op(s2, {0, 1}, {Ly, Lx}), spin_op(s3, {0, 2}, {Ly, Lx})};
+          auto [fac, vec] = get_normal_form(v0);
+
+          {
+
+            if (use_symm)
+            {
+              add_state_with_symmetries(states, v0, map_sec, Ly, Lx);
+            }
+            else
+            {
+              add_state(states, v0, map_sec);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+void get_order_four_monomials_1d(basis_structure &states, std::map<std::pair<int, int>, int> &map_sec, int Ly, int Lx, bool use_symm)
+{
+  std::vector<std::string> dirs = {"x", "y", "z"};
+  for (auto s1 : dirs)
+  {
+    for (auto s2 : dirs)
+    {
+      for (auto s3 : dirs)
+      {
+
+        {
+          for (auto s4 : dirs)
+          {
+
+            {
+              op_vec v0 = {spin_op(s1, {0, 0}, {Ly, Lx}), spin_op(s2, {0, 1}, {Ly, Lx}), spin_op(s3, {0, 2}, {Ly, Lx}), spin_op(s4, {0, 3}, {Ly, Lx})};
+              auto [fac, vec] = get_normal_form(v0);
+
+              if (use_symm)
+              {
+                add_state_with_symmetries(states, v0, map_sec, Ly, Lx);
               }
               else
               {

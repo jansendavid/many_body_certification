@@ -18,15 +18,15 @@ using string_pair = std::pair<std::string, std::string>;
 // HAMILTONIANS WHEN USING TRANSLATION SYMMETRY
 // NOTE: all are of the form vec{S_i}vec{S_j}
 
-std::vector<double> define_correlation_function_sos(std::map<std::string, int> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, std::pair<std::string, std::string> dirs, std::pair<std::vector<int>, std::vector<int>> pos, int Ly, int Lx)
+std::vector<double> define_correlation_function_sos(std::map<std::string, int> refs, SquareLattice lattice, std::pair<std::string, std::string> dirs, std::pair<std::vector<int>, std::vector<int>> pos)
 {
 
       std::vector<double> vals(refs.size(), 0);
-
-      op_vec v_p = {spin_op(dirs.first, pos.second, {Lx, Ly}), spin_op(dirs.first, pos.first, {Lx, Ly})};
+      auto offset_vector = lattice.get_offset_vec();
+      op_vec v_p = {spin_op(dirs.first, pos.second, offset_vector), spin_op(dirs.first, pos.first, offset_vector)};
       auto [fac_p, nf_p] = get_normal_form(v_p);
       assert(abs(fac_p.imag()) < 1e-9);
-      auto [key_p, coeff_map_p] = map.at(print_op(nf_p));
+      auto [key_p, coeff_map_p] = lattice.TI_map_.at(print_op(nf_p));
       assert(abs(coeff_map_p.imag()) < 1e-9);
       auto el_p = refs.at(key_p);
 
@@ -35,15 +35,16 @@ std::vector<double> define_correlation_function_sos(std::map<std::string, int> r
       return vals;
 }
 
-std::vector<double> define_balyer_correlation_sos(std::map<std::string, int> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, std::pair<std::string, std::string> dirs, std::pair<std::vector<int>, std::vector<int>> pos, int layers, int Ly, int Lx)
+std::vector<double> define_bilayer_correlation_sos(std::map<std::string, int> refs, SquareLattice lattice, std::pair<std::string, std::string> dirs, std::pair<std::vector<int>, std::vector<int>> pos, int layers)
 {
 
       std::vector<double> vals(refs.size(), 0);
-      op_vec v_p = {spin_op(dirs.first, pos.first, {layers, Lx, Ly}), spin_op(dirs.second, pos.second, {layers, Lx, Ly})};
+      auto offset_vector = lattice.get_offset_vec();
+      op_vec v_p = {spin_op(dirs.first, pos.first, offset_vector), spin_op(dirs.second, pos.second, offset_vector)};
 
       auto [fac_p, nf_p] = get_normal_form(v_p);
       assert(abs(fac_p.imag()) < 1e-9);
-      auto [key_p, coeff_map_p] = map.at(print_op(nf_p));
+      auto [key_p, coeff_map_p] = lattice.TI_map_.at(print_op(nf_p));
       assert(abs(coeff_map_p.imag()) < 1e-9);
       auto el_p = refs.at(key_p);
 
@@ -51,92 +52,92 @@ std::vector<double> define_balyer_correlation_sos(std::map<std::string, int> ref
 
       return vals;
 }
+// // do do delete these function and only use function from lattice class
+// std::pair<std::string, std::complex<double>> find_index_of_operator(op_vec op, std::map<std::string, std::pair<std::string, std::complex<double>>> map, int Lx, int Ly, std::string permuts, bool bilayer)
+// {
+//       // check if the operator is contained in functions
 
-std::pair<std::string, std::complex<double>> find_index_of_operator(op_vec op, std::map<std::string, std::pair<std::string, std::complex<double>>> map, int Lx, int Ly, std::string permuts, bool bilayer)
-{
-      // check if the operator is contained in functions
+//       auto all_ty = generate_all_translations_y(op, Ly, 1);
 
-      auto all_ty = generate_all_translations_y(op, Ly, 1);
+//       for (auto op_ty : all_ty)
+//       {
+//             auto all_t = generate_all_translations(op_ty, Lx);
 
-      for (auto op_ty : all_ty)
-      {
-            auto all_t = generate_all_translations(op_ty, Lx);
+//             for (auto op_t : all_t)
+//             {
+//                   auto it = map.find(print_op(op_t));
+//                   if (it != map.end())
+//                   {
+//                         return map[print_op(op_t)];
+//                   }
+//                   std::vector<op_vec> all_p;
+//                   if (permuts == "xyz" or permuts == "yxz" or permuts == "zxy" or permuts == "zyx")
+//                   {
+//                         all_p = generate_all_permutations_xyz(op_t);
+//                   }
+//                   else if (permuts == "xy")
+//                   {
+//                         all_p = generate_all_permutations_xy(op_t);
+//                   }
+//                   for (auto op_p : all_p)
+//                   {
+//                         auto all_d8sym = generate_all_d8(op_p, Lx);
 
-            for (auto op_t : all_t)
-            {
-                  auto it = map.find(print_op(op_t));
-                  if (it != map.end())
-                  {
-                        return map[print_op(op_t)];
-                  }
-                  std::vector<op_vec> all_p;
-                  if (permuts == "xyz" or permuts == "yxz" or permuts == "zxy" or permuts == "zyx")
-                  {
-                        all_p = generate_all_permutations_xyz(op_t);
-                  }
-                  else if (permuts == "xy")
-                  {
-                        all_p = generate_all_permutations_xy(op_t);
-                  }
-                  for (auto op_p : all_p)
-                  {
-                        auto all_d8sym = generate_all_d8(op_p, Lx);
+//                         for (auto d8s : all_d8sym)
+//                         {
+//                               auto it = map.find(print_op(d8s));
+//                               if (it != map.end())
+//                               {
 
-                        for (auto d8s : all_d8sym)
-                        {
-                              auto it = map.find(print_op(d8s));
-                              if (it != map.end())
-                              {
+//                                     return map[print_op(d8s)];
+//                               }
 
-                                    return map[print_op(d8s)];
-                              }
+//                               auto op_mirror = mirror(d8s);
 
-                              auto op_mirror = mirror(d8s);
+//                               it = map.find(print_op(op_mirror));
+//                               if (it != map.end())
+//                               {
 
-                              it = map.find(print_op(op_mirror));
-                              if (it != map.end())
-                              {
+//                                     return map[print_op(op_mirror)];
+//                               }
+//                               if (bilayer)
+//                               {
+//                                     auto op_flip_layer = flip_layer(d8s);
+//                                     it = map.find(print_op(op_flip_layer));
+//                                     if (it != map.end())
+//                                     {
 
-                                    return map[print_op(op_mirror)];
-                              }
-                              if (bilayer)
-                              {
-                                    auto op_flip_layer = flip_layer(d8s);
-                                    it = map.find(print_op(op_flip_layer));
-                                    if (it != map.end())
-                                    {
+//                                           return map[print_op(op_flip_layer)];
+//                                     }
+//                                     op_flip_layer = flip_layer(op_mirror);
+//                                     it = map.find(print_op(op_flip_layer));
+//                                     if (it != map.end())
+//                                     {
 
-                                          return map[print_op(op_flip_layer)];
-                                    }
-                                    op_flip_layer = flip_layer(op_mirror);
-                                    it = map.find(print_op(op_flip_layer));
-                                    if (it != map.end())
-                                    {
+//                                           return map[print_op(op_flip_layer)];
+//                                     }
+//                               }
+//                         }
+//                   }
+//             }
+//       }
+//       // does not exist
+//       std::pair<std::string, std::complex<double>> output({"does not exist", 0.});
+//       return output;
+// }
 
-                                          return map[print_op(op_flip_layer)];
-                                    }
-                              }
-                        }
-                  }
-            }
-      }
-      // does not exist
-      std::pair<std::string, std::complex<double>> output({"does not exist", 0.});
-      return output;
-}
-
-std::vector<double> define_xxz2d_sos(std::map<std::string, int> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, double J, double Delta, int Ly, int Lx)
+std::vector<double> define_xxz2d_sos(std::map<std::string, int> refs, SquareLattice lattice, double J, double Delta)
 {
       std::vector<string_pair> dirs{string_pair("x", "x"), string_pair("z", "z"), string_pair("y", "y")};
       std::vector<double> vals(refs.size(), 0);
-
+      auto offset_vector = lattice.get_offset_vec();
       for (auto term : dirs)
       {
 
-            op_vec v_p = {spin_op(term.first, {0, 0}, {Lx, Ly}), spin_op(term.second, {1, 0}, {Lx, Ly})};
+            op_vec v_p = {spin_op(term.first, {0, 0}, offset_vector), spin_op(term.second, {1, 0}, offset_vector)};
             auto [fac_p, nf_p] = get_normal_form(v_p);
 
-            auto [key_p, coeff_map_p] = map.at(print_op(nf_p));
+            auto [key_p, coeff_map_p] = lattice.TI_map_.at(print_op(nf_p));
 
             auto el_p = refs.at(key_p);
 
@@ -155,9 +156,9 @@ std::vector<double> define_xxz2d_sos(std::map<std::string, int> refs, std::map<s
                   vals[el_p] += coeff * fac_p.real() * coeff_map_p.real() / 4.;
             }
 
-            op_vec v_t = {spin_op(term.first, {0, 0}, {Lx, Ly}), spin_op(term.second, {0, 1}, {Lx, Ly})};
+            op_vec v_t = {spin_op(term.first, {0, 0}, offset_vector), spin_op(term.second, {0, 1}, offset_vector)};
             auto [fac_t, nf_t] = get_normal_form(v_t);
-            auto [key_t, coeff_map_t] = map.at(print_op(nf_t));
+            auto [key_t, coeff_map_t] = lattice.TI_map_.at(print_op(nf_t));
             auto el_t = refs.at(key_t);
             coeff = J;
             if (term == string_pair("z", "z"))
@@ -178,18 +179,19 @@ std::vector<double> define_xxz2d_sos(std::map<std::string, int> refs, std::map<s
 
       return vals;
 }
-std::vector<double> define_J1J22d_sos(std::map<std::string, int> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, double J1, double J2, int Ly, int Lx)
+std::vector<double> define_J1J22d_sos(std::map<std::string, int> refs, SquareLattice lattice, double J1, double J2)
 {
       std::vector<string_pair> dirs{string_pair("x", "x"), string_pair("z", "z"), string_pair("y", "y")};
       std::vector<double> vals(refs.size(), 0);
+      auto offset_vector = lattice.get_offset_vec();
       // J1 nearest neighbour interaction
       for (auto term : dirs)
       {
 
-            op_vec v_p = {spin_op(term.first, {0, 0}, {Lx, Ly}), spin_op(term.second, {1, 0}, {Lx, Ly})};
+            op_vec v_p = {spin_op(term.first, {0, 0}, offset_vector), spin_op(term.second, {1, 0}, offset_vector)};
             auto [fac_p, nf_p] = get_normal_form(v_p);
 
-            auto [key_p, coeff_map_p] = map.at(print_op(nf_p));
+            auto [key_p, coeff_map_p] = lattice.TI_map_.at(print_op(nf_p));
 
             auto el_p = refs.at(key_p);
 
@@ -204,9 +206,9 @@ std::vector<double> define_J1J22d_sos(std::map<std::string, int> refs, std::map<
                   vals[el_p] += coeff * fac_p.real() * coeff_map_p.real() / 4.;
             }
 
-            op_vec v_t = {spin_op(term.first, {0, 0}, {Lx, Ly}), spin_op(term.second, {0, 1}, {Lx, Ly})};
+            op_vec v_t = {spin_op(term.first, {0, 0}, offset_vector), spin_op(term.second, {0, 1}, offset_vector)};
             auto [fac_t, nf_t] = get_normal_form(v_t);
-            auto [key_t, coeff_map_t] = map.at(print_op(nf_t));
+            auto [key_t, coeff_map_t] = lattice.TI_map_.at(print_op(nf_t));
             auto el_t = refs.at(key_t);
 
             if (std::abs(fac_t.imag()) > 1e-9 or std::abs(coeff_map_t.imag()) > 1e-9)
@@ -223,10 +225,10 @@ std::vector<double> define_J1J22d_sos(std::map<std::string, int> refs, std::map<
       for (auto term : dirs)
       {
 
-            op_vec v_p = {spin_op(term.first, {0, 0}, {Lx, Ly}), spin_op(term.second, {1, 1}, {Lx, Ly})};
+            op_vec v_p = {spin_op(term.first, {0, 0}, offset_vector), spin_op(term.second, {1, 1}, offset_vector)};
             auto [fac_p, nf_p] = get_normal_form(v_p);
 
-            auto [key_p, coeff_map_p] = map.at(print_op(nf_p));
+            auto [key_p, coeff_map_p] = lattice.TI_map_.at(print_op(nf_p));
 
             auto el_p = refs.at(key_p);
 
@@ -241,9 +243,9 @@ std::vector<double> define_J1J22d_sos(std::map<std::string, int> refs, std::map<
                   vals[el_p] += coeff * fac_p.real() * coeff_map_p.real() / 4.;
             }
 
-            op_vec v_t = {spin_op(term.first, {0, 0}, {Lx, Ly}), spin_op(term.second, {1, Lx - 1}, {Lx, Ly})};
+            op_vec v_t = {spin_op(term.first, {0, 0}, offset_vector), spin_op(term.second, {1, lattice.Lx_ - 1}, offset_vector)};
             auto [fac_t, nf_t] = get_normal_form(v_t);
-            auto [key_t, coeff_map_t] = map.at(print_op(nf_t));
+            auto [key_t, coeff_map_t] = lattice.TI_map_.at(print_op(nf_t));
             auto el_t = refs.at(key_t);
 
             if (std::abs(fac_t.imag()) > 1e-9 or std::abs(coeff_map_t.imag()) > 1e-9)
@@ -259,24 +261,26 @@ std::vector<double> define_J1J22d_sos(std::map<std::string, int> refs, std::map<
 
       return vals;
 }
-std::vector<double> define_heisenberg_bilayer_sos(std::map<std::string, int> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, double J_perpendicular, double J_parallel, double J_x, int layers, int Ly, int Lx, std::string permuts, bool bilayer)
+std::vector<double> define_heisenberg_bilayer_sos(std::map<std::string, int> refs, SquareLattice lattice, double J_perpendicular, double J_parallel, double J_x)
 {
       std::vector<string_pair> dirs{string_pair("x", "x"), string_pair("z", "z"), string_pair("y", "y")};
       std::vector<double> vals(refs.size(), 0);
       // J_parallel terms
-
+      int layers = 2;
+      auto offset_vector = lattice.get_offset_vec();
       for (auto term : dirs)
-      {
-            for (int i = 0; i < 2; i++)
+      { // iterate over layers
+            for (int i = 0; i < layers; i++)
             {
                   {
-                        op_vec v_p = {spin_op(term.first, {i, 0, 0}, {layers, Lx, Ly}), spin_op(term.second, {i, 1, 0}, {layers, Lx, Ly})};
+                        op_vec v_p = {spin_op(term.first, {i, 0, 0}, offset_vector), spin_op(term.second, {i, 1, 0}, offset_vector)};
                         auto [fac_p, nf_p] = get_normal_form(v_p);
 
-                        auto [key_p, coeff_map_p] = find_index_of_operator(nf_p, map, Lx, Ly, permuts, bilayer);
-                        assert(key_p != "does not exist");
-
-                        auto el_p = refs.at(key_p);
+                        auto [found, key_p] = lattice.check_if_operator_exists(nf_p, lattice.TI_map_, false);
+                        // lattice.find_index_of_operator(nf_p, map, Lx, Ly, permuts, bilayer);
+                        assert(found);
+                        auto [new_key_p, coeff_map_p] = lattice.TI_map_.at(key_p);
+                        auto el_p = refs.at(new_key_p);
 
                         if (std::abs(fac_p.imag()) > 1e-9 or std::abs(coeff_map_p.imag()) > 1e-9)
                         {
@@ -288,12 +292,15 @@ std::vector<double> define_heisenberg_bilayer_sos(std::map<std::string, int> ref
                         }
                   }
                   {
-                        op_vec v_p = {spin_op(term.first, {i, 0, 0}, {layers, Lx, Ly}), spin_op(term.second, {i, 0, 1}, {layers, Lx, Ly})};
+                        op_vec v_p = {spin_op(term.first, {i, 0, 0}, offset_vector), spin_op(term.second, {i, 0, 1}, offset_vector)};
                         auto [fac_p, nf_p] = get_normal_form(v_p);
 
-                        auto [key_p, coeff_map_p] = find_index_of_operator(nf_p, map, Lx, Ly, permuts, bilayer);
+                        // auto [key_p, coeff_map_p] = find_index_of_operator(nf_p, map, Lx, Ly, permuts, bilayer);
+                        auto [found, key_p] = lattice.check_if_operator_exists(nf_p, lattice.TI_map_, false);
 
-                        auto el_p = refs.at(key_p);
+                        assert(found);
+                        auto [new_key_p, coeff_map_p] = lattice.TI_map_.at(key_p);
+                        auto el_p = refs.at(new_key_p);
 
                         if (std::abs(fac_p.imag()) > 1e-9 or std::abs(coeff_map_p.imag()) > 1e-9)
                         {
@@ -311,12 +318,16 @@ std::vector<double> define_heisenberg_bilayer_sos(std::map<std::string, int> ref
       {
 
             {
-                  op_vec v_p = {spin_op(term.first, {0, 0, 0}, {layers, Lx, Ly}), spin_op(term.second, {1, 0, 0}, {layers, Lx, Ly})};
+                  op_vec v_p = {spin_op(term.first, {0, 0, 0}, offset_vector), spin_op(term.second, {1, 0, 0}, offset_vector)};
                   auto [fac_p, nf_p] = get_normal_form(v_p);
 
-                  auto [key_p, coeff_map_p] = find_index_of_operator(nf_p, map, Lx, Ly, permuts, bilayer);
+                  auto [found, key_p] = lattice.check_if_operator_exists(nf_p, lattice.TI_map_, false);
 
-                  auto el_p = refs.at(key_p);
+                  assert(found);
+                  auto [new_key_p, coeff_map_p] = lattice.TI_map_.at(key_p);
+                  //                auto [key_p, coeff_map_p] = find_index_of_operator(nf_p, map, Lx, Ly, permuts, bilayer);
+
+                  auto el_p = refs.at(new_key_p);
 
                   if (std::abs(fac_p.imag()) > 1e-9 or std::abs(coeff_map_p.imag()) > 1e-9)
                   {
@@ -329,18 +340,22 @@ std::vector<double> define_heisenberg_bilayer_sos(std::map<std::string, int> ref
             }
       }
       // J_x
+      // iterate over layers
       for (int i = 0; i < layers; i++)
       {
             for (auto term : dirs)
             {
 
                   {
-                        op_vec v_p = {spin_op(term.first, {i, 0, 0}, {layers, Lx, Ly}), spin_op(term.second, {(i + 1) % layers, 0, 1}, {layers, Lx, Ly})};
+                        op_vec v_p = {spin_op(term.first, {i, 0, 0}, offset_vector), spin_op(term.second, {(i + 1) % layers, 0, 1}, offset_vector)};
                         auto [fac_p, nf_p] = get_normal_form(v_p);
+                        auto [found, key_p] = lattice.check_if_operator_exists(nf_p, lattice.TI_map_, false);
 
-                        auto [key_p, coeff_map_p] = find_index_of_operator(nf_p, map, Lx, Ly, permuts, bilayer);
+                        assert(found);
+                        auto [new_key_p, coeff_map_p] = lattice.TI_map_.at(key_p);
+                        // auto [key_p, coeff_map_p] = find_index_of_operator(nf_p, map, Lx, Ly, permuts, bilayer);
 
-                        auto el_p = refs.at(key_p);
+                        auto el_p = refs.at(new_key_p);
 
                         if (std::abs(fac_p.imag()) > 1e-9 or std::abs(coeff_map_p.imag()) > 1e-9)
                         {
@@ -353,12 +368,15 @@ std::vector<double> define_heisenberg_bilayer_sos(std::map<std::string, int> ref
                   }
 
                   {
-                        op_vec v_p = {spin_op(term.first, {i, 0, 0}, {layers, Lx, Ly}), spin_op(term.second, {(i + 1) % layers, 1, 0}, {layers, Lx, Ly})};
+                        op_vec v_p = {spin_op(term.first, {i, 0, 0}, offset_vector), spin_op(term.second, {(i + 1) % layers, 1, 0}, offset_vector)};
                         auto [fac_p, nf_p] = get_normal_form(v_p);
 
-                        auto [key_p, coeff_map_p] = find_index_of_operator(nf_p, map, Lx, Ly, permuts, bilayer);
+                        // auto [key_p, coeff_map_p] = find_index_of_operator(nf_p, map, Lx, Ly, permuts, bilayer);
+                        auto [found, key_p] = lattice.check_if_operator_exists(nf_p, lattice.TI_map_, false);
 
-                        auto el_p = refs.at(key_p);
+                        assert(found);
+                        auto [new_key_p, coeff_map_p] = lattice.TI_map_.at(key_p);
+                        auto el_p = refs.at(new_key_p);
 
                         if (std::abs(fac_p.imag()) > 1e-9 or std::abs(coeff_map_p.imag()) > 1e-9)
                         {
@@ -375,24 +393,28 @@ std::vector<double> define_heisenberg_bilayer_sos(std::map<std::string, int> ref
       return vals;
 }
 
-std::vector<double> define_heisenberg_bilayer_J2_sos(std::map<std::string, int> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, double J_perpendicular, double J_parallel, double J_x, double J2, int layers, int Ly, int Lx, std::string permuts, bool bilayer)
+std::vector<double> define_heisenberg_bilayer_J2_sos(std::map<std::string, int> refs, SquareLattice lattice, double J_perpendicular, double J_parallel, double J_x, double J2)
 {
       std::vector<string_pair> dirs{string_pair("x", "x"), string_pair("z", "z"), string_pair("y", "y")};
       std::vector<double> vals(refs.size(), 0);
       // J_parallel terms
-
+      int layers = 2;
+      auto offset_vector = lattice.get_offset_vec();
       for (auto term : dirs)
       {
-            for (int i = 0; i < 2; i++)
+            for (int i = 0; i < layers; i++)
             {
                   {
-                        op_vec v_p = {spin_op(term.first, {i, 0, 0}, {layers, Lx, Ly}), spin_op(term.second, {i, 1, 0}, {layers, Lx, Ly})};
+                        op_vec v_p = {spin_op(term.first, {i, 0, 0}, offset_vector), spin_op(term.second, {i, 1, 0}, offset_vector)};
                         auto [fac_p, nf_p] = get_normal_form(v_p);
 
-                        auto [key_p, coeff_map_p] = find_index_of_operator(nf_p, map, Lx, Ly, permuts, bilayer);
-                        assert(key_p != "does not exist");
+                        // auto [key_p, coeff_map_p] = find_index_of_operator(nf_p, map, Lx, Ly, permuts, bilayer);
+                        auto [found, key_p] = lattice.check_if_operator_exists(nf_p, lattice.TI_map_, false);
 
-                        auto el_p = refs.at(key_p);
+                        assert(found);
+                        auto [new_key_p, coeff_map_p] = lattice.TI_map_.at(key_p);
+
+                        auto el_p = refs.at(new_key_p);
 
                         if (std::abs(fac_p.imag()) > 1e-9 or std::abs(coeff_map_p.imag()) > 1e-9)
                         {
@@ -404,12 +426,15 @@ std::vector<double> define_heisenberg_bilayer_J2_sos(std::map<std::string, int> 
                         }
                   }
                   {
-                        op_vec v_p = {spin_op(term.first, {i, 0, 0}, {layers, Lx, Ly}), spin_op(term.second, {i, 0, 1}, {layers, Lx, Ly})};
+                        op_vec v_p = {spin_op(term.first, {i, 0, 0}, offset_vector), spin_op(term.second, {i, 0, 1}, offset_vector)};
                         auto [fac_p, nf_p] = get_normal_form(v_p);
 
-                        auto [key_p, coeff_map_p] = find_index_of_operator(nf_p, map, Lx, Ly, permuts, bilayer);
+                        // auto [key_p, coeff_map_p] = find_index_of_operator(nf_p, map, Lx, Ly, permuts, bilayer);
+                        auto [found, key_p] = lattice.check_if_operator_exists(nf_p, lattice.TI_map_, false);
 
-                        auto el_p = refs.at(key_p);
+                        assert(found);
+                        auto [new_key_p, coeff_map_p] = lattice.TI_map_.at(key_p);
+                        auto el_p = refs.at(new_key_p);
 
                         if (std::abs(fac_p.imag()) > 1e-9 or std::abs(coeff_map_p.imag()) > 1e-9)
                         {
@@ -427,12 +452,15 @@ std::vector<double> define_heisenberg_bilayer_J2_sos(std::map<std::string, int> 
       {
 
             {
-                  op_vec v_p = {spin_op(term.first, {0, 0, 0}, {layers, Lx, Ly}), spin_op(term.second, {1, 0, 0}, {layers, Lx, Ly})};
+                  op_vec v_p = {spin_op(term.first, {0, 0, 0}, offset_vector), spin_op(term.second, {1, 0, 0}, offset_vector)};
                   auto [fac_p, nf_p] = get_normal_form(v_p);
 
-                  auto [key_p, coeff_map_p] = find_index_of_operator(nf_p, map, Lx, Ly, permuts, bilayer);
+                  // auto [key_p, coeff_map_p] = find_index_of_operator(nf_p, map, Lx, Ly, permuts, bilayer);
+                  auto [found, key_p] = lattice.check_if_operator_exists(nf_p, lattice.TI_map_, false);
 
-                  auto el_p = refs.at(key_p);
+                  assert(found);
+                  auto [new_key_p, coeff_map_p] = lattice.TI_map_.at(key_p);
+                  auto el_p = refs.at(new_key_p);
 
                   if (std::abs(fac_p.imag()) > 1e-9 or std::abs(coeff_map_p.imag()) > 1e-9)
                   {
@@ -451,12 +479,15 @@ std::vector<double> define_heisenberg_bilayer_J2_sos(std::map<std::string, int> 
             {
 
                   {
-                        op_vec v_p = {spin_op(term.first, {i, 0, 0}, {layers, Lx, Ly}), spin_op(term.second, {(i + 1) % layers, 0, 1}, {layers, Lx, Ly})};
+                        op_vec v_p = {spin_op(term.first, {i, 0, 0}, offset_vector), spin_op(term.second, {(i + 1) % layers, 0, 1}, offset_vector)};
                         auto [fac_p, nf_p] = get_normal_form(v_p);
 
-                        auto [key_p, coeff_map_p] = find_index_of_operator(nf_p, map, Lx, Ly, permuts, bilayer);
+                        // auto [key_p, coeff_map_p] = find_index_of_operator(nf_p, map, Lx, Ly, permuts, bilayer);
+                        auto [found, key_p] = lattice.check_if_operator_exists(nf_p, lattice.TI_map_, false);
 
-                        auto el_p = refs.at(key_p);
+                        assert(found);
+                        auto [new_key_p, coeff_map_p] = lattice.TI_map_.at(key_p);
+                        auto el_p = refs.at(new_key_p);
 
                         if (std::abs(fac_p.imag()) > 1e-9 or std::abs(coeff_map_p.imag()) > 1e-9)
                         {
@@ -469,12 +500,15 @@ std::vector<double> define_heisenberg_bilayer_J2_sos(std::map<std::string, int> 
                   }
 
                   {
-                        op_vec v_p = {spin_op(term.first, {i, 0, 0}, {layers, Lx, Ly}), spin_op(term.second, {(i + 1) % layers, 1, 0}, {layers, Lx, Ly})};
+                        op_vec v_p = {spin_op(term.first, {i, 0, 0}, offset_vector), spin_op(term.second, {(i + 1) % layers, 1, 0}, offset_vector)};
                         auto [fac_p, nf_p] = get_normal_form(v_p);
 
-                        auto [key_p, coeff_map_p] = find_index_of_operator(nf_p, map, Lx, Ly, permuts, bilayer);
+                        /// auto [key_p, coeff_map_p] = find_index_of_operator(nf_p, map, Lx, Ly, permuts, bilayer);
+                        auto [found, key_p] = lattice.check_if_operator_exists(nf_p, lattice.TI_map_, false);
 
-                        auto el_p = refs.at(key_p);
+                        assert(found);
+                        auto [new_key_p, coeff_map_p] = lattice.TI_map_.at(key_p);
+                        auto el_p = refs.at(new_key_p);
 
                         if (std::abs(fac_p.imag()) > 1e-9 or std::abs(coeff_map_p.imag()) > 1e-9)
                         {
@@ -489,17 +523,20 @@ std::vector<double> define_heisenberg_bilayer_J2_sos(std::map<std::string, int> 
       }
       // J2
       // J2 next nearest neighbour interaction
-      for (int i = 0; i < 2; i++)
+      for (int i = 0; i < layers; i++)
       {
             for (auto term : dirs)
             {
 
-                  op_vec v_p = {spin_op(term.first, {i, 0, 0}, {layers, Lx, Ly}), spin_op(term.second, {i, 1, 1}, {layers, Lx, Ly})};
+                  op_vec v_p = {spin_op(term.first, {i, 0, 0}, offset_vector), spin_op(term.second, {i, 1, 1}, offset_vector)};
                   auto [fac_p, nf_p] = get_normal_form(v_p);
 
-                  auto [key_p, coeff_map_p] = map.at(print_op(nf_p));
+                  // auto [key_p, coeff_map_p] = map.at(print_op(nf_p));
+                  auto [found, key_p] = lattice.check_if_operator_exists(nf_p, lattice.TI_map_, false);
 
-                  auto el_p = refs.at(key_p);
+                  assert(found);
+                  auto [new_key_p, coeff_map_p] = lattice.TI_map_.at(key_p);
+                  auto el_p = refs.at(new_key_p);
 
                   double coeff = J2;
 
@@ -512,10 +549,14 @@ std::vector<double> define_heisenberg_bilayer_J2_sos(std::map<std::string, int> 
                         vals[el_p] += coeff * fac_p.real() * coeff_map_p.real() / 4.;
                   }
 
-                  op_vec v_t = {spin_op(term.first, {i, 0, 0}, {layers, Lx, Ly}), spin_op(term.second, {i, 1, Lx - 1}, {layers, Lx, Ly})};
+                  op_vec v_t = {spin_op(term.first, {i, 0, 0}, offset_vector), spin_op(term.second, {i, 1, lattice.Lx_ - 1}, offset_vector)};
                   auto [fac_t, nf_t] = get_normal_form(v_t);
-                  auto [key_t, coeff_map_t] = map.at(print_op(nf_t));
-                  auto el_t = refs.at(key_t);
+                  // auto [key_t, coeff_map_t] = map.at(print_op(nf_t));
+                  auto [found_t, key_t] = lattice.check_if_operator_exists(nf_t, lattice.TI_map_, false);
+
+                  assert(found_t);
+                  auto [new_key_t, coeff_map_t] = lattice.TI_map_.at(key_t);
+                  auto el_t = refs.at(new_key_t);
 
                   if (std::abs(fac_t.imag()) > 1e-9 or std::abs(coeff_map_t.imag()) > 1e-9)
                   {
@@ -528,5 +569,132 @@ std::vector<double> define_heisenberg_bilayer_J2_sos(std::map<std::string, int> 
                   }
             }
       }
+      return vals;
+}
+// 1d models
+
+std::vector<double> define_xxz_1d_sos(std::map<std::string, int> refs, SquareLattice lattice, double J, double Delta)
+{
+      std::vector<string_pair> dirs{string_pair("x", "x"), string_pair("z", "z"), string_pair("y", "y")};
+      std::vector<double> vals(refs.size(), 0);
+      auto offset_vector = lattice.get_offset_vec();
+      for (auto term : dirs)
+      {
+
+            op_vec v_t = {spin_op(term.first, {0, 0}, offset_vector), spin_op(term.second, {0, 1}, offset_vector)};
+            auto [fac_t, nf_t] = get_normal_form(v_t);
+            auto [key_t, coeff_map_t] = lattice.TI_map_.at(print_op(nf_t));
+            auto el_t = refs.at(key_t);
+            double coeff = J;
+            if (term == string_pair("z", "z"))
+            {
+                  coeff = Delta;
+            }
+
+            if (std::abs(fac_t.imag()) > 1e-9 or std::abs(coeff_map_t.imag()) > 1e-9)
+            {
+                  std::cout << "error: Hamiltonian contains complex elements " << std::endl;
+            }
+
+            {
+
+                  vals[el_t] += coeff * fac_t.real() * coeff_map_t.real() / 4.;
+            }
+      }
+
+      return vals;
+}
+std::vector<double> define_J1J2_1d_sos(std::map<std::string, int> refs, SquareLattice lattice, double J1, double J2)
+{
+      std::vector<string_pair> dirs{string_pair("x", "x"), string_pair("z", "z"), string_pair("y", "y")};
+      std::vector<double> vals(refs.size(), 0);
+      auto offset_vector = lattice.get_offset_vec();
+      // J1 nearest neighbour interaction
+      for (auto term : dirs)
+      {
+
+            op_vec v_t = {spin_op(term.first, {0, 0}, offset_vector), spin_op(term.second, {0, 1}, offset_vector)};
+            auto [fac_t, nf_t] = get_normal_form(v_t);
+            auto [key_t, coeff_map_t] = lattice.TI_map_.at(print_op(nf_t));
+            auto el_t = refs.at(key_t);
+            double coeff = J1;
+            if (std::abs(fac_t.imag()) > 1e-9 or std::abs(coeff_map_t.imag()) > 1e-9)
+            {
+                  std::cout << "error: Hamiltonian contains complex elements " << std::endl;
+            }
+
+            {
+
+                  vals[el_t] += coeff * fac_t.real() * coeff_map_t.real() / 4.;
+            }
+      }
+      // J2 next nearest neighbour interaction
+      for (auto term : dirs)
+      {
+
+            op_vec v_p = {spin_op(term.first, {0, 0}, offset_vector), spin_op(term.second, {0, 2}, offset_vector)};
+            auto [fac_p, nf_p] = get_normal_form(v_p);
+
+            auto [key_p, coeff_map_p] = lattice.TI_map_.at(print_op(nf_p));
+
+            auto el_p = refs.at(key_p);
+
+            double coeff = J2;
+
+            if (std::abs(fac_p.imag()) > 1e-9 or std::abs(coeff_map_p.imag()) > 1e-9)
+            {
+                  std::cout << "error: Hamiltonian contains complex elements " << std::endl;
+            }
+            {
+
+                  vals[el_p] += coeff * fac_p.real() * coeff_map_p.real() / 4.;
+            }
+      }
+
+      return vals;
+}
+
+std::vector<double> define_TFI_1d_sos(std::map<std::string, int> refs, SquareLattice lattice, double J, double h)
+{
+      std::vector<string_pair> dirs{string_pair("z", "z")};
+      std::vector<double> vals(refs.size(), 0);
+      auto offset_vector = lattice.get_offset_vec();
+      // J1 nearest neighbour interaction
+      for (auto term : dirs)
+      {
+
+            op_vec v_t = {spin_op(term.first, {0, 0}, offset_vector), spin_op(term.second, {0, 1}, offset_vector)};
+            auto [fac_t, nf_t] = get_normal_form(v_t);
+            auto [key_t, coeff_map_t] = lattice.TI_map_.at(print_op(nf_t));
+            auto el_t = refs.at(key_t);
+
+            if (std::abs(fac_t.imag()) > 1e-9 or std::abs(coeff_map_t.imag()) > 1e-9)
+            {
+                  std::cout << "error: Hamiltonian contains complex elements " << std::endl;
+            }
+
+            {
+
+                  vals[el_t] += J * fac_t.real() * coeff_map_t.real();
+            }
+      }
+      // J2 next nearest neighbour interaction
+      std::string term = "x";
+      op_vec v_p = {spin_op(term.first, {0, 0}, offset_vector)};
+      auto [fac_p, nf_p] = get_normal_form(v_p);
+
+      auto [key_p, coeff_map_p] = lattice.TI_map_.at(print_op(nf_p));
+
+      auto el_p = refs.at(key_p);
+
+      if (std::abs(fac_p.imag()) > 1e-9 or std::abs(coeff_map_p.imag()) > 1e-9)
+      {
+            std::cout << "error: Hamiltonian contains complex elements " << std::endl;
+      }
+      {
+
+            vals[el_p] += h * fac_p.real() * coeff_map_p.real();
+      }
+
       return vals;
 }
