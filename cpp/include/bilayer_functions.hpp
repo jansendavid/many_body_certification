@@ -24,7 +24,7 @@ void get_order_one_monomials_bilayer(basis_structure &states, std::map<std::pair
 
       if (use_symm)
       {
-        add_state_with_symmetries(states, v0, map_sec, Lx);
+        add_state_with_symmetries(states, v0, map_sec, Ly, Lx);
       }
       else
       {
@@ -38,24 +38,6 @@ void get_order_two_monomials_bilayer(basis_structure &states, std::map<std::pair
 {
   std::vector<std::string> dirs = {"x", "y", "z"};
   assert(Lx == Ly);
-  //    dirs={"x", "y", "z"};
-  //  std::vector<std::pair<int, int>> rvals={{1,0}, {0,1}, {1,1}, {1,3}, {2,0}, {0,2}, {2,1}, {1,2}, {2,2}, {2,3}};
-  //  for(auto s1: dirs){
-
-  //    for(auto s2: dirs)
-  //    {
-  //    //if(s1!=s2)
-  //    {
-  //     for(auto b: rvals)
-  //     {
-  //               op_vec v0={spin_op(s1, {0,0}, {L,L}),spin_op(s2, {b.first, b.second}, {L,L})};
-
-  //     auto [fac, vec] =get_normal_form(v0);
-  //     add_state(states, vec, map_sec);
-  //     }
-  //    }}
-  //  }
-  //       int SS=0;
 
   for (int layer = 0; layer < layers; layer++)
   {
@@ -80,7 +62,7 @@ void get_order_two_monomials_bilayer(basis_structure &states, std::map<std::pair
 
               if (use_symm)
               {
-                add_state_with_symmetries(states, vec, map_sec, Lx);
+                add_state_with_symmetries(states, vec, map_sec, Ly, Lx);
               }
               else
               {
@@ -113,7 +95,7 @@ void get_order_three_monomials_bilayer(basis_structure &states, std::map<std::pa
 
             if (use_symm)
             {
-              add_state_with_symmetries(states, v0, map_sec, Lx);
+              add_state_with_symmetries(states, v0, map_sec, Ly, Lx);
             }
             else
             {
@@ -129,7 +111,7 @@ void get_order_three_monomials_bilayer(basis_structure &states, std::map<std::pa
 
             if (use_symm)
             {
-              add_state_with_symmetries(states, v0, map_sec, Lx);
+              add_state_with_symmetries(states, v0, map_sec, Ly, Lx);
             }
             else
             {
@@ -145,7 +127,7 @@ void get_order_three_monomials_bilayer(basis_structure &states, std::map<std::pa
 
             if (use_symm)
             {
-              add_state_with_symmetries(states, v0, map_sec, Lx);
+              add_state_with_symmetries(states, v0, map_sec, Ly, Lx);
             }
             else
             {
@@ -178,7 +160,7 @@ void get_order_four_monomials_bilayer(basis_structure &states, std::map<std::pai
 
               if (use_symm)
               {
-                add_state_with_symmetries(states, vec, map_sec, Lx);
+                add_state_with_symmetries(states, vec, map_sec, Ly, Lx);
               }
               else
               {

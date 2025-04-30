@@ -401,36 +401,6 @@ void add_state(basis_structure &states, op_vec op, std::map<std::pair<int, int>,
 
   return;
 }
-void add_state_with_symmetries_1d(basis_structure &states, op_vec op, std::map<std::pair<int, int>, int> map_sec, int L)
-{
-  // adds a state to a basis
-
-  auto [fac, nf] = get_normal_form(op);
-  auto sign = get_sec(nf);
-  bool found = false;
-  if (nf.size() > 0)
-  {
-    auto all_t = generate_all_translations(nf, L);
-    bool found = false;
-
-    for (auto op_t : all_t)
-    {
-
-      auto it = std::find(states.at(map_sec.at(sign)).begin(), states.at(map_sec.at(sign)).end(), op_t);
-      if (it != states.at(map_sec.at(sign)).end())
-      {
-        found = true;
-        break;
-      }
-    }
-    if (!found)
-    {
-      states.at(map_sec.at(sign)).push_back(nf);
-    }
-  }
-
-  return;
-}
 
 void add_state_with_symmetries(basis_structure &states, op_vec op, std::map<std::pair<int, int>, int> map_sec, int Ly, int Lx)
 {

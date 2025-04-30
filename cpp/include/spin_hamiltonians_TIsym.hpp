@@ -35,7 +35,7 @@ std::vector<double> define_correlation_function_sos(std::map<std::string, int> r
       return vals;
 }
 
-std::vector<double> define_bilayer_correlation_sos(std::map<std::string, int> refs, SquareLattice lattice, std::pair<std::string, std::string> dirs, std::pair<std::vector<int>, std::vector<int>> pos, int layers)
+std::vector<double> define_bilayer_correlation_sos(std::map<std::string, int> refs, SquareLattice lattice, std::pair<std::string, std::string> dirs, std::pair<std::vector<int>, std::vector<int>> pos)
 {
 
       std::vector<double> vals(refs.size(), 0);
@@ -52,79 +52,6 @@ std::vector<double> define_bilayer_correlation_sos(std::map<std::string, int> re
 
       return vals;
 }
-// // do do delete these function and only use function from lattice class
-// std::pair<std::string, std::complex<double>> find_index_of_operator(op_vec op, std::map<std::string, std::pair<std::string, std::complex<double>>> map, int Lx, int Ly, std::string permuts, bool bilayer)
-// {
-//       // check if the operator is contained in functions
-
-//       auto all_ty = generate_all_translations_y(op, Ly, 1);
-
-//       for (auto op_ty : all_ty)
-//       {
-//             auto all_t = generate_all_translations(op_ty, Lx);
-
-//             for (auto op_t : all_t)
-//             {
-//                   auto it = map.find(print_op(op_t));
-//                   if (it != map.end())
-//                   {
-//                         return map[print_op(op_t)];
-//                   }
-//                   std::vector<op_vec> all_p;
-//                   if (permuts == "xyz" or permuts == "yxz" or permuts == "zxy" or permuts == "zyx")
-//                   {
-//                         all_p = generate_all_permutations_xyz(op_t);
-//                   }
-//                   else if (permuts == "xy")
-//                   {
-//                         all_p = generate_all_permutations_xy(op_t);
-//                   }
-//                   for (auto op_p : all_p)
-//                   {
-//                         auto all_d8sym = generate_all_d8(op_p, Lx);
-
-//                         for (auto d8s : all_d8sym)
-//                         {
-//                               auto it = map.find(print_op(d8s));
-//                               if (it != map.end())
-//                               {
-
-//                                     return map[print_op(d8s)];
-//                               }
-
-//                               auto op_mirror = mirror(d8s);
-
-//                               it = map.find(print_op(op_mirror));
-//                               if (it != map.end())
-//                               {
-
-//                                     return map[print_op(op_mirror)];
-//                               }
-//                               if (bilayer)
-//                               {
-//                                     auto op_flip_layer = flip_layer(d8s);
-//                                     it = map.find(print_op(op_flip_layer));
-//                                     if (it != map.end())
-//                                     {
-
-//                                           return map[print_op(op_flip_layer)];
-//                                     }
-//                                     op_flip_layer = flip_layer(op_mirror);
-//                                     it = map.find(print_op(op_flip_layer));
-//                                     if (it != map.end())
-//                                     {
-
-//                                           return map[print_op(op_flip_layer)];
-//                                     }
-//                               }
-//                         }
-//                   }
-//             }
-//       }
-//       // does not exist
-//       std::pair<std::string, std::complex<double>> output({"does not exist", 0.});
-//       return output;
-// }
 
 std::vector<double> define_xxz2d_sos(std::map<std::string, int> refs, SquareLattice lattice, double J, double Delta)
 {
@@ -680,7 +607,7 @@ std::vector<double> define_TFI_1d_sos(std::map<std::string, int> refs, SquareLat
       }
       // J2 next nearest neighbour interaction
       std::string term = "x";
-      op_vec v_p = {spin_op(term.first, {0, 0}, offset_vector)};
+      op_vec v_p = {spin_op(term, {0, 0}, offset_vector)};
       auto [fac_p, nf_p] = get_normal_form(v_p);
 
       auto [key_p, coeff_map_p] = lattice.TI_map_.at(print_op(nf_p));
@@ -694,6 +621,32 @@ std::vector<double> define_TFI_1d_sos(std::map<std::string, int> refs, SquareLat
       {
 
             vals[el_p] += h * fac_p.real() * coeff_map_p.real();
+      }
+
+      return vals;
+}
+
+std::vector<double> define_magnetizatio_sos(std::map<std::string, int> refs, SquareLattice lattice)
+{
+
+      std::string term = "z";
+      auto offset_vector = lattice.get_offset_vec();
+      std::vector<double> vals(refs.size(), 0);
+      op_vec v_p = {spin_op(term, {0, 0}, offset_vector)};
+
+      auto [fac_p, nf_p] = get_normal_form(v_p);
+
+      auto [key_p, coeff_map_p] = lattice.TI_map_.at(print_op(nf_p));
+
+      auto el_p = refs.at(key_p);
+
+      if (std::abs(fac_p.imag()) > 1e-9 or std::abs(coeff_map_p.imag()) > 1e-9)
+      {
+            std::cout << "error: Hamiltonian contains complex elements " << std::endl;
+      }
+      {
+
+            vals[el_p] += fac_p.real() * coeff_map_p.real();
       }
 
       return vals;
