@@ -518,6 +518,8 @@ void test_multiple_blocks_higher_order_J1J2_1d_rdm_sos()
   std::cout << "Solution : " << std::endl;
   std::cout << std::setprecision(9) << M->primalObjValue() << std::endl;
 
+  // thord order -0.703680777
+
   return;
 }
 
