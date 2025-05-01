@@ -11,6 +11,7 @@ public:
   std::vector<int> site_;
 
   std::vector<int> offset_;
+  std::vector<int> shifts_;
   bool unit = false;
   spin_op(std::string dir, std::vector<int> site, std::vector<int> offset) : dir_(dir), site_(site), offset_(offset)
   {
@@ -18,16 +19,22 @@ public:
     {
       std::cout << "Need sufficient offsets" << std::endl;
     }
+    shifts_.push_back(1);
+    for (int i = 0; i < offset_.size() - 1; i++)
+    {
+      shifts_.push_back(shifts_.back() * offset_[i]);
+    }
   };
   spin_op() { unit = true; };
+  // can this function be improved?
   int const pos() const
   {
 
     int position = 0;
-    for (int i = site_.size() - 1; i > -1; i--)
+    for (int i = 0; i < offset_.size(); i++)
     {
       // std::cout<< "offset "<<offset_[i]<< " and factor "<<offset_.size()-1<<std::endl;
-      position += site_[i] * std::pow(offset_[i], i);
+      position += site_[i] * shifts_[i];
     }
 
     return position;

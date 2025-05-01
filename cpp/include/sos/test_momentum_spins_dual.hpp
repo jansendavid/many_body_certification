@@ -14,7 +14,75 @@
 #include "reduced_dms.hpp"
 using namespace mosek::fusion;
 using namespace monty;
+void test_counting()
+{
+  // making sur ethe spin counting is working
+  {
+    int Lx = 4;
+    int Ly = 4;
+    int layer = 2;
+    std::vector<int> offset_vector = {layer, Ly, Lx};
+    std::set<int> exists;
+    for (int i = 0; i < layer; i++)
+    {
+      for (int j = 0; j < Ly; j++)
+      {
 
+        for (int k = 0; k < Lx; k++)
+        {
+          auto v_p = spin_op("x", {i, j, k}, offset_vector);
+          exists.insert(v_p.pos());
+        }
+      }
+    }
+
+    assert(exists.size() == Lx * Ly * layer);
+  }
+
+  {
+    int Lx = 50;
+    int Ly = 1;
+    int layer = 1;
+    std::vector<int> offset_vector = {layer, Ly, Lx};
+    std::set<int> exists;
+    for (int i = 0; i < layer; i++)
+    {
+      for (int j = 0; j < Ly; j++)
+      {
+
+        for (int k = 0; k < Lx; k++)
+        {
+          auto v_p = spin_op("x", {i, j, k}, offset_vector);
+          exists.insert(v_p.pos());
+        }
+      }
+    }
+
+    assert(exists.size() == Lx * Ly * layer);
+  }
+
+  {
+    int Lx = 12;
+    int Ly = 1;
+    int layer = 4;
+    std::vector<int> offset_vector = {layer, Ly, Lx};
+    std::set<int> exists;
+    for (int i = 0; i < layer; i++)
+    {
+      for (int j = 0; j < Ly; j++)
+      {
+
+        for (int k = 0; k < Lx; k++)
+        {
+          auto v_p = spin_op("x", {i, j, k}, offset_vector);
+          exists.insert(v_p.pos());
+        }
+      }
+    }
+
+    assert(exists.size() == Lx * Ly * layer);
+  }
+}
 // void test_multiple_blocks_bounding_observables_2d_rdm_sos()
 // {
 //   std::cout << "WARNING! Takes a lot of memory" << std::endl;

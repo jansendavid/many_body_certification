@@ -14,6 +14,7 @@ using namespace monty;
 
 int main()
 {
+  test_counting();
   //     test_translation_2d();
   //     test_permutations();
   //  test_single_block();
@@ -29,7 +30,7 @@ int main()
   //  test_primal_and_dual();
   //  test_multiple_blocks_higher_order_J1J2_2d_rdm_sos();
   // test_multiple_blocks_higher_order_J1J2_1d_rdm_sos();
-  test_multiple_blocks_higher_order_xxz_1d_rdm_sos();
+  // test_multiple_blocks_higher_order_xxz_1d_rdm_sos();
   //  test_multiple_blocks_bounding_observables_2d_rdm();
   //  test_multiple_blocks_bounding_observables_2d_rdm_sos();
 
