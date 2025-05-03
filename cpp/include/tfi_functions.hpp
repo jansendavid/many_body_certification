@@ -129,7 +129,7 @@ void get_order_four_monomials_tfi(basis_structure &states, int Ly, int Lx)
                     for (auto s4 : dirs)
                     {
 
-                        op_vec v0 = {spin_op(s1, {0, 0, 0}, offsets_), spin_op(s2, {1, 0, 0}, offsets_), spin_op(s3, {0, 1, 1}, offsets_), spin_op(s4, {1, 1, 1}, {offsets_})};
+                        op_vec v0 = {spin_op(s1, {0, 0}, offsets_), spin_op(s2, {0, 1}, offsets_), spin_op(s3, {0, 2}, offsets_), spin_op(s4, {0, 3}, {offsets_})};
                         auto [fac, vec] = get_normal_form(v0);
 
                         add_state_tfi(states, vec, Ly, Lx);

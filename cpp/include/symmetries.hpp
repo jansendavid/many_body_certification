@@ -324,6 +324,8 @@ std::vector<op_vec> generate_all_translations_y(op_vec op, int L, int inc = 1)
     {
 
       std::cout << "error in all trans" << std::endl;
+      assert(std::abs(fac.imag()) > 1e-9);
+      assert(std::abs(fac.real() - 1) > 1e-9);
     }
     all_T.push_back(vec);
   }
@@ -359,6 +361,8 @@ std::vector<op_vec> generate_all_translations(op_vec op, int L)
     if (std::abs(fac.imag()) > 1e-9 or std::abs(fac.real() - 1) > 1e-9)
     {
       std::cout << "error in all trans" << std::endl;
+      assert(std::abs(fac.imag()) > 1e-9);
+      assert(std::abs(fac.real() - 1) > 1e-9);
     }
     all_T.push_back(vec);
   }
