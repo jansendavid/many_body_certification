@@ -174,16 +174,17 @@ void get_order_four_monomials_bilayer(basis_structure &states, std::map<std::pai
   }
 }
 
-bool see_if_rdm_is_included(std::vector<std::string> included_rdms, op_vec monomial, int L, bool bilayer)
+bool see_if_rdm_is_included(std::vector<std::string> included_rdms, op_vec monomial, int Ly, int Lx, bool bilayer)
 {
 
-  auto all_ty = generate_all_translations_y(monomial, L, 1);
+  assert(Ly == Lx);
+  auto all_ty = generate_all_translations_y(monomial, Ly, 1);
 
   int cnt{0};
 
   for (auto op_ty : all_ty)
   {
-    auto all_t = generate_all_translations(op_ty, L);
+    auto all_t = generate_all_translations(op_ty, Lx);
 
     for (auto op_t : all_t)
     {
@@ -195,7 +196,7 @@ bool see_if_rdm_is_included(std::vector<std::string> included_rdms, op_vec monom
         return true;
       }
 
-      auto all_d8sym = generate_all_d8(op_t, L);
+      auto all_d8sym = generate_all_d8(op_t, Lx);
 
       for (auto d8s : all_d8sym)
       {
@@ -240,7 +241,7 @@ bool see_if_rdm_is_included(std::vector<std::string> included_rdms, op_vec monom
   }
   return false;
 }
-rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
+rdms_struct get_rdms_bilayer(int Ly, int Lx, int dim, bool bilayer)
 {
   rdms_struct data;
   int layers = 2;
@@ -266,12 +267,12 @@ rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
               set_with_vector.insert({m, a, b});
               if (set_with_vector.size() == 2)
               {
-                op_vec v0 = {spin_op(s, {n, i, j}, {layers, Lx, Lx}), spin_op(s, {m, a, b}, {layers, Lx, Lx})};
+                op_vec v0 = {spin_op(s, {n, i, j}, {layers, Ly, Lx}), spin_op(s, {m, a, b}, {layers, Ly, Lx})};
                 auto [coeff, nf] = get_normal_form(v0);
-                auto found = see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
+                auto found = see_if_rdm_is_included(rdm_ops, nf, Ly, Lx, bilayer);
                 if (!found)
                 {
-                  rdm_ops.push_back(print_op(v0));
+                  rdm_ops.push_back(print_op(nf));
                   rdm_operator newstate;
                   for (auto site_op : nf)
                   {
@@ -296,12 +297,12 @@ rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
       set_with_vector.insert({0, 0, 1});
       if (set_with_vector.size() == 3)
       {
-        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx, Lx})};
+        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Ly, Lx})};
         auto [coeff, nf] = get_normal_form(v0);
-        auto found = see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
+        auto found = see_if_rdm_is_included(rdm_ops, nf, Ly, Lx, bilayer);
         if (!found)
         {
-          rdm_ops.push_back(print_op(v0));
+          rdm_ops.push_back(print_op(nf));
           rdm_operator newstate;
           for (auto site_op : nf)
           {
@@ -318,12 +319,12 @@ rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
       set_with_vector.insert({0, 1, 1});
       if (set_with_vector.size() == 3)
       {
-        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx, Lx})};
+        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Ly, Lx})};
         auto [coeff, nf] = get_normal_form(v0);
-        auto found = see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
+        auto found = see_if_rdm_is_included(rdm_ops, nf, Ly, Lx, bilayer);
         if (!found)
         {
-          rdm_ops.push_back(print_op(v0));
+          rdm_ops.push_back(print_op(nf));
           rdm_operator newstate;
           for (auto site_op : nf)
           {
@@ -340,12 +341,12 @@ rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
       set_with_vector.insert({0, 1, 0});
       if (set_with_vector.size() == 3)
       {
-        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx, Lx})};
+        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Ly, Lx})};
         auto [coeff, nf] = get_normal_form(v0);
-        auto found = see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
+        auto found = see_if_rdm_is_included(rdm_ops, nf, Ly, Lx, bilayer);
         if (!found)
         {
-          rdm_ops.push_back(print_op(v0));
+          rdm_ops.push_back(print_op(nf));
           rdm_operator newstate;
           for (auto site_op : nf)
           {
@@ -362,12 +363,12 @@ rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
       set_with_vector.insert({0, 1, 0});
       if (set_with_vector.size() == 3)
       {
-        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx, Lx})};
+        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Ly, Lx})};
         auto [coeff, nf] = get_normal_form(v0);
-        auto found = see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
+        auto found = see_if_rdm_is_included(rdm_ops, nf, Ly, Lx, bilayer);
         if (!found)
         {
-          rdm_ops.push_back(print_op(v0));
+          rdm_ops.push_back(print_op(nf));
           rdm_operator newstate;
           for (auto site_op : nf)
           {
@@ -384,12 +385,12 @@ rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
       set_with_vector.insert({1, 2, 0});
       if (set_with_vector.size() == 3)
       {
-        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx, Lx})};
+        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Ly, Lx})};
         auto [coeff, nf] = get_normal_form(v0);
-        auto found = see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
+        auto found = see_if_rdm_is_included(rdm_ops, nf, Ly, Lx, bilayer);
         if (!found)
         {
-          rdm_ops.push_back(print_op(v0));
+          rdm_ops.push_back(print_op(nf));
           rdm_operator newstate;
           for (auto site_op : nf)
           {
@@ -411,12 +412,12 @@ rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
       set_with_vector.insert({0, 3, 0});
       if (set_with_vector.size() == 4)
       {
-        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 3), {layers, Lx, Lx})};
+        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 3), {layers, Ly, Lx})};
         auto [coeff, nf] = get_normal_form(v0);
-        auto found = see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
+        auto found = see_if_rdm_is_included(rdm_ops, nf, Ly, Lx, bilayer);
         if (!found)
         {
-          rdm_ops.push_back(print_op(v0));
+          rdm_ops.push_back(print_op(nf));
           rdm_operator newstate;
           for (auto site_op : nf)
           {
@@ -434,12 +435,12 @@ rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
       set_with_vector.insert({1, 1, 1});
       if (set_with_vector.size() == 4)
       {
-        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 3), {layers, Lx, Lx})};
+        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 3), {layers, Ly, Lx})};
         auto [coeff, nf] = get_normal_form(v0);
-        auto found = see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
+        auto found = see_if_rdm_is_included(rdm_ops, nf, Ly, Lx, bilayer);
         if (!found)
         {
-          rdm_ops.push_back(print_op(v0));
+          rdm_ops.push_back(print_op(nf));
           rdm_operator newstate;
           for (auto site_op : nf)
           {
@@ -457,12 +458,12 @@ rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
       set_with_vector.insert({1, 3, 1});
       if (set_with_vector.size() == 4)
       {
-        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 3), {layers, Lx, Lx})};
+        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 3), {layers, Ly, Lx})};
         auto [coeff, nf] = get_normal_form(v0);
-        auto found = see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
+        auto found = see_if_rdm_is_included(rdm_ops, nf, Ly, Lx, bilayer);
         if (!found)
         {
-          rdm_ops.push_back(print_op(v0));
+          rdm_ops.push_back(print_op(nf));
           rdm_operator newstate;
           for (auto site_op : nf)
           {
@@ -487,12 +488,12 @@ rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
 
       if (set_with_vector.size() == 5)
       {
-        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 3), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 4), {layers, Lx, Lx})};
+        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 3), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 4), {layers, Ly, Lx})};
         auto [coeff, nf] = get_normal_form(v0);
-        auto found = see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
+        auto found = see_if_rdm_is_included(rdm_ops, nf, Ly, Lx, bilayer);
         if (!found)
         {
-          rdm_ops.push_back(print_op(v0));
+          rdm_ops.push_back(print_op(nf));
           rdm_operator newstate;
           for (auto site_op : nf)
           {
@@ -511,12 +512,12 @@ rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
       set_with_vector.insert({1, 2, 2});
       if (set_with_vector.size() == 5)
       {
-        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 3), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 4), {layers, Lx, Lx})};
+        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 3), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 4), {layers, Ly, Lx})};
         auto [coeff, nf] = get_normal_form(v0);
-        auto found = see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
+        auto found = see_if_rdm_is_included(rdm_ops, nf, Ly, Lx, bilayer);
         if (!found)
         {
-          rdm_ops.push_back(print_op(v0));
+          rdm_ops.push_back(print_op(nf));
           rdm_operator newstate;
           for (auto site_op : nf)
           {
@@ -535,12 +536,12 @@ rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
       set_with_vector.insert({1, 3, 2});
       if (set_with_vector.size() == 4)
       {
-        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 3), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 4), {layers, Lx, Lx})};
+        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 3), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 4), {layers, Ly, Lx})};
         auto [coeff, nf] = get_normal_form(v0);
-        auto found = see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
+        auto found = see_if_rdm_is_included(rdm_ops, nf, Ly, Lx, bilayer);
         if (!found)
         {
-          rdm_ops.push_back(print_op(v0));
+          rdm_ops.push_back(print_op(nf));
           rdm_operator newstate;
           for (auto site_op : nf)
           {
@@ -569,12 +570,12 @@ rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
 
       if (set_with_vector.size() == 6)
       {
-        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 3), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 4), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 5), {layers, Lx, Lx})};
+        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 3), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 4), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 5), {layers, Ly, Lx})};
         auto [coeff, nf] = get_normal_form(v0);
-        auto found = see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
+        auto found = see_if_rdm_is_included(rdm_ops, nf, Ly, Lx, bilayer);
         if (!found)
         {
-          rdm_ops.push_back(print_op(v0));
+          rdm_ops.push_back(print_op(nf));
           rdm_operator newstate;
           for (auto site_op : nf)
           {
@@ -597,12 +598,12 @@ rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
       if (set_with_vector.size() == 6)
       {
 
-        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 3), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 4), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 5), {layers, Lx, Lx})};
+        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 3), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 4), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 5), {layers, Ly, Lx})};
         auto [coeff, nf] = get_normal_form(v0);
-        auto found = see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
+        auto found = see_if_rdm_is_included(rdm_ops, nf, Ly, Lx, bilayer);
         if (!found)
         {
-          rdm_ops.push_back(print_op(v0));
+          rdm_ops.push_back(print_op(nf));
           rdm_operator newstate;
           for (auto site_op : nf)
           {
@@ -624,12 +625,12 @@ rdms_struct get_rdms_bilayer(int Lx, int dim, bool bilayer)
       if (set_with_vector.size() == 6)
       {
 
-        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 3), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 4), {layers, Lx, Lx}), spin_op(s, *next(set_with_vector.begin(), 5), {layers, Lx, Lx})};
+        op_vec v0 = {spin_op(s, *next(set_with_vector.begin(), 0), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 1), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 2), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 3), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 4), {layers, Ly, Lx}), spin_op(s, *next(set_with_vector.begin(), 5), {layers, Ly, Lx})};
         auto [coeff, nf] = get_normal_form(v0);
-        auto found = see_if_rdm_is_included(rdm_ops, nf, Lx, bilayer);
+        auto found = see_if_rdm_is_included(rdm_ops, nf, Ly, Lx, bilayer);
         if (!found)
         {
-          rdm_ops.push_back(print_op(v0));
+          rdm_ops.push_back(print_op(nf));
           rdm_operator newstate;
           for (auto site_op : nf)
           {
