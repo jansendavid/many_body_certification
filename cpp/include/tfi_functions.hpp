@@ -6,14 +6,32 @@
 #include "symmetries.hpp"
 using namespace mosek::fusion;
 using namespace monty;
-void add_state_tfi(basis_structure &states, op_vec op, int Ly, int Lx)
+int get_sec_tfi(op_vec op)
+{
+    // computes the sector of a given vector of operators
+    // NOTE: all are of the form vec{S_i}vec{S_j} in the Hamiltonian is needed. For e.g., TFI, small modifications must be made
+    int sxy = 1;
+    for (auto a : op)
+    {
+        if (a.dir_ == "x")
+        {
+            sxy *= -1;
+        }
+        if (a.dir_ == "y")
+        {
+
+            sxy *= -1;
+        }
+    }
+    return sxy;
+}
+void add_state_tfi(basis_structure &states, op_vec op, std::map<int, int> map_sec, int Ly, int Lx)
 {
     // adds a state to a basis
 
     auto [fac, nf] = get_normal_form(op);
     bool print = false;
-
-    auto sign = 0;
+    int sec = get_sec_tfi(op);
     bool found = false;
     if (nf.size() > 0)
     {
@@ -30,8 +48,10 @@ void add_state_tfi(basis_structure &states, op_vec op, int Ly, int Lx)
                 {
                     std::cout << print_op(op_t) << std::endl;
                 }
-                auto it = std::find(states.at(0).begin(), states.at(0).end(), op_t);
-                if (it != states.at(0).end())
+                // get symm sector
+
+                auto it = std::find(states.at(map_sec.at(sec)).begin(), states.at(map_sec.at(sec)).end(), op_t);
+                if (it != states.at(map_sec.at(sec)).end())
                 {
 
                     found = true;
@@ -42,13 +62,14 @@ void add_state_tfi(basis_structure &states, op_vec op, int Ly, int Lx)
 
         if (!found)
         {
-            states.at(0).push_back(nf);
+
+            states.at(map_sec.at(sec)).push_back(nf);
         }
     }
 
     return;
 }
-void get_order_one_monomials_tfi(basis_structure &states, int Ly, int Lx)
+void get_order_one_monomials_tfi(basis_structure &states, std::map<int, int> map_sec, int Ly, int Lx)
 {
 
     std::vector<std::string> dirs = {"x", "y", "z"};
@@ -59,12 +80,12 @@ void get_order_one_monomials_tfi(basis_structure &states, int Ly, int Lx)
         op_vec v0 = {spin_op(s, {0, 0}, {Ly, Lx})};
 
         auto sign = get_sec(v0);
-        add_state_tfi(states, v0, Ly, Lx);
+        add_state_tfi(states, v0, map_sec, Ly, Lx);
     }
     return;
 }
 
-void get_order_two_monomials_tfi(basis_structure &states, int Ly, int Lx, int r)
+void get_order_two_monomials_tfi(basis_structure &states, std::map<int, int> map_sec, int Ly, int Lx, int r)
 {
     std::vector<std::string> dirs = {"x", "y", "z"};
     assert(Ly == 1);
@@ -82,14 +103,14 @@ void get_order_two_monomials_tfi(basis_structure &states, int Ly, int Lx, int r)
 
                 auto [fac, vec] = get_normal_form(v0);
 
-                add_state_tfi(states, vec, Ly, Lx);
+                add_state_tfi(states, vec, map_sec, Ly, Lx);
             }
         }
     }
     return;
 }
 
-void get_order_three_monomials_tfi(basis_structure &states, int Ly, int Lx)
+void get_order_three_monomials_tfi(basis_structure &states, std::map<int, int> map_sec, int Ly, int Lx)
 {
 
     std::vector<std::string> dirs = {"x", "y", "z"};
@@ -106,14 +127,14 @@ void get_order_three_monomials_tfi(basis_structure &states, int Ly, int Lx)
                     op_vec v0 = {spin_op(s1, {0, 0}, offsets_), spin_op(s2, {0, 1}, offsets_), spin_op(s3, {0, 2}, offsets_)};
                     auto [fac, vec] = get_normal_form(v0);
 
-                    add_state_tfi(states, vec, Ly, Lx);
+                    add_state_tfi(states, vec, map_sec, Ly, Lx);
                 }
             }
         }
     }
     return;
 }
-void get_order_four_monomials_tfi(basis_structure &states, int Ly, int Lx)
+void get_order_four_monomials_tfi(basis_structure &states, std::map<int, int> map_sec, int Ly, int Lx)
 {
     std::vector<std::string> dirs = {"x", "y", "z"};
     std::vector<int> offsets_ = {Ly, Lx};
@@ -132,7 +153,7 @@ void get_order_four_monomials_tfi(basis_structure &states, int Ly, int Lx)
                         op_vec v0 = {spin_op(s1, {0, 0}, offsets_), spin_op(s2, {0, 1}, offsets_), spin_op(s3, {0, 2}, offsets_), spin_op(s4, {0, 3}, {offsets_})};
                         auto [fac, vec] = get_normal_form(v0);
 
-                        add_state_tfi(states, vec, Ly, Lx);
+                        add_state_tfi(states, vec, map_sec, Ly, Lx);
                     }
                 }
             }
@@ -141,7 +162,7 @@ void get_order_four_monomials_tfi(basis_structure &states, int Ly, int Lx)
     return;
 }
 
-rdms_struct get_rdms_tfi(int Ly, int Lx, int dim, bool bilayer)
+rdms_struct get_rdms_tfi(int Ly, int Lx, int dim)
 {
     rdms_struct data;
 
