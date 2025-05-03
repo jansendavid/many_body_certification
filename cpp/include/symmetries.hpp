@@ -480,10 +480,34 @@ struct mom_ref
   mom_ref() = default;
 };
 
-bool is_zero_signsym(op_vec op)
+bool is_zero_signsym_xyz(op_vec op)
 {
 
   std::vector<std::string> dirs = {"x", "y", "z"};
+  for (auto dir_ : dirs)
+  {
+    int fac = 1;
+    for (auto a : op)
+    {
+
+      if (a.dir_ == dir_)
+      {
+        fac *= -1;
+      }
+    }
+    if (fac < 0)
+    {
+
+      return true;
+    }
+  }
+
+  return false;
+}
+bool is_zero_signsym_y(op_vec op)
+{
+
+  std::vector<std::string> dirs = {"y"};
   for (auto dir_ : dirs)
   {
     int fac = 1;

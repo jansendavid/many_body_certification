@@ -88,7 +88,7 @@ void test_counting()
 //   std::cout << "WARNING! Takes a lot of memory" << std::endl;
 //   int Lx = 4;
 //   int Ly = 4;
-//   auto lattice = SquareLattice(Ly, Lx, true, false, "xyz");
+//   auto lattice = SquareLattice(Ly, Lx, true, false, "xyz", "xyz");
 //   auto map_sec = get_sector_map();
 //   basis_structure states = get_states();
 //   get_order_one_monomials(states, map_sec, Ly, Lx, true);
@@ -236,7 +236,7 @@ void test_counting()
 //   std::cout << "WARNING! Takes a lot of memory" << std::endl;
 //   int Lx = 4;
 //   int Ly = 4;
-//   auto lattice = SquareLattice(Ly, Lx, true, false, "xyz");
+//   auto lattice = SquareLattice(Ly, Lx, true, false, "xyz", "xyz");
 //   auto map_sec = get_sector_map();
 //   basis_structure states = get_states();
 //   get_order_one_monomials(states, map_sec, Ly, Lx, true);
@@ -294,7 +294,7 @@ void test_counting()
 //   std::cout << "WARNING! Takes a lot of memory" << std::endl;
 //   int Lx = 4;
 //   int Ly = 4;
-//   auto lattice = SquareLattice(Ly, Lx, true, false, "xyz");
+//   auto lattice = SquareLattice(Ly, Lx, true, false, "xyz", "xyz");
 //   auto map_sec = get_sector_map();
 //   basis_structure states = get_states();
 //   get_order_one_monomials(states, map_sec, Ly, Lx, true);
@@ -394,8 +394,8 @@ void test_counting()
 // {
 //   int Lx = 4;
 //   int Ly = 4;
-//   auto lattice1 = SquareLattice(Ly, Lx, true, false, "xyz");
-//   auto lattice2 = SquareLattice(Ly, Lx, true, false, "xyz");
+//   auto lattice1 = SquareLattice(Ly, Lx, true, false, "xyz", "xyz");
+//   auto lattice2 = SquareLattice(Ly, Lx, true, false, "xyz", "xyz");
 //   auto map_sec = get_sector_map();
 //   basis_structure states1 = get_states();
 //   get_order_one_monomials(states1, map_sec, Ly, Lx, true);
@@ -478,7 +478,7 @@ void test_counting()
 //   int Lx = 4;
 //   int Ly = 4;
 
-//   auto lattice = SquareLattice(Ly, Lx, true, false, "xyz");
+//   auto lattice = SquareLattice(Ly, Lx, true, false, "xyz", "xyz");
 //   auto map_sec = get_sector_map();
 //   basis_structure states = get_states();
 //   get_order_one_monomials(states, map_sec, Ly, Lx, true);
@@ -537,7 +537,7 @@ void test_multiple_blocks_higher_order_J1J2_1d_rdm_sos()
   int Lx = 16;
   int Ly = 1;
 
-  auto lattice = SquareLattice(Ly, Lx, false, false, "xyz");
+  auto lattice = SquareLattice(Ly, Lx, false, false, "xyz", "xyz");
   auto map_sec = get_sector_map();
   basis_structure states = get_states();
   get_order_one_monomials(states, map_sec, Ly, Lx, true);
@@ -597,7 +597,7 @@ void test_multiple_blocks_higher_order_xxz_1d_rdm_sos()
   int Lx = 16;
   int Ly = 1;
 
-  auto lattice = SquareLattice(Ly, Lx, false, false, "xyz");
+  auto lattice = SquareLattice(Ly, Lx, false, false, "xyz", "xyz");
   auto map_sec = get_sector_map();
   basis_structure states = get_states();
   get_order_one_monomials(states, map_sec, Ly, Lx, true);

@@ -74,6 +74,8 @@ class SquareLattice : public LatticeBase
 {
 public:
 	std::string permuts_;
+	// sign symmetry of the Hamiltonian
+	std::string signsym_;
 
 	bool bilayer_;
 	bool square_;
@@ -89,12 +91,16 @@ public:
 		}
 	}
 
-	SquareLattice(int Ly, int Lx, bool square, bool bilayer, std::string permuts = "xyz") : LatticeBase(Ly, Lx), bilayer_(bilayer), square_(square), permuts_(permuts)
+	SquareLattice(int Ly, int Lx, bool square, bool bilayer, std::string permuts = "xyz", std::string signsym = "xyz") : LatticeBase(Ly, Lx), bilayer_(bilayer), square_(square), permuts_(permuts), signsym_(signsym)
 	{
 		// assert(Lx == Ly);
-		if (permuts != "xyz" and permuts != "xy")
+		if (permuts != "xyz" and permuts != "xy" and permuts != "None")
 		{
 			std::cout << "permutation error" << std::endl;
+		}
+		if (signsym != "xyz" and signsym != "y" and signsym != "None")
+		{
+			std::cout << "sign symmetrie error" << std::endl;
 		}
 	};
 	template <typename container>
@@ -116,22 +122,40 @@ public:
 				return {false, print_op(op)};
 			}
 		}
-
-		if (is_zero_signsym(op))
+		if (signsym_ == "xyz")
 		{
-
-			if (mat_terms.find("0") != mat_terms.end())
+			if (is_zero_signsym_xyz(op))
 			{
 
-				return {true, "0"};
-			}
-			else
-			{
+				if (mat_terms.find("0") != mat_terms.end())
+				{
 
-				return {false, "0"};
+					return {true, "0"};
+				}
+				else
+				{
+
+					return {false, "0"};
+				}
 			}
 		}
+		else if (signsym_ == "y")
+		{
+			if (is_zero_signsym_y(op))
+			{
 
+				if (mat_terms.find("0") != mat_terms.end())
+				{
+
+					return {true, "0"};
+				}
+				else
+				{
+
+					return {false, "0"};
+				}
+			}
+		}
 		auto all_ty = generate_all_translations_y(op, Ly_, 1);
 
 		bool found = false;
@@ -157,6 +181,10 @@ public:
 				else if (permuts_ == "xy")
 				{
 					all_p = generate_all_permutations_xy(op_t);
+				}
+				else if (permuts_ == "None")
+				{
+					all_p.push_back(op_t);
 				}
 				for (auto op_p : all_p)
 				{
