@@ -626,7 +626,7 @@ std::vector<double> define_TFI_1d_sos(std::map<std::string, int> refs, SquareLat
       return vals;
 }
 
-std::vector<double> define_magnetizatio_sos(std::map<std::string, int> refs, SquareLattice lattice)
+std::vector<double> define_magnetization_sos(std::map<std::string, int> refs, SquareLattice lattice)
 {
 
       std::string term = "z";
