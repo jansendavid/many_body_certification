@@ -775,7 +775,7 @@ public:
         {
           int el = this->total_refs_.at(string_and_matrix.first);
           auto a = lambda_.second;
-          // why not neg (Expr::dot(lambda_.second,string_and_matrix.second )) ?
+
           expressions_[el] = Expr::add(expressions_[el], (Expr::dot(lambda_.second, string_and_matrix.second)));
         }
       }
