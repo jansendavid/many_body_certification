@@ -83,83 +83,89 @@ void test_counting()
     assert(exists.size() == Lx * Ly * layer);
   }
 }
-// void test_multiple_blocks_bounding_observables_2d_rdm_sos()
-// {
-//   std::cout << "WARNING! Takes a lot of memory" << std::endl;
-//   int Lx = 4;
-//   int Ly = 4;
-//   auto lattice = SquareLattice(Ly, Lx, true, false, "xyz", "xyz");
-//   auto map_sec = get_sector_map();
-//   basis_structure states = get_states();
-//   get_order_one_monomials(states, map_sec, Ly, Lx, true);
-//   get_order_two_monomials(states, map_sec, Ly, Lx, 3, 3, -3, -3, true);
-//   get_order_three_monomials(states, map_sec, Ly, Lx, true);
+void test_multiple_blocks_bounding_observables_2d_rdm_sos()
+{
+  std::cout << "WARNING! Takes a lot of memory" << std::endl;
+  int Lx = 4;
+  int Ly = 4;
+  auto lattice = SquareLattice(Ly, Lx, true, false, "xyz", "xyz");
+  auto map_sec = get_sector_map();
+  basis_structure states = get_states();
+  get_order_one_monomials(states, map_sec, Ly, Lx, true);
+  get_order_two_monomials(states, map_sec, Ly, Lx, 3, 3, -3, -3, true);
+  // get_order_three_monomials(states, map_sec, Ly, Lx, true);
 
-//   get_order_four_monomials(states, map_sec, Ly, Lx, true);
+  // get_order_four_monomials(states, map_sec, Ly, Lx, true);
 
-//   double E_upper = -0.7017777;
-//   double E_lower = -0.70305078;
-//   for (auto a : states)
-//   {
+  double E_upper = -0.7017777;
+  double E_lower = -0.70305078;
+  for (auto a : states)
+  {
 
-//     std::cout << "sec " << a.first << " and size " << a.second.size() << " and " << a.second.size() / (Lx * Lx) << std::endl;
-//     for (auto l : a.second)
-//     {
-//       //	std::cout<< print_op(l)<<std::endl;
-//     }
-//   }
-//   auto data = get_rdms(Lx, 2);
+    std::cout << "sec " << a.first << " and size " << a.second.size() << " and " << a.second.size() / (Lx * Lx) << std::endl;
+    for (auto l : a.second)
+    {
+      //	std::cout<< print_op(l)<<std::endl;
+    }
+  }
+  auto data = get_rdms(Lx, 2);
 
-//   rdms_struct rdms(data);
-//   Model::t M = new Model("sdo1");
-//   auto _M = finally([&]()
-//                     { M->dispose(); });
-//   bool maximize = false;
-//   bool bilayer = false;
-//   auto basis = momentum_symmetry_solver_sos(lattice, states, M, rdms, maximize);
+  rdms_struct rdms(data);
+  Model::t M = new Model("sdo1");
+  auto _M = finally([&]()
+                    { M->dispose(); });
+  bool maximize = false;
+  bool bilayer = false;
+  auto basis = momentum_symmetry_solver_sos(lattice, states, M, rdms, maximize);
 
-//   // for(auto a: basis.TI_map_)
-//   //  {std::cout<< a.first << " -> "<<a.second.first<<std::endl;}
-//   double J = 1;
-//   double Delta = 1.;
-//   std::cout << "done 1" << std::endl;
-//   auto energy_vec = define_xxz2d_sos(basis.total_refs_, lattice, J, Delta);
-//   std::cout << "done 2" << std::endl;
+  // for(auto a: basis.TI_map_)
+  //  {std::cout<< a.first << " -> "<<a.second.first<<std::endl;}
+  double J = 1;
+  double Delta = 1.;
+  std::cout << "done 1" << std::endl;
+  auto energy_vec = define_xxz2d_sos(basis.total_refs_, lattice, J, Delta);
+  std::cout << "done 2" << std::endl;
 
-//   basis.set_energy_vec(energy_vec, E_upper, E_lower);
-//   std::cout << "done 3" << std::endl;
-//   std::pair<std::vector<int>, std::vector<int>> pos{{0, 0}, {2, 2}};
-//   std::pair<std::string, std::string> dirs{"x", "x"};
+  basis.set_energy_vec(energy_vec, E_upper, E_lower);
+  std::cout << "done 3" << std::endl;
+  std::pair<std::vector<int>, std::vector<int>> pos{{0, 0}, {2, 2}};
+  std::pair<std::string, std::string> dirs{"x", "x"};
 
-//   auto corr_func = define_correlation_function_sos(basis.total_refs_, lattice, dirs, pos);
-//   // define_xxz2d_sos( basis.total_refs_,basis.TI_map_, J, Delta, Ly, Lx);
-//   //
-//   basis.set_b(corr_func);
-//   std::cout << "done 3" << std::endl;
-//   basis.fix_constrains();
+  auto corr_func = define_correlation_function_sos(basis.total_refs_, lattice, dirs, pos);
+  // define_xxz2d_sos( basis.total_refs_,basis.TI_map_, J, Delta, Ly, Lx);
+  //
+  basis.set_b(corr_func);
+  std::cout << "done 3" << std::endl;
+  basis.fix_constrains();
 
-//   auto h = basis.get_costfunction();
+  auto h = basis.get_costfunction();
 
-//   if (maximize)
-//   {
-//     basis.M_->objective(ObjectiveSense::Maximize, h);
-//   }
-//   else
-//   {
-//     basis.M_->objective(ObjectiveSense::Minimize, h);
-//   }
-//   basis.M_->dataReport();
-//   M->setLogHandler([=](const std::string &msg)
-//                    { std::cout << msg << std::flush; });
-//   basis.M_->solve();
+  if (maximize)
+  {
+    basis.M_->objective(ObjectiveSense::Maximize, h);
+  }
+  else
+  {
+    basis.M_->objective(ObjectiveSense::Minimize, h);
+  }
+  basis.M_->dataReport();
+  M->setLogHandler([=](const std::string &msg)
+                   { std::cout << msg << std::flush; });
+  basis.M_->solve();
 
-//   std::cout << "Solution : " << std::endl;
-//   std::cout << std::setprecision(9) << M->primalObjValue() << std::endl;
+  std::cout << "Solution : " << std::endl;
+  std::cout << std::setprecision(9) << M->primalObjValue() << std::endl;
+  auto x = M->getVariable("upper energy");
+  auto y = M->getVariable("lower energy");
+  auto xVal = x->level();
+  std::cout << "x " << (*xVal)[0] << std::endl;
 
-//   //   //	   if(std::abs(sol+0.44670126)>1e-06)
-//   //   // {std::cout<<"error, not converging properly"<<std::endl;}
-//   //     return;
-// }
+  auto yVal = y->level();
+  std::cout << "y " << (*yVal)[0] << std::endl;
+  //   //	   if(std::abs(sol+0.44670126)>1e-06)
+  //   // {std::cout<<"error, not converging properly"<<std::endl;}
+  //     return;
+}
 
 // // void test_multiple_blocks_bounding_observables_2d_rdm()
 // // {
