@@ -207,7 +207,7 @@ public:
   Eigen::MatrixXcd FTx_;
   Eigen::MatrixXcd FTy_;
   Parameter::t b_;
-  Parameter::t energy_vec_; // if b is observable then the energy is stored here
+  std::vector<double> energy_vec_; // if b is observable then the energy is stored here
   bool bounding_observable_{false};
   std::map<std::string, Parameter::t> energy_bounds_; // contains two elements, upper bound lower bound
   Lattice &lattice_;
@@ -331,16 +331,18 @@ public:
   }
   void set_energy_vec(std::vector<double> energy_vec, double E_upper, double E_lower)
   {
+    energy_vec_ = energy_vec;
     if (energy_bounds_.size() < 2)
     {
       bounding_observable_ = true;
-      energy_vec_ = M_->parameter("energy vec", total_refs_.size());
+
+      // M_->parameter("energy vec", total_refs_.size());
       energy_bounds_["E_upper"] = M_->parameter("E_upper");
       energy_bounds_["E_lower"] = M_->parameter("E_lower");
     }
 
-    auto a = monty::new_array_ptr<double>(energy_vec);
-    energy_vec_->setValue(a);
+    // auto a = monty::new_array_ptr<double>(energy_vec);
+    // energy_vec_->setValue(a);
 
     std::cout << "bounding " << bounding_observable_ << std::endl;
     energy_bounds_["E_upper"]->setValue(E_upper);
@@ -782,12 +784,15 @@ public:
     }
     if (this->bounding_observable_)
     {
-      auto exp_temporary = Expr::mul(Expr::add(energy_bouding_variables_[0], energy_bouding_variables_[1]), this->energy_vec_);
-      for (int i = 0; i < this->energy_vec_->getSize(); i++)
+      // auto exp_temporary = Expr::mul(Expr::add(energy_bouding_variables_[0], energy_bouding_variables_[1]), this->energy_vec_);
+      for (int i = 0; i < this->energy_vec_.size(); i++)
       {
         // energy_vec_->index(i)
+        if (std::abs(this->energy_vec_[i] > 0))
+        {
 
-        expressions_[i] = Expr::add(expressions_[i], (exp_temporary->index(i)));
+          expressions_[i] = Expr::add(expressions_[i], Expr::mul(Expr::add(energy_bouding_variables_[0], energy_bouding_variables_[1]), this->energy_vec_[i]));
+        }
       }
     }
 
