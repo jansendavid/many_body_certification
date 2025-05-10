@@ -345,6 +345,10 @@ public:
     std::cout << "bounding " << bounding_observable_ << std::endl;
     energy_bounds_["E_upper"]->setValue(E_upper);
     energy_bounds_["E_lower"]->setValue(E_lower);
+    std::cout << "bounds up " << *(energy_bounds_["E_upper"]->getValue()) << std::endl;
+    std::cout << "bounds low " << *(energy_bounds_["E_lower"]->getValue()) << std::endl;
+    std::cout << "diff " << (*(energy_bounds_["E_upper"]->getValue()))[0] - (*(energy_bounds_["E_lower"]->getValue()))[0] << std::endl;
+
     return;
   }
 

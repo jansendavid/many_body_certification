@@ -626,10 +626,9 @@ std::vector<double> define_TFI_1d_sos(std::map<std::string, int> refs, SquareLat
       return vals;
 }
 
-std::vector<double> define_magnetization_sos(std::map<std::string, int> refs, SquareLattice lattice)
+std::vector<double> define_magnetization_sos(std::map<std::string, int> refs, SquareLattice lattice, std::string term)
 {
 
-      std::string term = "z";
       auto offset_vector = lattice.get_offset_vec();
       std::vector<double> vals(refs.size(), 0);
       op_vec v_p = {spin_op(term, {0, 0}, offset_vector)};
