@@ -28,7 +28,7 @@ int main()
   //  test_y();
   //  test_d8_symm();
   //  test_primal_and_dual();
-  //  test_multiple_blocks_higher_order_J1J2_2d_rdm_sos();
+  test_multiple_blocks_higher_order_J1J2_2d_rdm_sos();
   // test_multiple_blocks_higher_order_J1J2_1d_rdm_sos();
   // test_multiple_blocks_higher_order_xxz_1d_rdm_sos();
   //  test_multiple_blocks_bounding_observables_2d_rdm();

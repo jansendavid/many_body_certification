@@ -5,8 +5,7 @@
 #include <memory>
 using namespace mosek::fusion;
 using namespace monty;
-std::shared_ptr<ndarray<int, 1>> nint(const std::vector<int> &X) { return new_array_ptr<int>(X); }
-std::shared_ptr<ndarray<double, 1>> ndou(const std::vector<double> &X) { return new_array_ptr<double>(X); }
+
 struct rdm_operator
 {
 
@@ -450,27 +449,6 @@ void add_state_with_symmetries(basis_structure &states, op_vec op, std::map<std:
   return;
 }
 
-template <class T>
-int getIndex(std::vector<T> v, T K)
-{
-  auto it = find(v.begin(), v.end(), K);
-
-  // If element was found
-  if (it != v.end())
-  {
-
-    // calculating the index
-    // of K
-    int index = it - v.begin();
-    return index;
-  }
-  else
-  {
-    // If the element is not
-    // present in the vector
-    return -1;
-  }
-}
 struct mom_ref
 {
   mom_ref(Variable::t var, int i1, op_vec vec) : var_(var), i1_(i1), vec_(vec) {}

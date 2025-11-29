@@ -472,64 +472,67 @@ void test_counting()
 
 //   return;
 // }
-// void test_multiple_blocks_higher_order_J1J2_2d_rdm_sos()
-// {
-//   std::cout << "WARNING! Takes a lot of memory" << std::endl;
-//   int Lx = 4;
-//   int Ly = 4;
+void test_multiple_blocks_higher_order_J1J2_2d_rdm_sos()
+{
+  std::cout << "WARNING! Takes a lot of memory" << std::endl;
+  int Lx = 4;
+  int Ly = 4;
 
-//   auto lattice = SquareLattice(Ly, Lx, true, false, "xyz", "xyz");
-//   auto map_sec = get_sector_map();
-//   basis_structure states = get_states();
-//   get_order_one_monomials(states, map_sec, Ly, Lx, true);
-//   get_order_two_monomials(states, map_sec, Ly, Lx, 3, 3, -3, -3, true);
-//   get_order_three_monomials(states, map_sec, Ly, Lx, true);
+  auto lattice = SquareLattice(Ly, Lx, true, false, "xyz", "xyz");
+  auto map_sec = get_sector_map();
+  basis_structure states = get_states();
+  get_order_one_monomials(states, map_sec, Ly, Lx, true);
+  get_order_two_monomials(states, map_sec, Ly, Lx, 3, 3, -3, -3, true);
+  get_order_three_monomials(states, map_sec, Ly, Lx, true);
 
-//   get_order_four_monomials(states, map_sec, Ly, Lx, true);
-//   auto data = get_rdms(Lx, Lx);
+  get_order_four_monomials(states, map_sec, Ly, Lx, true);
+  auto data = get_rdms(Lx, Lx);
+  basis_structure states2;
+  states2[0] = states[0];
+  states2[1] = states[1];
+  states = states2;
+  rdms_struct rdms(data);
 
-//   rdms_struct rdms(data);
+  for (auto a : states)
+  {
 
-//   for (auto a : states)
-//   {
+    std::cout << "sec " << a.first << " and size " << a.second.size() << " and " << a.second.size() / (Lx * Lx) << std::endl;
 
-//     std::cout << "sec " << a.first << " and size " << a.second.size() << " and " << a.second.size() / (Lx * Lx) << std::endl;
+    // for(auto n:a.second)
+    //  {std::cout<<print_op(n)<<std::endl;}
+    std::cout << "###################################" << std::endl;
+  }
 
-//     // for(auto n:a.second)
-//     //  {std::cout<<print_op(n)<<std::endl;}
-//     std::cout << "###################################" << std::endl;
-//   }
+  Model::t M = new Model("sdo1");
+  auto _M = finally([&]()
+                    { M->dispose(); });
+  auto basis = momentum_symmetry_solver_sos(lattice, states, M, rdms);
 
-//   Model::t M = new Model("sdo1");
-//   auto _M = finally([&]()
-//                     { M->dispose(); });
-//   auto basis = momentum_symmetry_solver_sos(lattice, states, M, rdms);
+  double J1 = 1;
+  double J2 = 0.5;
 
-//   double J1 = 1;
-//   double J2 = 1.;
+  auto b = define_J1J22d_sos(basis.total_refs_, lattice, J1, J2);
 
-//   auto b = define_J1J22d_sos(basis.total_refs_, lattice, J1, J2);
+  basis.set_b(b);
 
-//   basis.set_b(b);
+  basis.fix_constrains();
+  auto h = basis.get_costfunction();
+  // //   std::cout<<C->toString()<<std::endl;
 
-//   basis.fix_constrains();
-//   auto h = basis.get_costfunction();
-//   // //   std::cout<<C->toString()<<std::endl;
+  std::cout << "starting solving SDP" << std::endl;
+  basis.M_->objective(ObjectiveSense::Maximize, h);
+  basis.M_->dataReport();
+  M->setLogHandler([=](const std::string &msg)
+                   { std::cout << msg << std::flush; });
+  basis.M_->solve();
+  auto cons = M->getConstraint(0)->dual();
+  std::cout << cons << std::endl;
 
-//   std::cout << "starting solving SDP" << std::endl;
-//   basis.M_->objective(ObjectiveSense::Maximize, h);
-//   basis.M_->dataReport();
-//   M->setLogHandler([=](const std::string &msg)
-//                    { std::cout << msg << std::flush; });
-//   basis.M_->solve();
-//   auto cons = M->getConstraint(0)->dual();
-//   std::cout << cons << std::endl;
+  std::cout << "Solution : " << std::endl;
+  std::cout << std::setprecision(9) << M->primalObjValue() << std::endl;
 
-//   std::cout << "Solution : " << std::endl;
-//   std::cout << std::setprecision(9) << M->primalObjValue() << std::endl;
-
-//   return;
-// }
+  return;
+}
 
 void test_multiple_blocks_higher_order_J1J2_1d_rdm_sos()
 {
