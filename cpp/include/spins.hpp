@@ -2,6 +2,10 @@
 #include "vector"
 #include "string"
 #include <iostream>
+#include <complex>
+#include <cassert>
+#include <map>
+#include <algorithm>
 using cpx = std::complex<double>;
 
 class spin_op
