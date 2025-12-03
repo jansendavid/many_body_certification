@@ -3,6 +3,9 @@
 #include "spins.hpp"
 #include <unordered_map>
 #include <memory>
+#include <set>
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
 using namespace mosek::fusion;
 using namespace monty;
 std::shared_ptr<ndarray<int, 1>> nint(const std::vector<int> &X) { return new_array_ptr<int>(X); }
