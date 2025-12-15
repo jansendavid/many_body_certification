@@ -321,7 +321,7 @@ public:
 							else
 							{
 								mat_terms.insert({op_string, vec_tot});
-								TI_map_.insert({op_string, {op_string, 1}});
+								TI_map_.insert({print_op(vec_tot), {op_string, 1}});
 							}
 						}
 					}
