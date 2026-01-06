@@ -4,10 +4,41 @@
 #include <unordered_map>
 #include <memory>
 #include "symmetries.hpp"
+#include "reduced_dms.hpp"
 using namespace mosek::fusion;
 using namespace monty;
 using int_pair = std::pair<int, int>;
 using TI_map_type = std::map<std::string, std::pair<std::string, std::complex<double>>>;
+template <typename T>
+std::vector<std::vector<T>>
+all_translations(const std::vector<T> &config, int Lx, int Ly)
+{
+	std::vector<std::vector<T>> result;
+	int size_of_vec = config[0].get_site().size();
+	result.reserve(Lx * Ly);
+
+	for (int dx = 0; dx < Lx; ++dx)
+	{
+		for (int dy = 0; dy < Ly; ++dy)
+		{
+
+			std::vector<T> translated = config;
+
+			for (auto &s : translated)
+			{
+				auto old_site = s.get_site();
+
+				old_site[size_of_vec - 1] = (old_site[size_of_vec - 1] + dx) % Lx;
+				old_site[size_of_vec - 2] = (old_site[size_of_vec - 2] + dy) % Ly;
+				s.set_site(old_site);
+			}
+
+			result.push_back(std::move(translated));
+		}
+	}
+
+	return result;
+}
 class LatticeBase
 {
 public:
@@ -15,6 +46,7 @@ public:
 	int Ly_;
 	int Lx_;
 	TI_map_type TI_map_;
+	std::map<std::string, int> variable_map_;
 	void generate_TI_map(std::map<std::string, op_vec> &mat_terms, std::vector<op_vec> &operators_, int sign_sector_) {};
 	struct G_el
 	{
@@ -30,15 +62,15 @@ public:
 		G_op(std::complex<double> prefac, std::string op) : prefac_(prefac), op_(op) {};
 	};
 
-	G_op generate_G_element_sos(op_vec op1, op_vec op2, int j, int i, TI_map_type &TI_map_)
+	G_op generate_G_element_sos(op_vec op1, op_vec op2, int j, int i)
 	{
 		// Generate all elements of the first row with translation in y direction. j go in y direction
 
 		auto op_dagg_first = dagger_operator(op1);
 
-		auto [fac_dagg, op_dagger] = get_normal_form(op_dagg_first);
+		// auto [fac_dagg, op_dagger] = get_normal_form(op_dagg_first);
 
-		assert(std::abs(fac_dagg.imag()) < 1e-9);
+		// assert(std::abs(fac_dagg.imag()) < 1e-9);
 		op_vec new_op_y;
 		op_vec new_op;
 		if (j > 0)
@@ -58,14 +90,18 @@ public:
 		{
 			new_op = new_op_y;
 		}
-		auto v_x = op_dagger;
+		auto v_x = op_dagg_first;
 
 		v_x.insert(v_x.end(), new_op.begin(), new_op.end());
-		auto [fac, vec] = get_normal_form(v_x);
+		// auto [fac, vec] = get_normal_form(v_x);
+		// std::cout << print_op(v_x) << std::endl;
+		auto [fac, nf] = get_normal_form(v_x);
 
-		auto [ti_key, ti_val] = TI_map_.at(print_op(vec));
+		auto [ti_key, ti_val] = TI_map_.at(print_op(nf));
+		// std::cout << "end" << std::endl;
+		//  assert(fac == ti_val);std::cout<<"start"<<std::endl;
 
-		cpx total_fac = fac; // fac*ti_val;
+		cpx total_fac = fac * ti_val;
 		return G_op(total_fac, ti_key);
 	}
 };
@@ -76,6 +112,9 @@ public:
 	std::string permuts_;
 	// sign symmetry of the Hamiltonian
 	std::string signsym_;
+	basis_structure states_;
+	// vector in which all elements found while looking for translation invariance will be added and flushed (reset ) once an element is added
+	std::vector<op_vec> flush_vector;
 
 	bool bilayer_;
 	bool square_;
@@ -103,232 +142,518 @@ public:
 			std::cout << "sign symmetrie error" << std::endl;
 		}
 	};
-	template <typename container>
-	std::pair<bool, std::string> check_if_operator_exists(op_vec op, container &mat_terms, bool rdm_check = false)
+	void flush(op_vec op_key)
 	{
-		// rdm_check check if exist, if not print something
-		//  check if the operator is contained in functions
-		// returs if_found, and where
-		if (op.size() < 1)
+
+		auto [fac_key, nf_key] = get_normal_form(op_key);
+		// if (print_op(nf_key) == "s_[x,(0,0)]s_[z,(1,0)]s_[z,(0,1)]s_[x,(3,3)]")
+		// {
+		// 	std::cout << "found " << std::endl;
+		// 	exit(3);
+		// }
+
+		for (auto &op : flush_vector)
+		{
+			// std::cout << print_op(op) << std::endl;
+			auto [fac, nf] = get_normal_form(op);
+
+			TI_map_.insert({print_op(nf),
+							{print_op(nf_key), std::conj(fac) * fac_key}});
+		}
+
+		flush_vector.clear();
+	};
+	bool check_operator_translation(op_vec op)
+	{
+
+		bool found = false;
+
+		auto all_t = all_translations(op, Lx_, Ly_);
+		auto [fac_op, nf_op] = get_normal_form(op);
+
+		for (const auto &op_t : all_t)
 		{
 
-			auto it = mat_terms.find(print_op(op));
-			if (it != mat_terms.end())
+			auto [fac, nf] = get_normal_form(op_t);
+			auto it = TI_map_.find(print_op(nf));
+			flush_vector.push_back(op_t);
+			if (it != TI_map_.end())
 			{
-				return {true, print_op(op)};
+
+				TI_map_.insert({print_op(nf_op),
+								{it->second.first, std::conj(fac_op) * fac}});
+				// flush(it->second.first, fac);
+
+				return true;
 			}
 			else
 			{
-				return {false, print_op(op)};
+
+				found = check_additional_symmetries(op, op_t);
 			}
 		}
-		if (signsym_ == "xyz")
+
+		return found;
+	}
+	bool check_permutation_symm(op_vec op_org, op_vec op)
+	{
+		std::set<op_vec> all_p;
+		auto [fac_org, nf_org] = get_normal_form(op_org);
+		if (permuts_ == "xyz" or permuts_ == "yxz" or permuts_ == "zxy" or permuts_ == "zyx")
 		{
-			if (is_zero_signsym_xyz(op))
+			all_p = generate_all_permutations_xyz(op);
+		}
+		else if (permuts_ == "xy")
+		{
+			all_p = generate_all_permutations_xy(op);
+		}
+		else if (permuts_ == "None")
+		{
+			all_p.insert(op);
+		}
+		for (auto op_p : all_p)
+		{
+			auto [fac, nf] = get_normal_form(op_p);
+			auto it = TI_map_.find(print_op(nf));
+			// if (fac != fac_org)
+			// {
+			// 	std::cout << "fac different" << std::endl;
+			// }
+			if (it != TI_map_.end())
 			{
 
-				if (mat_terms.find("0") != mat_terms.end())
+				TI_map_.insert({print_op(nf_org),
+								{it->second.first, std::conj(fac_org) * fac}});
+				// flush(it->second.first, fac);
+				return true;
+			}
+			else
+			{
+				flush_vector.push_back(op_p);
+			}
+		}
+		return false;
+	}
+	bool check_additional_symmetries(op_vec op_org, op_vec op)
+	{
+		auto [fac_org, nf_org] = get_normal_form(op_org);
+		bool found = false;
+		if (square_)
+		{
+			auto dsvec = generate_all_d8(op, Lx_);
+			for (auto &d8s : dsvec)
+			{
+				auto [fac, nf] = get_normal_form(d8s);
+				auto it = TI_map_.find(print_op(nf));
+
+				auto mirrored_ds8 = mirror(d8s);
+
+				auto [fac_mir, nf_mir] = get_normal_form(mirrored_ds8);
+
+				if (it != TI_map_.end())
 				{
 
-					return {true, "0"};
+					TI_map_.insert({print_op(nf_org),
+									{it->second.first, std::conj(fac_org) * fac}});
+
+					return true;
 				}
 				else
 				{
-
-					return {false, "0"};
+					flush_vector.push_back(d8s);
 				}
+				auto it_mirrored = TI_map_.find(print_op(nf_mir));
+				if (it_mirrored != TI_map_.end())
+				{
+
+					TI_map_.insert({print_op(nf_org),
+									{it_mirrored->second.first, std::conj(fac_org) * fac_mir}});
+
+					return true;
+				}
+				else
+				{
+					flush_vector.push_back(mirrored_ds8);
+				}
+
+				found = check_permutation_symm(op_org, d8s);
+
+				if (found)
+				{
+					return found;
+				}
+
+				found = check_permutation_symm(op_org, mirrored_ds8);
+
+				if (found)
+				{
+					return found;
+				}
+
+				if (bilayer_)
+				{
+					auto op_flip_layer = flip_layer((d8s));
+					auto [fac_flip, nf_flip] = get_normal_form(op_flip_layer);
+					auto it_flip = TI_map_.find(print_op(nf_flip));
+					if (it_flip != TI_map_.end())
+					{
+
+						TI_map_.insert({print_op(nf_org),
+										{it->second.first, std::conj(fac_org) * fac_flip}});
+
+						return true;
+					}
+					else
+					{
+						flush_vector.push_back(op_flip_layer);
+					}
+					found = check_permutation_symm(op_org, op_flip_layer);
+
+					if (found)
+					{
+						return found;
+					}
+
+					auto op_flip_layer_mirr = flip_layer(mirrored_ds8);
+					auto [fac_flip_mirr, nf_flip_mirr] = get_normal_form(op_flip_layer_mirr);
+					auto it_flip_mirr = TI_map_.find(print_op(nf_flip_mirr));
+					if (it_flip_mirr != TI_map_.end())
+					{
+
+						TI_map_.insert({print_op(nf_org),
+										{it->second.first, std::conj(fac_org) * fac_flip_mirr}});
+
+						return true;
+					}
+					else
+					{
+						flush_vector.push_back(op_flip_layer_mirr);
+					}
+					found = check_permutation_symm(op_org, op_flip_layer_mirr);
+
+					if (found)
+					{
+						return found;
+					}
+				}
+			}
+		}
+		else
+		{
+			found = check_permutation_symm(op_org, op);
+			if (found)
+			{
+				return found;
+			}
+			found = check_permutation_symm(op_org, mirror(op));
+			if (found)
+			{
+				return found;
+			}
+		}
+
+		return false;
+	}
+
+	std::pair<std::string, std::complex<double>> get_key(op_vec spin_op)
+	{
+
+		auto [fac, nf] = get_normal_form(spin_op);
+
+		std::string key = print_op(nf);
+
+		if (signsym_ == "xyz")
+		{
+			if (is_zero_signsym_xyz(nf))
+			{
+				key = "0";
+			}
+		}
+		else if (signsym_ == "xy")
+		{
+			if (is_zero_signsym_xy(nf))
+			{
+				key = "0";
 			}
 		}
 		else if (signsym_ == "y")
 		{
-			if (is_zero_signsym_y(op))
+			if (is_zero_signsym_y(nf))
 			{
+				key = "0";
+			}
+		}
+		else
+		{
+		}
+		return std::pair<std::string, std::complex<double>>(key, fac);
+	}
+	void generate_TI_map()
+	{
 
-				if (mat_terms.find("0") != mat_terms.end())
+		for (auto sector : states_)
+		{
+			std::cout << "sector " << sector.first << std::endl;
+			auto operators = sector.second;
+			for (auto it1 = operators.begin(); it1 != operators.end(); ++it1)
+			{
+				auto op = *it1;
+				// std::cout << " op 1: " << print_op(*it1) << std::endl;
+
+				bool found = check_operator_translation(op);
+				if (found == false)
+				{
+					auto [key, fac] = get_key(op);
+					auto [fac_, nf] = get_normal_form(op);
+					TI_map_.insert({print_op(nf),
+									{key, 1}});
+				}
+				for (auto it2 = it1; it2 != operators.end(); ++it2)
 				{
 
-					return {true, "0"};
+					auto op_dagg_first = dagger_operator(op);
+					auto all_t = all_translations(*it2, Lx_, Ly_);
+					for (auto &op_right : all_t)
+					{
+						flush_vector.clear();
+						auto v_x = op_dagg_first;
+
+						v_x.insert(v_x.end(), op_right.begin(), op_right.end());
+
+						bool found = check_operator_translation(v_x);
+
+						if (found == false)
+						{
+							// auto [key, fac] = get_key(v_x);
+
+							auto [fac_, nf] = get_normal_form(v_x);
+
+							TI_map_.insert({print_op(nf),
+											{print_op(nf), 1}});
+
+							flush(v_x);
+						}
+					}
+				}
+			}
+		}
+		// for (auto a : TI_map_)
+		// {
+		// 	std::cout << a.first << " -> " << a.second.first << std::endl;
+		// }
+
+		return;
+	}
+	void make_map()
+	{
+
+		std::set<std::string> unique_values;
+
+		for (const auto &[k, v] : TI_map_)
+		{
+
+			unique_values.insert(v.first);
+		}
+
+		int i = 0;
+		for (auto a : unique_values)
+		{
+
+			variable_map_.insert({a, i});
+			i += 1;
+		}
+
+		return;
+	}
+
+	std::map<std::string, Matrix::t> generate_rdms_primal_cp(rdm_operator sites, std::vector<int> offset)
+	{
+
+		std::map<std::string, Matrix::t> sigmas_temp_;
+		std::map<std::string, mat_type> rdms_eigen_;
+		mat_type pauliI = mat_type::Zero(2, 2);
+		pauliI(0, 0) = 1;
+		pauliI(1, 1) = 1;
+
+		// pauliI.makeCompressed();
+		mat_type pauliZ = mat_type::Zero(2, 2);
+		pauliZ(0, 0) = 1;
+		pauliZ(1, 1) = -1;
+
+		// pauliZ.makeCompressed();
+		mat_type pauliX = mat_type::Zero(2, 2);
+		pauliX(0, 1) = 1;
+		pauliX(1, 0) = 1;
+
+		mat_type pauliY = mat_type::Zero(2, 2);
+		pauliY(0, 1) = std::complex<double>(0, -1);
+		pauliY(1, 0) = std::complex<double>(0, 1);
+		int degree = sites.size();
+		std::vector<std::string> terms;
+		std::map<std::string, mat_type> sigma_map;
+
+		sigma_map.insert({"1", pauliI});
+		sigma_map.insert({"x", pauliX});
+		sigma_map.insert({"y", pauliY});
+		sigma_map.insert({"z", pauliZ});
+
+		auto dirs = std::vector<std::string>{"1", "x", "y", "z"};
+		std::set<std::string> tots;
+
+		for (auto d1 : dirs)
+		{
+
+			if (degree == 1)
+			{
+				tots.insert(d1);
+				continue;
+			}
+			for (auto d2 : dirs)
+			{
+				if (degree == 2)
+				{
+					tots.insert(d1 + d2);
+					continue;
+				}
+				for (auto d3 : dirs)
+				{
+					if (degree == 3)
+					{
+						tots.insert(d1 + d2 + d3);
+						continue;
+					}
+					for (auto d4 : dirs)
+					{
+						if (degree == 4)
+						{
+							tots.insert(d1 + d2 + d3 + d4);
+							continue;
+						}
+						for (auto d5 : dirs)
+						{
+							if (degree == 5)
+							{
+								tots.insert(d1 + d2 + d3 + d4 + d5);
+								continue;
+							}
+							for (auto d6 : dirs)
+							{
+								if (degree == 6)
+								{
+									tots.insert(d1 + d2 + d3 + d4 + d5 + d6);
+									continue;
+								}
+								for (auto d7 : dirs)
+								{
+									if (degree == 7)
+									{
+										tots.insert(d1 + d2 + d3 + d4 + d5 + d6 + d7);
+										continue;
+									}
+									for (auto d8 : dirs)
+									{
+										if (degree == 8)
+										{
+											tots.insert(d1 + d2 + d3 + d4 + d5 + d6 + d7 + d8);
+											continue;
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		int dim = std::pow(2, degree);
+
+		std::vector<Expression::t> matrices;
+
+		double prefac = 1;
+
+		for (auto t : tots)
+		{
+
+			mat_type mat;
+			op_vec state;
+
+			for (int i = 0; i < t.size(); i++)
+			{
+
+				std::string key = t.substr(i, 1);
+
+				if (key != "1")
+				{
+					state.push_back(spin_op(key, sites.at(i), offset));
+				}
+				if (i == 0)
+				{
+					mat = sigma_map[key];
 				}
 				else
 				{
 
-					return {false, "0"};
+					mat = Eigen::KroneckerProduct(mat, sigma_map[key]).eval();
 				}
 			}
-		}
-		auto all_ty = generate_all_translations_y(op, Ly_, 1);
 
-		bool found = false;
-
-		for (auto op_ty : all_ty)
-		{
-			auto all_t = generate_all_translations(op_ty, Lx_);
-
-			for (auto op_t : all_t)
+			// if matrix element exists I only
+			if (print_op(state) == "1")
 			{
-				auto it = mat_terms.find(print_op(op_t));
-				if (it != mat_terms.end())
+
+				mat = mat / std::
+								pow(2, degree);
+				if (rdms_eigen_.find("1") != rdms_eigen_.end())
 				{
-
-					// TI_map_.insert({print_op(op), {it->first, 1}});
-					return {true, it->first};
+					rdms_eigen_["1"] += mat;
 				}
-				std::vector<op_vec> all_p;
-				if (permuts_ == "xyz" or permuts_ == "yxz" or permuts_ == "zxy" or permuts_ == "zyx")
+				else
 				{
-					all_p = generate_all_permutations_xyz(op_t);
+					rdms_eigen_.insert({"1", mat});
 				}
-				else if (permuts_ == "xy")
-				{
-					all_p = generate_all_permutations_xy(op_t);
-				}
-				else if (permuts_ == "None")
-				{
-					all_p.push_back(op_t);
-				}
-				for (auto op_p : all_p)
-				{
-					if (!square_)
-					{
-						auto it = mat_terms.find(print_op(op_p));
-						if (it != mat_terms.end())
-						{
-
-							return {true, it->first};
-						}
-					}
-					else
-					{
-						auto all_d8sym = generate_all_d8(op_p, Lx_);
-
-						for (auto d8s : all_d8sym)
-						{
-							auto it = mat_terms.find(print_op(d8s));
-							if (it != mat_terms.end())
-							{
-
-								return {true, it->first};
-							}
-
-							auto op_mirror = mirror(d8s);
-
-							it = mat_terms.find(print_op(op_mirror));
-							if (it != mat_terms.end())
-							{
-
-								return {true, it->first};
-							}
-							if (bilayer_)
-							{
-								auto op_flip_layer = flip_layer(d8s);
-								it = mat_terms.find(print_op(op_flip_layer));
-								if (it != mat_terms.end())
-								{
-
-									return {true, it->first};
-								}
-								op_flip_layer = flip_layer(op_mirror);
-								it = mat_terms.find(print_op(op_flip_layer));
-								if (it != mat_terms.end())
-								{
-
-									return {true, it->first};
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-		if (rdm_check)
-		{
-
-			std::cout << print_op(op) << " in rdm did not exist" << std::endl;
-			assert(false);
-		}
-		return {false, print_op(op)};
-	}
-	void generate_TI_map(std::map<std::string, op_vec> &mat_terms, std::vector<op_vec> &operators_, int sign_sector)
-	{
-		//     // generate all elemenets with translation symmetrie in x and y direction
-
-		int index = 0;
-		for (auto it1 = operators_.begin(); it1 != operators_.end(); ++it1)
-		{
-			auto [fac, vec] = get_normal_form(*it1);
-
-			auto [found, op_string] = check_if_operator_exists(vec, mat_terms);
-			if (found)
-			{
-				TI_map_.insert({print_op(vec), {op_string, 1}});
 			}
 			else
 			{
-				// std::cout << "called" << std::endl;
-				mat_terms.insert({print_op(vec), vec});
-				TI_map_.insert({print_op(vec), {print_op(vec), 1}});
-			}
 
-			// diagonal elements
+				// auto [key, fac] = this->lattice_.get_key(state);
 
-			for (auto it2 = it1; it2 != operators_.end(); ++it2)
-			{
-
-				// if(it2!=it1)
+				auto [fac, nf] = get_normal_form(state);
+				auto it = TI_map_.find(print_op(nf));
+				if (it != TI_map_.end())
 				{
-					// std::cout<<"xx"<<std::endl;
-					auto op_cp = *it2;
+				}
+				else
+				{
+					std::cout << "not found" << std::endl;
+				}
+				auto key = it->second.first;
+				if (key == "0")
+				{
+				}
+				{
+					// 	//     // assert(std::abs((fac * coeff).imag()) < 1e-9);
+					mat = mat * (fac * it->second.second).real() / std::pow(2, degree);
 
-					for (int n = 0; n < Ly_; n++)
+					if (rdms_eigen_.find(print_op(nf)) != rdms_eigen_.end())
 					{
-						for (int m = 0; m < Lx_; m++)
-						{
-							op_vec new_op_y;
-							op_vec new_op;
-							if (n > 0)
-							{
 
-								new_op_y = translation_y(op_cp, n, Ly_);
-							}
-							else
-							{
-								new_op_y = op_cp;
-							}
+						rdms_eigen_[print_op(nf)] += mat;
+					}
+					else
+					{
 
-							if (m > 0)
-							{
-
-								new_op = translation(new_op_y, m, Lx_);
-							}
-							else
-							{
-								new_op = new_op_y;
-							}
-
-							auto op_dagger = dagger_operator(*it1);
-							auto [fac, v_x] = get_normal_form(op_dagger);
-							assert(std::abs(fac.imag() < 1e-9));
-
-							v_x.insert(v_x.end(), new_op.begin(), new_op.end());
-
-							auto [fac_tot, vec_tot] = get_normal_form(v_x);
-
-							auto [found, op_string] = check_if_operator_exists(vec_tot, mat_terms);
-							if (found)
-							{
-								TI_map_.insert({print_op(vec_tot), {op_string, 1}});
-							}
-							else
-							{
-								mat_terms.insert({op_string, vec_tot});
-								TI_map_.insert({print_op(vec_tot), {op_string, 1}});
-							}
-						}
+						rdms_eigen_.insert({print_op(nf), mat});
 					}
 				}
 			}
 		}
+		// convert to mosek format
+		for (auto eigen_matrix : rdms_eigen_)
+		{
+			auto Alpha = get_sparse_from_eigen(eigen_matrix.second);
 
-		return;
+			sigmas_temp_.insert({eigen_matrix.first, Alpha});
+		}
+		return sigmas_temp_;
 	}
 };

@@ -219,133 +219,224 @@ rdms_struct translation_invariant_rdms_4th(int Lx, int Ly)
 
   return data;
 }
-
-op_vec apply_group_trafo(op_vec op, Eigen::Matrix2i mat, int L)
+op_vec apply_group_trafo(const op_vec &op, const Eigen::Matrix2i &mat, int L)
 {
-
   op_vec vec;
-  for (int i = 0; i < op.size(); i++)
+  vec.reserve(op.size()); // preallocate
+
+  for (const auto &o : op)
   {
+    // Access last two coordinates directly
+    auto site = o.get_site();
+    int n = o.get_site().size();
+    int x = site[n - 1];
+    int y = site[n - 2];
 
-    int x_cor = op[i].site_[op[i].site_.size() - 1];
-    int y_cor = op[i].site_[op[i].site_.size() - 2];
-    if (x_cor > L / 2)
-    {
-      x_cor = -L + x_cor;
-    }
-    if (y_cor > L / 2)
-    {
-      y_cor = -L + y_cor;
-    }
+    // Wrap around L/2
+    if (x > L / 2)
+      x -= L;
+    if (y > L / 2)
+      y -= L;
 
-    Eigen::Vector2i location(x_cor, y_cor);
+    // Apply linear transformation manually (avoid Eigen small vector overhead)
+    int x_new = mat(0, 0) * x + mat(0, 1) * y;
+    int y_new = mat(1, 0) * x + mat(1, 1) * y;
 
-    auto new_location = mat * location;
-    int x_cor_new = (L + new_location(0)) % L;
-    int y_cor_new = (L + new_location(1)) % L;
+    // Map back to [0, L)
+    x_new = (x_new + L) % L;
+    y_new = (y_new + L) % L;
 
-    auto sites_new = op[i].site_;
-    sites_new[op[i].site_.size() - 1] = x_cor_new;
-    sites_new[op[i].site_.size() - 2] = y_cor_new;
-    vec.push_back(spin_op(op[i].dir_, sites_new, op[i].offset_));
+    // Create new sites vector (reuse existing storage)
+    auto sites_new = o.get_site();
+    sites_new[n - 1] = x_new;
+    sites_new[n - 2] = y_new;
+
+    vec.emplace_back(o.get_dir(), std::move(sites_new), o.offset_);
   }
+
   return vec;
 }
 
-std::vector<op_vec> generate_all_d8(op_vec op, int L)
+// op_vec apply_group_trafo(op_vec op, Eigen::Matrix2i mat, int L)
+// {
+
+//   op_vec vec;
+//   for (int i = 0; i < op.size(); i++)
+//   {
+
+//     int x_cor = op[i].site_[op[i].site_.size() - 1];
+//     int y_cor = op[i].site_[op[i].site_.size() - 2];
+//     if (x_cor > L / 2)
+//     {
+//       x_cor = -L + x_cor;
+//     }
+//     if (y_cor > L / 2)
+//     {
+//       y_cor = -L + y_cor;
+//     }
+
+//     Eigen::Vector2i location(x_cor, y_cor);
+
+//     auto new_location = mat * location;
+//     int x_cor_new = (L + new_location(0)) % L;
+//     int y_cor_new = (L + new_location(1)) % L;
+
+//     auto sites_new = op[i].site_;
+//     sites_new[op[i].site_.size() - 1] = x_cor_new;
+//     sites_new[op[i].site_.size() - 2] = y_cor_new;
+//     vec.push_back(spin_op(op[i].dir_, sites_new, op[i].offset_));
+//   }
+//   return vec;
+// }
+template <class F>
+inline void for_each_d8(const op_vec &op, int L, F &&f)
+{
+  const Eigen::Matrix2i a = (Eigen::Matrix2i() << 0, -1,
+                             1, 0)
+                                .finished();
+
+  const Eigen::Matrix2i x = (Eigen::Matrix2i() << 1, 0,
+                             0, -1)
+                                .finished();
+
+  Eigen::Matrix2i a_pow = Eigen::Matrix2i::Identity();
+
+  for (int k = 0; k < 4; ++k)
+  {
+    f(apply_group_trafo(op, a_pow, L));
+    a_pow = a * a_pow;
+  }
+
+  a_pow = Eigen::Matrix2i::Identity();
+  for (int k = 0; k < 4; ++k)
+  {
+    f(apply_group_trafo(op, a_pow * x, L));
+    a_pow = a * a_pow;
+  }
+}
+
+std::vector<op_vec> generate_all_d8(const op_vec &op, int L)
 {
   std::vector<op_vec> all_d8;
-  Eigen::Matrix2i a(2, 2);
-  a(0, 0) = 0;
-  a(0, 1) = -1;
-  a(1, 0) = 1;
-  a(1, 1) = 0;
+  all_d8.reserve(8);
 
-  Eigen::Matrix2i x;
-  x(0, 0) = 1;
-  x(0, 1) = 0;
-  x(1, 0) = 0;
-  x(1, 1) = -1;
+  // Generators of D8
+  const Eigen::Matrix2i a = (Eigen::Matrix2i() << 0, -1,
+                             1, 0)
+                                .finished(); // rotation by pi/2
 
-  auto [fac, vec] = get_normal_form(op);
-  // unit element
-  all_d8.push_back(vec);
-  // a (rotation pi/2)
-  all_d8.push_back(apply_group_trafo(vec, a, L));
-  // a^2
-  all_d8.push_back(apply_group_trafo(vec, a * a, L));
+  const Eigen::Matrix2i x = (Eigen::Matrix2i() << 1, 0,
+                             0, -1)
+                                .finished(); // reflection
 
-  // a^3
-  all_d8.push_back(apply_group_trafo(vec, a * a * a, L));
+  // auto [fac, vec] = get_normal_form(op);
 
-  // // x
-  all_d8.push_back(apply_group_trafo(vec, x, L));
+  // Precompute powers of a
+  const Eigen::Matrix2i a2 = a * a;
+  const Eigen::Matrix2i a3 = a2 * a;
 
-  // ax
-  all_d8.push_back(apply_group_trafo(vec, a * x, L));
+  // Identity
+  all_d8.push_back(op);
 
-  // a^2x
+  // Rotations
+  all_d8.push_back(apply_group_trafo(op, a, L));  // a
+  all_d8.push_back(apply_group_trafo(op, a2, L)); // a^2
+  all_d8.push_back(apply_group_trafo(op, a3, L)); // a^3
 
-  all_d8.push_back(apply_group_trafo(vec, a * a * x, L));
-
-  // a^3x
-  all_d8.push_back(apply_group_trafo(vec, a * a * a * x, L));
+  // Reflections
+  all_d8.push_back(apply_group_trafo(op, x, L));      // x
+  all_d8.push_back(apply_group_trafo(op, a * x, L));  // ax
+  all_d8.push_back(apply_group_trafo(op, a2 * x, L)); // a^2 x
+  all_d8.push_back(apply_group_trafo(op, a3 * x, L)); // a^3 x
 
   return all_d8;
 }
 
-op_vec translation_y(op_vec op, int j, int L)
+// std::vector<op_vec> generate_all_d8(op_vec op, int L)
+// {
+//   std::vector<op_vec> all_d8;
+//   Eigen::Matrix2i a(2, 2);
+//   a(0, 0) = 0;
+//   a(0, 1) = -1;
+//   a(1, 0) = 1;
+//   a(1, 1) = 0;
+
+//   Eigen::Matrix2i x;
+//   x(0, 0) = 1;
+//   x(0, 1) = 0;
+//   x(1, 0) = 0;
+//   x(1, 1) = -1;
+
+//   auto [fac, vec] = get_normal_form(op);
+//   // unit element
+//   all_d8.push_back(vec);
+//   // a (rotation pi/2)
+//   all_d8.push_back(apply_group_trafo(vec, a, L));
+//   // a^2
+//   all_d8.push_back(apply_group_trafo(vec, a * a, L));
+
+//   // a^3
+//   all_d8.push_back(apply_group_trafo(vec, a * a * a, L));
+
+//   // // x
+//   all_d8.push_back(apply_group_trafo(vec, x, L));
+
+//   // ax
+//   all_d8.push_back(apply_group_trafo(vec, a * x, L));
+
+//   // a^2x
+
+//   all_d8.push_back(apply_group_trafo(vec, a * a * x, L));
+
+//   // a^3x
+//   all_d8.push_back(apply_group_trafo(vec, a * a * a * x, L));
+
+//   return all_d8;
+// }
+template <typename operator_class>
+operator_class translation_y(operator_class op, int j, int L)
 {
-  op_vec vec;
+  operator_class vec;
   for (int i = 0; i < op.size(); i++)
   {
     vec.push_back(op[i].get_translated_y(j, L));
   }
   return vec;
 }
-
-std::vector<op_vec> generate_all_translations_y(op_vec op, int L, int inc = 1)
+template <typename operator_class>
+std::vector<operator_class> generate_all_translations_y(operator_class op, int L, int inc = 1)
 {
 
-  std::vector<op_vec> all_T;
+  std::vector<operator_class> all_T;
   if (print_op(op) == "1")
   {
     all_T.push_back(op);
     return all_T;
   }
 
-  auto [fac, vec] = get_normal_form(op);
-  all_T.push_back(vec);
+  all_T.push_back(op);
   for (int i = 1; i < L; i += inc)
   {
     auto new_op = translation_y(op, i, L);
 
-    //      auto coeff=bubbleSort(new_op, new_op.size());
-    auto [fac, vec] = get_normal_form(new_op);
-
-    if (std::abs(fac.imag()) > 1e-9 or std::abs(fac.real() - 1) > 1e-9)
-    {
-
-      std::cout << "error in all trans" << std::endl;
-      assert(std::abs(fac.imag()) > 1e-9);
-      assert(std::abs(fac.real() - 1) > 1e-9);
-    }
-    all_T.push_back(vec);
+    all_T.push_back(new_op);
   }
   return all_T;
 }
-op_vec translation(op_vec op, int j, int L)
+template <typename operator_class>
+operator_class translation(operator_class op, int j, int L)
 {
-  op_vec vec;
+  operator_class vec;
   for (int i = 0; i < op.size(); i++)
   {
     vec.push_back(op[i].get_translated(j, L));
   }
   return vec;
 }
-std::vector<op_vec> generate_all_translations(op_vec op, int L)
+template <typename operator_class>
+std::vector<operator_class> generate_all_translations(operator_class op, int L)
 {
-  std::vector<op_vec> all_T;
+  std::vector<operator_class> all_T;
 
   if (print_op(op) == "1")
   {
@@ -353,21 +444,13 @@ std::vector<op_vec> generate_all_translations(op_vec op, int L)
     return all_T;
   }
 
-  auto [fac, vec] = get_normal_form(op);
-  all_T.push_back(vec);
+  all_T.push_back(op);
 
   for (int i = 1; i < L; i++)
   {
     auto new_op = translation(op, i, L);
     //    do we need auto
-    auto [fac, vec] = get_normal_form(new_op);
-    if (std::abs(fac.imag()) > 1e-9 or std::abs(fac.real() - 1) > 1e-9)
-    {
-      std::cout << "error in all trans" << std::endl;
-      assert(std::abs(fac.imag()) > 1e-9);
-      assert(std::abs(fac.real() - 1) > 1e-9);
-    }
-    all_T.push_back(vec);
+    all_T.push_back(new_op);
   }
   return all_T;
 }
@@ -379,16 +462,16 @@ std::pair<int, int> get_sec(op_vec op)
   int syz = 1;
   for (auto a : op)
   {
-    if (a.dir_ == "x")
+    if (a.get_dir() == "x")
     {
       sxy *= -1;
     }
-    if (a.dir_ == "y")
+    if (a.get_dir() == "y")
     {
       syz *= -1;
       sxy *= -1;
     }
-    if (a.dir_ == "z")
+    if (a.get_dir() == "z")
     {
       syz *= -1;
     }
@@ -482,8 +565,8 @@ struct mom_ref
   op_vec vec_;
   mom_ref() = default;
 };
-
-bool is_zero_signsym_xyz(op_vec op)
+template <typename operator_vector>
+bool is_zero_signsym_xyz(operator_vector op)
 {
 
   std::vector<std::string> dirs = {"x", "y", "z"};
@@ -493,7 +576,7 @@ bool is_zero_signsym_xyz(op_vec op)
     for (auto a : op)
     {
 
-      if (a.dir_ == dir_)
+      if (a.get_dir() == dir_)
       {
         fac *= -1;
       }
@@ -507,7 +590,8 @@ bool is_zero_signsym_xyz(op_vec op)
 
   return false;
 }
-bool is_zero_signsym_xy(op_vec op)
+template <typename operator_vector>
+bool is_zero_signsym_xy(operator_vector op)
 {
 
   std::vector<std::string> dirs = {"x", "y"};
@@ -517,7 +601,7 @@ bool is_zero_signsym_xy(op_vec op)
     for (auto a : op)
     {
 
-      if (a.dir_ == dir_)
+      if (a.get_dir() == dir_)
       {
         fac *= -1;
       }
@@ -531,7 +615,8 @@ bool is_zero_signsym_xy(op_vec op)
 
   return false;
 }
-bool is_zero_signsym_y(op_vec op)
+template <typename operator_vector>
+bool is_zero_signsym_y(operator_vector op)
 {
 
   std::vector<std::string> dirs = {"y"};
@@ -541,7 +626,7 @@ bool is_zero_signsym_y(op_vec op)
     for (auto a : op)
     {
 
-      if (a.dir_ == dir_)
+      if (a.get_dir() == dir_)
       {
         fac *= -1;
       }
@@ -571,10 +656,10 @@ op_vec mirror(op_vec op)
   {
     vec.push_back(op[i].get_mirror());
   }
-  auto [fac, nf] = get_normal_form(vec);
+  // auto [fac, nf] = get_normal_form(vec);
 
-  assert(fac.imag() < 1e-9);
-  return nf;
+  // assert(fac.imag() < 1e-9);
+  return vec;
 }
 op_vec flip_layer(op_vec op)
 {
@@ -583,10 +668,10 @@ op_vec flip_layer(op_vec op)
   {
     vec.push_back(op[i].get_flipped_layer());
   }
-  auto [fac, nf] = get_normal_form(vec);
+  // auto [fac, nf] = get_normal_form(vec);
 
-  assert(fac.imag() < 1e-9);
-  return nf;
+  // assert(fac.imag() < 1e-9);
+  return vec;
 }
 void findPermutations(char a[], int n)
 {
@@ -601,11 +686,11 @@ void findPermutations(char a[], int n)
     display(a, n);
   } while (std::next_permutation(a, a + n));
 }
-std::vector<op_vec> generate_all_permutations_xy(op_vec op)
+std::set<op_vec> generate_all_permutations_xy(op_vec op)
 {
 
-  std::vector<op_vec> all_P;
-  all_P.push_back(op);
+  std::set<op_vec> all_P;
+  all_P.insert(op);
 
   std::vector<std::map<std::string, std::string>> permutations(1);
   permutations[0].insert({"x", "y"});
@@ -615,53 +700,119 @@ std::vector<op_vec> generate_all_permutations_xy(op_vec op)
   for (auto &a : permutations)
   {
     auto new_op = op;
-    std::for_each(new_op.begin(), new_op.end(), [a](spin_op &n)
+    std::for_each(new_op.begin(), new_op.end(), [a](spin_op n)
                   {
-       auto old_d=n.dir_;
-       n.dir_=a.at(old_d); });
-    all_P.push_back(new_op);
+       auto old_d=n.get_dir();
+       n.set_dir(a.at(old_d)); });
+    // auto [fac, vec] = get_normal_form(new_op);
+    // assert(fac.imag() < 1e-9);
+    all_P.insert(new_op);
   }
 
   return all_P;
 }
-std::vector<op_vec> generate_all_permutations_xyz(op_vec op)
+std::string apply_permutation(
+    const std::string &s,
+    const std::map<std::string, std::string> &perm)
+{
+  std::string out = s;
+  for (char &c : out)
+  {
+    auto it = perm.find(std::string(1, c));
+    if (it != perm.end())
+      c = it->second[0];
+  }
+  return out;
+}
+// std::vector<op_vec> generate_all_permutations_xyz_2(op_vec op)
+// {
+
+//   std::vector<op_vec> all_P;
+//   // auto [fac, vec] = get_normal_form(op);
+//   // assert(fac.imag() < 1e-9);
+
+//   std::vector<std::map<std::string, std::string>> permutations(4);
+
+//   //  trivial permutation
+//   all_P.push_back(op);
+//   // permutations[0].insert({"x", "x"});
+//   // permutations[0].insert({"y", "z"});
+//   // permutations[0].insert({"z", "y"});
+
+//   permutations[0].insert({"x", "y"});
+//   permutations[0].insert({"y", "x"});
+//   permutations[0].insert({"z", "z"});
+
+//   permutations[1].insert({"x", "y"});
+//   permutations[1].insert({"y", "z"});
+//   permutations[1].insert({"z", "x"});
+
+//   permutations[2].insert({"x", "z"});
+//   permutations[2].insert({"y", "x"});
+//   permutations[2].insert({"z", "y"});
+
+//   permutations[3].insert({"x", "z"});
+//   permutations[3].insert({"y", "y"});
+//   permutations[3].insert({"z", "x"});
+
+//   for (auto &a : permutations)
+//   {
+
+//     auto new_op = op;
+//     std::for_each(new_op.begin(), new_op.end(), [a](spin_op &n)
+//                   {
+//        auto old_d=n.get_dir();
+//        n.set_dir(a.at(old_d)); });
+//     // auto [fac, vec] = get_normal_form(new_op);
+//     // assert(fac.imag() < 1e-9);
+//     all_P.push_back(new_op);
+//   }
+
+//   return all_P;
+// }
+
+std::set<op_vec> generate_all_permutations_xyz(op_vec op)
 {
 
-  std::vector<op_vec> all_P;
-  auto [fac, vec] = get_normal_form(op);
-  assert(fac.imag() < 1e-9);
-  all_P.push_back(vec);
-  std::vector<std::map<std::string, std::string>> permutations(5);
-  permutations[0].insert({"x", "x"});
-  permutations[0].insert({"y", "z"});
-  permutations[0].insert({"z", "y"});
+  std::set<op_vec> all_P;
+  // auto [fac, vec] = get_normal_form(op);
+  // assert(fac.imag() < 1e-9);
+
+  std::vector<std::map<std::string, std::string>> permutations(4);
+
+  //  trivial permutation
+  all_P.insert(op);
+  // permutations[0].insert({"x", "x"});
+  // permutations[0].insert({"y", "z"});
+  // permutations[0].insert({"z", "y"});
+
+  permutations[0].insert({"x", "y"});
+  permutations[0].insert({"y", "x"});
+  permutations[0].insert({"z", "z"});
 
   permutations[1].insert({"x", "y"});
-  permutations[1].insert({"y", "x"});
-  permutations[1].insert({"z", "z"});
+  permutations[1].insert({"y", "z"});
+  permutations[1].insert({"z", "x"});
 
-  permutations[2].insert({"x", "y"});
-  permutations[2].insert({"y", "z"});
-  permutations[2].insert({"z", "x"});
+  permutations[2].insert({"x", "z"});
+  permutations[2].insert({"y", "x"});
+  permutations[2].insert({"z", "y"});
 
   permutations[3].insert({"x", "z"});
-  permutations[3].insert({"y", "x"});
-  permutations[3].insert({"z", "y"});
-
-  permutations[4].insert({"x", "z"});
-  permutations[4].insert({"y", "y"});
-  permutations[4].insert({"z", "x"});
+  permutations[3].insert({"y", "y"});
+  permutations[3].insert({"z", "x"});
 
   for (auto &a : permutations)
   {
+
     auto new_op = op;
-    std::for_each(new_op.begin(), new_op.end(), [a](spin_op &n)
+    std::for_each(new_op.begin(), new_op.end(), [a](spin_op n)
                   {
-       auto old_d=n.dir_;
-       n.dir_=a.at(old_d); });
-    auto [fac, vec] = get_normal_form(new_op);
-    assert(fac.imag() < 1e-9);
-    all_P.push_back(vec);
+       auto old_d=n.get_dir();
+       n.set_dir(a.at(old_d)); });
+    // auto [fac, vec] = get_normal_form(new_op);
+    // assert(fac.imag() < 1e-9);
+    all_P.insert(new_op);
   }
 
   return all_P;
@@ -715,8 +866,29 @@ void get_order_one_monomials(basis_structure &states, std::map<std::pair<int, in
 
 void get_order_two_monomials(basis_structure &states, std::map<std::pair<int, int>, int> &map_sec, int Ly, int Lx, int ry, int rx, int starty, int startx, bool use_symm)
 {
-  std::vector<std::string> dirs = {"x", "y", "z"};
 
+  std::vector<std::string> dirs = {"x", "y", "z"};
+  // for (auto s : dirs)
+  // {
+  //   op_vec v0 = {spin_op(s, {0, 0}, {Ly, Lx}), spin_op(s, {1, 0}, {Ly, Lx})};
+
+  //   auto [fac, vec] = get_normal_form(v0);
+
+  //   //           if (use_symm)
+  //   //           {
+  //   add_state_with_symmetries(states, vec, map_sec, Ly, Lx);
+  // }
+
+  // for (auto s : dirs)
+  // {
+  //   op_vec v0 = {spin_op(s, {0, 0}, {Ly, Lx}), spin_op(s, {0, 1}, {Ly, Lx})};
+
+  //   auto [fac, vec] = get_normal_form(v0);
+
+  //   //           if (use_symm)
+  //   //           {
+  //   add_state_with_symmetries(states, vec, map_sec, Ly, Lx);
+  // }
   for (int i = starty; i <= ry; i++)
   {
 
@@ -753,7 +925,10 @@ void get_order_two_monomials(basis_structure &states, std::map<std::pair<int, in
 
 void get_order_three_monomials(basis_structure &states, std::map<std::pair<int, int>, int> &map_sec, int Ly, int Lx, bool use_symm)
 {
+  // op_vec v0 = {spin_op("x", {0, 0}, {Ly, Lx}), spin_op("z", {0, 1}, {Ly, Lx}), spin_op("y", {1, 1}, {Ly, Lx})};
+  // auto [fac, vec] = get_normal_form(v0);
 
+  // add_state_with_symmetries(states, v0, map_sec, Ly, Lx);
   std::vector<std::string> dirs = {"x", "y", "z"};
   for (auto s1 : dirs)
   {

@@ -26,8 +26,7 @@ public:
   Eigen::MatrixXcd &FTx_;
   Eigen::MatrixXcd &FTy_;
 
-  std::map<std::string, int> &total_refs_;
-  momentum_block(Lattice &lattice, std::vector<op_vec> operators, Model::t M, int sign_sector, std::map<std::string, int> &total_refs, Eigen::MatrixXcd &FTy, Eigen::MatrixXcd &FTx, std::string sector_label = "") : lattice_(lattice), operators_(operators), sign_sector_(sign_sector), total_refs_(total_refs), FTy_(FTy), FTx_(FTx)
+  momentum_block(Lattice &lattice, std::vector<op_vec> operators, Model::t M, int sign_sector, Eigen::MatrixXcd &FTy, Eigen::MatrixXcd &FTx, std::string sector_label = "") : lattice_(lattice), operators_(operators), sign_sector_(sign_sector), FTy_(FTy), FTx_(FTx)
   {
     // std::cout << FTx_ << std::endl;
     // std::cout << FTy_ << std::endl;
@@ -54,6 +53,7 @@ public:
   {
     if (sign_sector_ == 0)
     {
+
       initialize_blocks_zero(As);
     }
     else
@@ -97,12 +97,14 @@ public:
     {
       auto op = *it;
       // get normal form
-      auto [coeff, nf] = get_normal_form(op);
+      auto [coeff_, nf] = get_normal_form(op);
       // get translation invariant representation
 
-      auto ti_key = lattice_.TI_map_.at(print_op(nf)).first;
+      // auto ti_key = lattice_.TI_map_.at(print_op(nf)).first;
 
-      auto el = total_refs_.at(ti_key);
+      auto [ti_key, coeff] = lattice_.TI_map_.at(print_op(nf));
+
+      auto el = lattice_.variable_map_.at(ti_key);
 
       if (std::abs(coeff.real()) > 1e-9)
       {
@@ -112,7 +114,8 @@ public:
         As[ti_key][sign_sector_][0][0].add_values({dim_0, i + 1 + dim_0}, 1. / 2 * coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
         As[ti_key][sign_sector_][0][0].add_values({i + 1 + dim_0, dim_0}, 1. / 2 * coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
       }
-      assert(std::abs(coeff.imag()) < 1e-9);
+
+      // assert(std::abs(coeff.imag()) < 1e-9);
 
       i++;
     }
@@ -150,8 +153,11 @@ public:
                 std::complex<double> FT_factor_x = FTx_(pos_x, mat_pos_x);
 
                 //              // to do, correct so that all terms appearing here appear in map
-                auto construct = lattice_.generate_G_element_sos(*it1, *it2, pos_y, pos_x, lattice_.TI_map_);
-                std::complex<double> total_prefactor = construct.prefac_ * FT_factor_x * FT_factor_y;
+
+                auto construct = lattice_.generate_G_element_sos(*it1, *it2, pos_y, pos_x);
+
+                std::complex<double>
+                    total_prefactor = construct.prefac_ * FT_factor_x * FT_factor_y;
                 // assert(std::abs(total_prefactor)<1e-9); maybe not include values  that are zero
 
                 if (std::abs(total_prefactor.real()) > 1e-9)
@@ -198,12 +204,10 @@ class momentum_basis
   // note, the first sector must contain the unit element
   // solves min(by), with sum_i y_i A_i <<C
 public:
-  basis_structure operators_;
   Model::t M_;
   std::map<int, momentum_block<Lattice>> sectors_;
   std::string sector_;
 
-  std::map<std::string, int> total_refs_;
   Eigen::MatrixXcd FTx_;
   Eigen::MatrixXcd FTy_;
   Parameter::t b_;
@@ -217,7 +221,7 @@ public:
   // for the reduced density matrix
   std::map<rdm_operator, std::map<std::string, Matrix::t>> sigmas_;
 
-  momentum_basis(Lattice &lattice, basis_structure operators, Model::t M, rdms_struct rdms) : lattice_(lattice), operators_(operators), M_(M)
+  momentum_basis(Lattice &lattice, Model::t M, rdms_struct rdms) : lattice_(lattice), M_(M)
   {
 
     FTx_ = Eigen::MatrixXcd(lattice_.Lx_, lattice_.Lx_);
@@ -241,19 +245,23 @@ public:
       }
     }
 
-    for (auto it = operators.begin(); it != operators.end(); ++it)
+    for (auto it = lattice_.states_.begin(); it != lattice_.states_.end(); ++it)
     {
 
-      auto Block = momentum_block(lattice_, it->second, M_, it->first, total_refs_, FTy_, FTx_, std::to_string(it->first));
+      auto Block = momentum_block(lattice_, it->second, M_, it->first, FTy_, FTx_, std::to_string(it->first));
       sectors_.insert({it->first, Block});
     }
 
     initialize_all_maps(rdms);
 
     std::cout << "size TI map " << lattice_.TI_map_.size() << std::endl;
-    std::cout << "size total refs " << total_refs_.size() << std::endl;
+    // for (auto a : lattice_.TI_map_)
+    // {
+    //   std::cout << a.first << "-> " << a.second.first << "   " << a.second.second << std::endl;
+    // }
+    std::cout << "size total refs " << lattice.variable_map_.size() << std::endl;
 
-    for (auto it = total_refs_.begin(); it != total_refs_.end(); it++)
+    for (auto it = lattice.variable_map_.begin(); it != lattice.variable_map_.end(); it++)
     {
       As_.insert({it->first, symmetry_sector()});
       for (auto it_sign_sector = sectors_.begin(); it_sign_sector != sectors_.end(); ++it_sign_sector)
@@ -270,12 +278,12 @@ public:
         }
       }
     }
-
+    std::cout << "initialze blocks " << std::endl;
     for (auto &sector : sectors_)
     {
       sector.second.initialize_blocks(As_);
     }
-
+    std::cout << "finished initializeing blocks" << std::endl;
     for (auto it_2 = sectors_.begin(); it_2 != sectors_.end(); ++it_2)
     {
       it_2->second.generate_block(As_);
@@ -286,41 +294,15 @@ public:
   };
   void initialize_all_maps(rdms_struct rdms)
   {
-    std::map<std::string, op_vec> mat_terms;
-    for (auto &b : sectors_)
-    {
-      lattice_.generate_TI_map(mat_terms, b.second.operators_, b.first);
-
-      std::cout << "sizes " << mat_terms.size() << " and " << lattice_.TI_map_.size() << std::endl;
-    }
-    // for (auto a : lattice_.TI_map_)
-    // {
-    //   if (a.first.size() == 11 * 2)
-    //   {
-    //     std::cout << a.first << std::endl;
-    //   }
-    // }
-
-    auto size_without_rdms = mat_terms.size();
+    this->lattice_.generate_TI_map();
     if (rdms.size() > 0)
     {
 
-      generate_rdms(rdms, mat_terms);
+      generate_rdms(rdms);
     }
-    assert(size_without_rdms == mat_terms.size());
-    std::cout << "sizes after rdm " << mat_terms.size() << " and " << lattice_.TI_map_.size() << std::endl;
+    this->lattice_.make_map();
 
-    int new_index = 0;
-
-    for (auto a : mat_terms)
-    {
-
-      total_refs_.insert({a.first, new_index});
-
-      new_index += 1;
-    }
-
-    b_ = M_->parameter("b", total_refs_.size());
+    b_ = M_->parameter("b", lattice_.variable_map_.size());
   }
   void set_b(std::vector<double> b)
   {
@@ -334,7 +316,7 @@ public:
     if (energy_bounds_.size() < 2)
     {
       bounding_observable_ = true;
-      energy_vec_ = M_->parameter("energy vec", total_refs_.size());
+      energy_vec_ = M_->parameter("energy vec", lattice_.variable_map_.size());
       energy_bounds_["E_upper"] = M_->parameter("E_upper");
       energy_bounds_["E_lower"] = M_->parameter("E_lower");
     }
@@ -352,205 +334,18 @@ public:
     return;
   }
 
-  std::map<std::string, Matrix::t> generate_rdms_primal_cp(rdm_operator sites, std::vector<int> offset, std::map<std::string, op_vec> &mat_terms) //,std::map<std::string, int> refs, std::map<std::string, std::pair<std::string, std::complex<double>>> map, Variable::t var,int Lx)
+  void generate_rdms(rdms_struct rdms)
   {
 
-    std::map<std::string, Matrix::t> sigmas_temp_;
-    std::map<std::string, mat_type> rdms_eigen_;
-    mat_type pauliI = mat_type::Zero(2, 2);
-    pauliI(0, 0) = 1;
-    pauliI(1, 1) = 1;
+    auto offset = lattice_.states_[1][0][0].offset_; // change this to be derived from baso
 
-    // pauliI.makeCompressed();
-    mat_type pauliZ = mat_type::Zero(2, 2);
-    pauliZ(0, 0) = 1;
-    pauliZ(1, 1) = -1;
-
-    // pauliZ.makeCompressed();
-    mat_type pauliX = mat_type::Zero(2, 2);
-    pauliX(0, 1) = 1;
-    pauliX(1, 0) = 1;
-
-    mat_type pauliY = mat_type::Zero(2, 2);
-    pauliY(0, 1) = std::complex<double>(0, -1);
-    pauliY(1, 0) = std::complex<double>(0, 1);
-    int degree = sites.size();
-    std::vector<std::string> terms;
-    std::map<std::string, mat_type> sigma_map;
-
-    sigma_map.insert({"1", pauliI});
-    sigma_map.insert({"x", pauliX});
-    sigma_map.insert({"y", pauliY});
-    sigma_map.insert({"z", pauliZ});
-
-    auto dirs = std::vector<std::string>{"1", "x", "y", "z"};
-    std::set<std::string> tots;
-
-    for (auto d1 : dirs)
-    {
-
-      if (degree == 1)
-      {
-        tots.insert(d1);
-        continue;
-      }
-      for (auto d2 : dirs)
-      {
-        if (degree == 2)
-        {
-          tots.insert(d1 + d2);
-          continue;
-        }
-        for (auto d3 : dirs)
-        {
-          if (degree == 3)
-          {
-            tots.insert(d1 + d2 + d3);
-            continue;
-          }
-          for (auto d4 : dirs)
-          {
-            if (degree == 4)
-            {
-              tots.insert(d1 + d2 + d3 + d4);
-              continue;
-            }
-            for (auto d5 : dirs)
-            {
-              if (degree == 5)
-              {
-                tots.insert(d1 + d2 + d3 + d4 + d5);
-                continue;
-              }
-              for (auto d6 : dirs)
-              {
-                if (degree == 6)
-                {
-                  tots.insert(d1 + d2 + d3 + d4 + d5 + d6);
-                  continue;
-                }
-                for (auto d7 : dirs)
-                {
-                  if (degree == 7)
-                  {
-                    tots.insert(d1 + d2 + d3 + d4 + d5 + d6 + d7);
-                    continue;
-                  }
-                  for (auto d8 : dirs)
-                  {
-                    if (degree == 8)
-                    {
-                      tots.insert(d1 + d2 + d3 + d4 + d5 + d6 + d7 + d8);
-                      continue;
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    int dim = std::pow(2, degree);
-
-    std::vector<Expression::t> matrices;
-
-    double prefac = 1;
-
-    for (auto t : tots)
-    {
-
-      mat_type mat;
-      op_vec state;
-
-      for (int i = 0; i < t.size(); i++)
-      {
-
-        std::string key = t.substr(i, 1);
-
-        if (key != "1")
-        {
-          state.push_back(spin_op(key, sites.at(i), offset));
-        }
-        if (i == 0)
-        {
-          mat = sigma_map[key];
-        }
-        else
-        {
-
-          mat = Eigen::KroneckerProduct(mat, sigma_map[key]).eval();
-        }
-      }
-
-      // if matrix element exists I only
-      if (print_op(state) == "1")
-      {
-
-        mat = mat / std::
-                        pow(2, degree);
-        if (rdms_eigen_.find("1") != rdms_eigen_.end())
-        {
-          rdms_eigen_["1"] += mat;
-        }
-        else
-        {
-          rdms_eigen_.insert({"1", mat});
-        }
-      }
-      else
-      {
-
-        auto [fac, nf] = get_normal_form(state);
-
-        auto [found, op_string] = lattice_.check_if_operator_exists(nf, mat_terms, true);
-        // call error if operator does not exist, we do not add new
-
-        assert(found);
-        lattice_.TI_map_.insert({print_op(nf), {op_string, 1}});
-        auto [state_from_map, coeff] = lattice_.TI_map_.at(print_op(nf));
-        if (state_from_map == "0")
-        {
-        }
-        else
-        {
-
-          assert(std::abs((fac * coeff).imag()) < 1e-9);
-          mat = mat * (fac * coeff).real() / std::pow(2, degree);
-
-          if (rdms_eigen_.find(state_from_map) != rdms_eigen_.end())
-          {
-
-            rdms_eigen_[state_from_map] += mat;
-          }
-          else
-          {
-
-            rdms_eigen_.insert({state_from_map, mat});
-          }
-        }
-      }
-    }
-    // convert to mosek format
-    for (auto eigen_matrix : rdms_eigen_)
-    {
-      auto Alpha = get_sparse_from_eigen(eigen_matrix.second);
-
-      sigmas_temp_.insert({eigen_matrix.first, Alpha});
-    }
-    return sigmas_temp_;
-  }
-  void generate_rdms(rdms_struct rdms, std::map<std::string, op_vec> &mat_terms)
-  {
-
-    auto offset = operators_[0][0][0].offset_; // change this to be derived from baso
     int i = 0;
     std::cout << "rdms size " << rdms.rdms.size() << std::endl;
     for (auto site : rdms.rdms)
     {
 
       i++;
-      auto sigmas_temp = generate_rdms_primal_cp(site, offset, mat_terms);
+      auto sigmas_temp = lattice_.generate_rdms_primal_cp(site, offset);
       sigmas_.insert({site, sigmas_temp});
     }
     return;
@@ -561,14 +356,14 @@ class momentum_symmetry_solver_dual : public momentum_basis<Lattice>
 {
 public:
   Variable::t y_;
-  momentum_symmetry_solver_dual(Lattice &lattice, basis_structure operators, Model::t M, rdms_struct rdms) : momentum_basis<Lattice>(lattice, operators, M, rdms)
+  momentum_symmetry_solver_dual(Lattice &lattice, Model::t M, rdms_struct rdms) : momentum_basis<Lattice>(lattice, M, rdms)
   {
-    y_ = this->M_->variable("T", this->total_refs_.size());
+    y_ = this->M_->variable("T", this->lattice_.variable_map_.size());
     // fix 1
-    auto el = this->total_refs_.at("1");
+    auto el = this->lattice_.variable_map_.at("1");
     this->M_->constraint(y_->index(el), Domain::equalsTo(1.0));
     // fix zero
-    el = this->total_refs_.at("0");
+    el = this->lattice_.variable_map_.at("0");
     this->M_->constraint(y_->index(el), Domain::equalsTo(0.0));
   }
   void fix_constrains()
@@ -584,7 +379,7 @@ public:
         {
           std::vector<Expression::t> matrices;
 
-          for (auto op : this->total_refs_)
+          for (auto op : this->lattice_.variable_map_)
           {
             if (op.first == "0")
             {
@@ -621,7 +416,7 @@ public:
       {
         if (op_string.first != "1")
         {
-          ee = Expr::add(ee, Expr::mul(y_->index(this->total_refs_[op_string.first]), op_string.second));
+          ee = Expr::add(ee, Expr::mul(y_->index(this->lattice_.variable_map_[op_string.first]), op_string.second));
         }
       }
       this->M_->constraint(ee, Domain::inPSDCone());
@@ -658,7 +453,7 @@ public:
   // variables introduced to bound the energy
   std::vector<Variable::t> energy_bouding_variables_;
   bool maximize_{true}; // if cost function is a maximization problem
-  momentum_symmetry_solver_sos(Lattice &lattice, basis_structure operators, Model::t M, rdms_struct rdms, bool maximize = true) : maximize_(maximize), momentum_basis<Lattice>(lattice, operators, M, rdms)
+  momentum_symmetry_solver_sos(Lattice &lattice, Model::t M, rdms_struct rdms, bool maximize = true) : maximize_(maximize), momentum_basis<Lattice>(lattice, M, rdms)
   {
     for (auto sign_symm_sector : this->sectors_)
     {
@@ -728,7 +523,7 @@ public:
       }
     }
 
-    std::vector<Expression::t> expressions_(this->total_refs_.size(), Expr::constTerm(0));
+    std::vector<Expression::t> expressions_(this->lattice_.variable_map_.size(), Expr::constTerm(0));
 
     for (auto sign_symm_sector : this->sectors_)
     {
@@ -738,7 +533,7 @@ public:
         for (int j = 0; j < this->lattice_.Lx_; j++)
         {
 
-          for (auto op : this->total_refs_)
+          for (auto op : this->lattice_.variable_map_)
           {
             int matrix_dimension = 2 * sign_symm_sector.second.block_shifts[i][j];
             if (op.first == "0")
@@ -760,7 +555,7 @@ public:
                 if (this->As_[op.first][sign_symm_sector.first][i][j].has_elements_)
                 {
 
-                  int el = this->total_refs_.at(op.first);
+                  int el = this->lattice_.variable_map_.at(op.first);
 
                   expressions_[el] = Expr::add(expressions_[el], Expr::dot(this->As_[op.first][sign_symm_sector.first][i][j].make_matrix(matrix_dimension, matrix_dimension), (Xs_[sign_symm_sector.first][i][j])));
                 }
@@ -777,7 +572,7 @@ public:
       {
         if (string_and_matrix.first != "1")
         {
-          int el = this->total_refs_.at(string_and_matrix.first);
+          int el = this->lattice_.variable_map_.at(string_and_matrix.first);
           auto a = lambda_.second;
 
           expressions_[el] = Expr::add(expressions_[el], (Expr::dot(lambda_.second, string_and_matrix.second)));
@@ -795,12 +590,12 @@ public:
       }
     }
 
-    for (auto a : this->total_refs_)
+    for (auto a : this->lattice_.variable_map_)
     {
       if (a.first != "1" && a.first != "0")
       {
 
-        int el = this->total_refs_.at(a.first);
+        int el = this->lattice_.variable_map_.at(a.first);
         //=-1*b[el]
         this->M_->constraint(Expr::add(expressions_[el], this->b_->index(el)), Domain::equalsTo(0.));
       }
