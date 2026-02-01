@@ -97,7 +97,8 @@ public:
     {
       auto op = *it;
       // get normal form
-      auto [coeff_, nf] = get_normal_form(op);
+      auto [coeff_, nf] = lattice_.get_form_of_TI_map(op);
+      // get_normal_form(op);
       // get translation invariant representation
 
       // auto ti_key = lattice_.TI_map_.at(print_op(nf)).first;

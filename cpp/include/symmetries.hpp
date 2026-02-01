@@ -10,6 +10,36 @@ using namespace mosek::fusion;
 using namespace monty;
 std::shared_ptr<ndarray<int, 1>> nint(const std::vector<int> &X) { return new_array_ptr<int>(X); }
 std::shared_ptr<ndarray<double, 1>> ndou(const std::vector<double> &X) { return new_array_ptr<double>(X); }
+template <typename T>
+std::vector<std::vector<T>>
+all_translations(const std::vector<T> &config, int Lx, int Ly)
+{
+  std::vector<std::vector<T>> result;
+  int size_of_vec = config[0].get_site().size();
+  result.reserve(Lx * Ly);
+
+  for (int dx = 0; dx < Lx; ++dx)
+  {
+    for (int dy = 0; dy < Ly; ++dy)
+    {
+
+      std::vector<T> translated = config;
+
+      for (auto &s : translated)
+      {
+        auto old_site = s.get_site();
+
+        old_site[size_of_vec - 1] = (old_site[size_of_vec - 1] + dx) % Lx;
+        old_site[size_of_vec - 2] = (old_site[size_of_vec - 2] + dy) % Ly;
+        s.set_site(old_site);
+      }
+
+      result.push_back(std::move(translated));
+    }
+  }
+
+  return result;
+}
 struct rdm_operator
 {
 

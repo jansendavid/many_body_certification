@@ -17,8 +17,9 @@ public:
   std::vector<int> offset_;
   std::vector<int> shifts_;
   std::string exp_;
+  std::string symbol_;
   bool unit = false;
-  spin_op_parent(std::string dir, std::vector<int> site, std::vector<int> offset) : dir_(dir), site_(site), offset_(offset)
+  spin_op_parent(std::string dir, std::vector<int> site, std::vector<int> offset, std::string symbol) : dir_(dir), site_(site), offset_(offset), symbol_(symbol)
   {
     if (site.size() < offset.size())
     {
@@ -86,7 +87,7 @@ public:
     new_sites[new_sites.size() - 1] = site_[site_.size() - 2];
     new_sites[new_sites.size() - 2] = site_[site_.size() - 1];
 
-    return spin_op_parent(dir_, new_sites, offset_);
+    return spin_op_parent(dir_, new_sites, offset_, symbol_);
   }
   spin_op_parent get_flipped_layer_parent()
   {
@@ -96,14 +97,14 @@ public:
 
     new_sites[0] = (site_[0] + 1) % 2;
 
-    return spin_op_parent(dir_, new_sites, offset_);
+    return spin_op_parent(dir_, new_sites, offset_, symbol_);
   }
   spin_op_parent get_translated_parent(int j, int L)
   {
     auto new_sites = site_;
     new_sites[new_sites.size() - 1] = (new_sites[new_sites.size() - 1] + j) % L;
 
-    return spin_op_parent(dir_, new_sites, offset_);
+    return spin_op_parent(dir_, new_sites, offset_, symbol_);
   }
 
   spin_op_parent get_translated_y_parent(int j, int L)
@@ -112,7 +113,7 @@ public:
 
     new_sites[new_sites.size() - 2] = (new_sites[new_sites.size() - 2] + j) % L;
 
-    return spin_op_parent(dir_, new_sites, offset_);
+    return spin_op_parent(dir_, new_sites, offset_, symbol_);
   }
 
   std::string expression() const
@@ -156,6 +157,7 @@ class spin_op : public spin_op_parent
 {
 public:
   using spin_op_parent::spin_op_parent;
+  spin_op(std::string dir, std::vector<int> site, std::vector<int> offset) : spin_op_parent(dir, site, offset, "s") {}
   spin_op get_translated_y(int j, int L)
   {
     auto base = get_translated_y_parent(j, L);

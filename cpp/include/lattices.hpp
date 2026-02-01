@@ -9,36 +9,7 @@ using namespace mosek::fusion;
 using namespace monty;
 using int_pair = std::pair<int, int>;
 using TI_map_type = std::map<std::string, std::pair<std::string, std::complex<double>>>;
-template <typename T>
-std::vector<std::vector<T>>
-all_translations(const std::vector<T> &config, int Lx, int Ly)
-{
-	std::vector<std::vector<T>> result;
-	int size_of_vec = config[0].get_site().size();
-	result.reserve(Lx * Ly);
 
-	for (int dx = 0; dx < Lx; ++dx)
-	{
-		for (int dy = 0; dy < Ly; ++dy)
-		{
-
-			std::vector<T> translated = config;
-
-			for (auto &s : translated)
-			{
-				auto old_site = s.get_site();
-
-				old_site[size_of_vec - 1] = (old_site[size_of_vec - 1] + dx) % Lx;
-				old_site[size_of_vec - 2] = (old_site[size_of_vec - 2] + dy) % Ly;
-				s.set_site(old_site);
-			}
-
-			result.push_back(std::move(translated));
-		}
-	}
-
-	return result;
-}
 class LatticeBase
 {
 public:
@@ -655,5 +626,12 @@ public:
 			sigmas_temp_.insert({eigen_matrix.first, Alpha});
 		}
 		return sigmas_temp_;
+	}
+	std::pair<std::complex<double>, op_vec> get_form_of_TI_map(const op_vec &op)
+	{
+
+		auto [coeff_, nf] = get_normal_form(op);
+
+		return std::pair<std::complex<double>, op_vec>(coeff_, nf);
 	}
 };
