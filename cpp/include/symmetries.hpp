@@ -249,9 +249,10 @@ rdms_struct translation_invariant_rdms_4th(int Lx, int Ly)
 
   return data;
 }
-op_vec apply_group_trafo(const op_vec &op, const Eigen::Matrix2i &mat, int L)
+template <typename T>
+T apply_group_trafo(const T &op, const Eigen::Matrix2i &mat, int L)
 {
-  op_vec vec;
+  T vec;
   vec.reserve(op.size()); // preallocate
 
   for (const auto &o : op)
@@ -344,10 +345,10 @@ inline void for_each_d8(const op_vec &op, int L, F &&f)
     a_pow = a * a_pow;
   }
 }
-
-std::vector<op_vec> generate_all_d8(const op_vec &op, int L)
+template <typename T>
+std::vector<T> generate_all_d8(const T &op, int L)
 {
-  std::vector<op_vec> all_d8;
+  std::vector<T> all_d8;
   all_d8.reserve(8);
 
   // Generators of D8
@@ -679,9 +680,10 @@ void display(char a[], int n)
   }
   std::cout << std::endl;
 }
-op_vec mirror(op_vec op)
+template <typename T>
+T mirror(T op)
 {
-  op_vec vec;
+  T vec;
   for (int i = 0; i < op.size(); i++)
   {
     vec.push_back(op[i].get_mirror());
@@ -691,9 +693,10 @@ op_vec mirror(op_vec op)
   // assert(fac.imag() < 1e-9);
   return vec;
 }
-op_vec flip_layer(op_vec op)
+template <typename T>
+T flip_layer(T op)
 {
-  op_vec vec;
+  T vec;
   for (int i = 0; i < op.size(); i++)
   {
     vec.push_back(op[i].get_flipped_layer());
