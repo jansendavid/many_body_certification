@@ -22,11 +22,11 @@ public:
   int sign_sector_{0};
   std::vector<std::vector<int>> block_shifts;
   Lattice &lattice_;
-  std::vector<op_vec> operators_;
+
   Eigen::MatrixXcd &FTx_;
   Eigen::MatrixXcd &FTy_;
 
-  momentum_block(Lattice &lattice, std::vector<op_vec> operators, Model::t M, int sign_sector, Eigen::MatrixXcd &FTy, Eigen::MatrixXcd &FTx, std::string sector_label = "") : lattice_(lattice), operators_(operators), sign_sector_(sign_sector), FTy_(FTy), FTx_(FTx)
+  momentum_block(Lattice &lattice, Model::t M, int sign_sector, Eigen::MatrixXcd &FTy, Eigen::MatrixXcd &FTx, std::string sector_label = "") : lattice_(lattice), sign_sector_(sign_sector), FTy_(FTy), FTx_(FTx)
   {
     // std::cout << FTx_ << std::endl;
     // std::cout << FTy_ << std::endl;
@@ -35,7 +35,7 @@ public:
   void initialize_blocks_general()
   {
 
-    int dim_x = operators_.size(); // dimension of other blocks
+    int dim_x = lattice_.states_[sign_sector_].size(); // operators_.size(); // dimension of other blocks
 
     for (int j = 0; j < lattice_.Ly_; j++)
     {
@@ -65,8 +65,9 @@ public:
   void initialize_blocks_zero(std::map<std::string, symmetry_sector> &As)
   {
 
-    int dim_0 = operators_.size() + 1; // dimension of 0th block
-    int dim_x = operators_.size();     // dimension of other blocks
+    int dim_0 = lattice_.states_[sign_sector_].size() + 1;
+    // operators_.size() + 1;       // dimension of 0th block
+    int dim_x = lattice_.states_[sign_sector_].size(); // dimension of other blocks
 
     block_shifts.push_back({});
 
@@ -93,7 +94,7 @@ public:
     //   //     // The "c" terms first row and column in block 0
     int i = 0;
 
-    for (auto it = operators_.begin(); it != operators_.end(); ++it)
+    for (auto it = lattice_.states_[sign_sector_].begin(); it != lattice_.states_[sign_sector_].end(); ++it)
     {
       auto op = *it;
       // get normal form
@@ -128,10 +129,10 @@ public:
     //     const auto start{std::chrono::steady_clock::now()};
 
     int i = 0;
-    for (auto it1 = operators_.begin(); it1 != operators_.end(); ++it1)
+    for (auto it1 = lattice_.states_[sign_sector_].begin(); it1 != lattice_.states_[sign_sector_].end(); ++it1)
     {
       int j = i;
-      for (auto it2 = it1; it2 != operators_.end(); ++it2)
+      for (auto it2 = it1; it2 != lattice_.states_[sign_sector_].end(); ++it2)
       {
 
         for (int mat_pos_y = 0; mat_pos_y < lattice_.Ly_; mat_pos_y++)
@@ -140,7 +141,7 @@ public:
           {
 
             // 			      // determines if first block of zeroth moment blocks
-            int shift = block_shifts[mat_pos_y][mat_pos_x] % operators_.size();
+            int shift = block_shifts[mat_pos_y][mat_pos_x] % lattice_.states_[sign_sector_].size();
 
             // 			      // gives the shift between real and complex components
             int dim = block_shifts[mat_pos_y][mat_pos_x];
@@ -249,7 +250,7 @@ public:
     for (auto it = lattice_.states_.begin(); it != lattice_.states_.end(); ++it)
     {
 
-      auto Block = momentum_block(lattice_, it->second, M_, it->first, FTy_, FTx_, std::to_string(it->first));
+      auto Block = momentum_block(lattice_, M_, it->first, FTy_, FTx_, std::to_string(it->first));
       sectors_.insert({it->first, Block});
     }
 
