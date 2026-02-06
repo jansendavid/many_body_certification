@@ -360,13 +360,16 @@ public:
   Variable::t y_;
   momentum_symmetry_solver_dual(Lattice &lattice, Model::t M, rdms_struct rdms) : momentum_basis<Lattice>(lattice, M, rdms)
   {
+    std::cout << "start " << std::endl;
     y_ = this->M_->variable("T", this->lattice_.variable_map_.size());
     // fix 1
     auto el = this->lattice_.variable_map_.at("1");
     this->M_->constraint(y_->index(el), Domain::equalsTo(1.0));
+    std::cout << "start " << std::endl;
     // fix zero
     el = this->lattice_.variable_map_.at("0");
     this->M_->constraint(y_->index(el), Domain::equalsTo(0.0));
+    std::cout << "start " << std::endl;
   }
   void fix_constrains()
   {
@@ -450,23 +453,37 @@ public:
   std::map<rdm_operator, Expression::t> Lambdas_;
 
   // here we store the C matrices (the constants)
-  std::map<int, std::vector<std::vector<Matrix::t>>> Cs_;
+  // std::map<int, std::vector<std::vector<Matrix::t>>> Cs_;
   std::map<int, std::vector<std::vector<Matrix::t>>> zeros_;
   // variables introduced to bound the energy
   std::vector<Variable::t> energy_bouding_variables_;
   bool maximize_{true}; // if cost function is a maximization problem
+  // to enforce 0=0 and 1=1
+  Variable::t eta;
+  Variable::t epsilon;
+
   momentum_symmetry_solver_sos(Lattice &lattice, Model::t M, rdms_struct rdms, bool maximize = true) : maximize_(maximize), momentum_basis<Lattice>(lattice, M, rdms)
   {
+    if (maximize_)
+    {
+      eta = this->M_->variable("eta", Domain::greaterThan(0.));
+      epsilon = this->M_->variable("epsilon", Domain::greaterThan(0.));
+    }
+    else
+    {
+      eta = this->M_->variable("eta", Domain::lessThan(0.));
+      epsilon = this->M_->variable("epsilon", Domain::lessThan(0.));
+    }
     for (auto sign_symm_sector : this->sectors_)
     {
       Xs_[sign_symm_sector.first] = {};
-      Cs_[sign_symm_sector.first] = {};
+      // Cs_[sign_symm_sector.first] = {};
       zeros_[sign_symm_sector.first] = {};
 
       for (int i = 0; i < this->lattice_.Ly_; i++)
       {
         Xs_[sign_symm_sector.first].push_back({});
-        Cs_[sign_symm_sector.first].push_back({});
+        // Cs_[sign_symm_sector.first].push_back({});
         zeros_[sign_symm_sector.first].push_back({});
 
         for (int j = 0; j < this->lattice_.Lx_; j++)
@@ -509,7 +526,8 @@ public:
 
   void fix_constrains()
   {
-
+    // wanting to solve the sdp
+    // Tr<X,C>, s.t. for all i, Tr<X,A_i>=b_i
     if (this->bounding_observable_)
     {
       std::cout << "true bounding observable " << std::endl;
@@ -548,8 +566,11 @@ public:
               {
                 if (this->As_[op.first][sign_symm_sector.first][i][j].has_elements_)
                 {
-                  auto C = this->As_[op.first][sign_symm_sector.first][i][j].make_matrix(matrix_dimension, matrix_dimension);
-                  Cs_[sign_symm_sector.first][i].push_back(C);
+                  int el = this->lattice_.variable_map_.at(op.first);
+                  // generatin the C matrix blocks (the one that will be used om the cost function min(C,X))
+                  // auto C = this->As_[op.first][sign_symm_sector.first][i][j].make_matrix(matrix_dimension, matrix_dimension);
+                  // Cs_[sign_symm_sector.first][i].push_back(C);
+                  expressions_[el] = Expr::add(expressions_[el], Expr::dot(this->As_[op.first][sign_symm_sector.first][i][j].make_matrix(matrix_dimension, matrix_dimension), (Xs_[sign_symm_sector.first][i][j])));
                 }
               }
               else
@@ -558,7 +579,7 @@ public:
                 {
 
                   int el = this->lattice_.variable_map_.at(op.first);
-
+                  // making the constrains Tr<A_,X> which we will assign to b_i later
                   expressions_[el] = Expr::add(expressions_[el], Expr::dot(this->As_[op.first][sign_symm_sector.first][i][j].make_matrix(matrix_dimension, matrix_dimension), (Xs_[sign_symm_sector.first][i][j])));
                 }
               }
@@ -567,7 +588,7 @@ public:
         }
       }
     }
-
+    // Enforcing reduced density matrices. Todo, see if this also can be simplified by removing moving "1" into this loop
     for (auto lambda_ : Lambdas_)
     {
       for (auto string_and_matrix : this->sigmas_[lambda_.first])
@@ -581,6 +602,7 @@ public:
         }
       }
     }
+    // adding the constrains enforcing energy </> to lower/upper bound
     if (this->bounding_observable_)
     {
       auto exp_temporary = Expr::mul(Expr::add(energy_bouding_variables_[0], energy_bouding_variables_[1]), this->energy_vec_);
@@ -591,15 +613,25 @@ public:
         expressions_[i] = Expr::add(expressions_[i], (exp_temporary->index(i)));
       }
     }
+    // adding a constant term for the 1:
+    int el = this->lattice_.variable_map_.at("1");
+    expressions_[el] = Expr::add(expressions_[el], epsilon);
 
     for (auto a : this->lattice_.variable_map_)
     {
-      if (a.first != "1" && a.first != "0")
+      if (a.first != "0")
       {
 
         int el = this->lattice_.variable_map_.at(a.first);
         //=-1*b[el]
         this->M_->constraint(Expr::add(expressions_[el], this->b_->index(el)), Domain::equalsTo(0.));
+      }
+      // fixing that zero is zero
+      // normally \eta=0 but we just eliminate eta
+      if (a.first == "0")
+      {
+        int el = this->lattice_.variable_map_.at(a.first);
+        this->M_->constraint(expressions_[el], Domain::equalsTo(0.));
       }
     }
 
@@ -609,18 +641,7 @@ public:
   Expression::t get_costfunction()
   {
     Expression::t ee = Expr::constTerm(0.);
-    for (auto sign_symm_sector : this->sectors_)
-    {
-
-      for (int i = 0; i < this->lattice_.Ly_; i++)
-      {
-        for (int j = 0; j < this->lattice_.Lx_; j++)
-        {
-
-          ee = Expr::add(ee, Expr::dot(Cs_[sign_symm_sector.first][i][j], (Xs_[sign_symm_sector.first][i][j])));
-        }
-      }
-    }
+    ee = Expr::add(ee, Expr::neg(epsilon));
 
     // Adding matrices for the positive definite constrain of the RDMs
     for (auto lambda_ : Lambdas_)

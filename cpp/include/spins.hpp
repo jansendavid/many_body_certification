@@ -34,7 +34,7 @@ public:
   };
   void compute_expression()
   {
-    exp_ = "s";
+    exp_ = symbol_;
 
     exp_ += "_[";
 

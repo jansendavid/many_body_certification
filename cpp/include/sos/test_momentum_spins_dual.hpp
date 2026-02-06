@@ -296,8 +296,9 @@ void test_multiple_blocks_higher_order_2d_rdm()
   // // //     }
   // // //   }
   auto data = get_rdms(Lx, Lx);
-
+  data = {};
   rdms_struct rdms(data);
+
   Model::t M = new Model("sdo1");
   auto _M = finally([&]()
                     { M->dispose(); });
@@ -367,7 +368,7 @@ void test_multiple_blocks_higher_order_2d_rdm_sos()
   auto map_sec = get_sector_map();
   basis_structure states = get_states();
   get_order_one_monomials(states, map_sec, Ly, Lx, true);
-  int r = 2;
+  int r = 1;
   get_order_two_monomials(states, map_sec, Ly, Lx, r, r, -r, -r, true);
   // get_order_three_monomials(states, map_sec, Ly, Lx, true);
 
@@ -415,6 +416,17 @@ void test_multiple_blocks_higher_order_2d_rdm_sos()
 
   std::cout << "Solution : " << std::endl;
   std::cout << std::setprecision(9) << M->primalObjValue() << std::endl;
+  int i = 0;
+  for (auto val : lattice.variable_map_)
+  {
+    if (val.first == "1" or val.first == "0")
+    {
+      std::cout << val.first << " " << -1. * (*(M->getConstraint(i)->dual()))[0] << std::endl;
+      // np_vec(i, 0) = -1. * (*(M->getConstraint(i)->dual()))[0];
+
+      i++;
+    }
+  }
   // thord order -0.702827317
   return;
 }
