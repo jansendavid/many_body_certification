@@ -62,4 +62,13 @@ struct matrix_organizer
 
     return Matrix::sparse(dim1, dim2, nint(rows), nint(cols), ndou(T));
   }
+  void print()
+  {
+    std::cout << "start" << std::endl;
+    for (int i = 0; i < matrix_values.size(); i++)
+    {
+      std::cout << "(" << matrix_positions[i].first << "," << matrix_positions[i].second << ") =" << matrix_values[i] << std::endl;
+    }
+    std::cout << "end" << std::endl;
+  }
 };

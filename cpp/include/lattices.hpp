@@ -117,11 +117,6 @@ public:
 	{
 
 		auto [fac_key, nf_key] = get_normal_form(op_key);
-		// if (print_op(nf_key) == "s_[x,(0,0)]s_[z,(1,0)]s_[z,(0,1)]s_[x,(3,3)]")
-		// {
-		// 	std::cout << "found " << std::endl;
-		// 	exit(3);
-		// }
 
 		for (auto &op : flush_vector)
 		{
@@ -152,7 +147,7 @@ public:
 			{
 
 				TI_map_.insert({print_op(nf_op),
-								{it->second.first, std::conj(fac_op) * fac}});
+								{it->second.first, std::conj(fac_op) * fac * it->second.second}});
 				// flush(it->second.first, fac);
 
 				return true;
@@ -186,15 +181,12 @@ public:
 		{
 			auto [fac, nf] = get_normal_form(op_p);
 			auto it = TI_map_.find(print_op(nf));
-			// if (fac != fac_org)
-			// {
-			// 	std::cout << "fac different" << std::endl;
-			// }
+
 			if (it != TI_map_.end())
 			{
 
 				TI_map_.insert({print_op(nf_org),
-								{it->second.first, std::conj(fac_org) * fac}});
+								{it->second.first, std::conj(fac_org) * fac * it->second.second}});
 				// flush(it->second.first, fac);
 				return true;
 			}
@@ -225,7 +217,7 @@ public:
 				{
 
 					TI_map_.insert({print_op(nf_org),
-									{it->second.first, std::conj(fac_org) * fac}});
+									{it->second.first, std::conj(fac_org) * fac * it->second.second}});
 
 					return true;
 				}
@@ -238,7 +230,7 @@ public:
 				{
 
 					TI_map_.insert({print_op(nf_org),
-									{it_mirrored->second.first, std::conj(fac_org) * fac_mir}});
+									{it_mirrored->second.first, std::conj(fac_org) * fac_mir * it_mirrored->second.second}});
 
 					return true;
 				}
@@ -270,7 +262,7 @@ public:
 					{
 
 						TI_map_.insert({print_op(nf_org),
-										{it->second.first, std::conj(fac_org) * fac_flip}});
+										{it->second.first, std::conj(fac_org) * fac_flip * it->second.second}});
 
 						return true;
 					}
@@ -292,7 +284,7 @@ public:
 					{
 
 						TI_map_.insert({print_op(nf_org),
-										{it->second.first, std::conj(fac_org) * fac_flip_mirr}});
+										{it->second.first, std::conj(fac_org) * fac_flip_mirr * it->second.second}});
 
 						return true;
 					}

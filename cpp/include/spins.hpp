@@ -315,18 +315,23 @@ std::pair<cpx, op_vec> get_normal_form(op_vec op)
   cpx pref(1., 0);
   bool change = false;
   auto new_list = op;
+  auto new_list_x = op;
   // deleted
-  //  sort(new_list.begin(), new_list.end(), [](spin_op &o1, spin_op &o2)
-  //       { return o1.pos() < o2.pos(); });
+  // sort(new_list_x.begin(), new_list_x.end(), [](spin_op &o1, spin_op &o2)
+  //      { return o1.pos() < o2.pos(); });
   std::stable_sort(new_list.begin(), new_list.end(),
                    [](const spin_op &lhs, const spin_op &rhs)
                    {
                      return lhs.pos() < rhs.pos();
                    });
-  for (auto a : new_list)
-  {
-    // std::cout<<a.pos()<<std::endl;
-  }
+  // if (print_op(new_list) != print_op(new_list_x))
+  // {
+  //   std::cout << "sorting issue" << std::endl;
+  // }
+  // for (auto a : new_list)
+  // {
+  //   // std::cout<<a.pos()<<std::endl;
+  // }
 
   while (not change)
   {

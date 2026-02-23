@@ -98,23 +98,30 @@ public:
     {
       auto op = *it;
       // get normal form
-      auto [coeff_, nf] = lattice_.get_form_of_TI_map(op);
+      auto [coeff_jw, nf] = lattice_.get_form_of_TI_map(op);
       // get_normal_form(op);
       // get translation invariant representation
 
       // auto ti_key = lattice_.TI_map_.at(print_op(nf)).first;
 
-      auto [ti_key, coeff] = lattice_.TI_map_.at(print_op(nf));
-
+      auto [ti_key, coeff_ti] = lattice_.TI_map_.at(print_op(nf));
+      auto total_coeff = coeff_jw * coeff_ti;
       auto el = lattice_.variable_map_.at(ti_key);
-
-      if (std::abs(coeff.real()) > 1e-9)
+      // std::cout << "coeff " << total_coeff << std::endl;
+      if (std::abs(total_coeff.real()) > 1e-9)
       {
 
-        As[ti_key][sign_sector_][0][0].add_values({0, i + 1}, 1. / 2 * coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
-        As[ti_key][sign_sector_][0][0].add_values({i + 1, 0}, 1. / 2 * coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
-        As[ti_key][sign_sector_][0][0].add_values({dim_0, i + 1 + dim_0}, 1. / 2 * coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
-        As[ti_key][sign_sector_][0][0].add_values({i + 1 + dim_0, dim_0}, 1. / 2 * coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
+        As[ti_key][sign_sector_][0][0].add_values({0, i + 1}, 1. / 2 * total_coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
+        As[ti_key][sign_sector_][0][0].add_values({i + 1, 0}, 1. / 2 * total_coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
+        As[ti_key][sign_sector_][0][0].add_values({dim_0, i + 1 + dim_0}, 1. / 2 * total_coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
+        As[ti_key][sign_sector_][0][0].add_values({i + 1 + dim_0, dim_0}, 1. / 2 * total_coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
+      }
+      if (std::abs(total_coeff.imag()) > 1e-9)
+      {
+        As[ti_key][sign_sector_][0][0].add_values({i + 1, dim_0}, 1. / 2 * total_coeff.imag() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
+        As[ti_key][sign_sector_][0][0].add_values({0, i + 1 + dim_0}, -1. / 2 * total_coeff.imag() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
+        As[ti_key][sign_sector_][0][0].add_values({i + 1 + dim_0, 0}, -1. / 2 * total_coeff.imag() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
+        As[ti_key][sign_sector_][0][0].add_values({dim_0, i + 1}, 1. / 2 * total_coeff.imag() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
       }
 
       // assert(std::abs(coeff.imag()) < 1e-9);
@@ -131,8 +138,8 @@ public:
     int i = 0;
     for (auto it1 = lattice_.states_[sign_sector_].begin(); it1 != lattice_.states_[sign_sector_].end(); ++it1)
     {
-      int j = i;
-      for (auto it2 = it1; it2 != lattice_.states_[sign_sector_].end(); ++it2)
+      int j = 0;
+      for (auto it2 = lattice_.states_[sign_sector_].begin(); it2 != lattice_.states_[sign_sector_].end(); ++it2)
       {
 
         for (int mat_pos_y = 0; mat_pos_y < lattice_.Ly_; mat_pos_y++)
@@ -157,7 +164,11 @@ public:
                 //              // to do, correct so that all terms appearing here appear in map
 
                 auto construct = lattice_.generate_G_element_sos(*it1, *it2, pos_y, pos_x);
+                // if (i == j)
+                // {
 
+                //   std::cout << construct.prefac_ << "  " << construct.op_ << std::endl;
+                // }
                 std::complex<double>
                     total_prefactor = construct.prefac_ * FT_factor_x * FT_factor_y;
                 // assert(std::abs(total_prefactor)<1e-9); maybe not include values  that are zero
@@ -167,25 +178,15 @@ public:
 
                   As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({i + shift, j + shift}, 1. / 2 * total_prefactor.real());
                   As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({i + shift + dim, j + shift + dim}, 1. / 2 * total_prefactor.real());
-                  if (i != j)
-                  {
-                    As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({j + shift, i + shift}, 1. / 2 * total_prefactor.real());
-                    As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({j + shift + dim, i + shift + dim}, 1. / 2 * total_prefactor.real());
-                  }
                 }
                 if (std::abs(total_prefactor.imag()) > 1e-9)
                 {
+
                   // assert(i != j);
                   //  X^T[0,1]-X[0,1]=-H[0,1]
+
                   As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({i + shift, j + shift + dim}, -1. / 2 * total_prefactor.imag());
                   As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({j + shift, i + shift + dim}, 1. / 2 * total_prefactor.imag());
-
-                  if (i != j)
-                  {
-
-                    As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({i + shift + dim, j + shift}, 1. / 2 * total_prefactor.imag());
-                    As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({j + shift + dim, i + shift}, -1. / 2 * total_prefactor.imag());
-                  }
                 }
               }
             }
@@ -225,7 +226,7 @@ public:
 
   momentum_basis(Lattice &lattice, Model::t M, rdms_struct rdms) : lattice_(lattice), M_(M)
   {
-
+    std::cout << "start" << std::endl;
     FTx_ = Eigen::MatrixXcd(lattice_.Lx_, lattice_.Lx_);
     for (int i = 0; i < lattice_.Lx_; i++)
     {
@@ -246,14 +247,14 @@ public:
         FTy_(i, j) = std::exp(phase);
       }
     }
-
+    std::cout << "start initializeing blocks" << std::endl;
     for (auto it = lattice_.states_.begin(); it != lattice_.states_.end(); ++it)
     {
 
       auto Block = momentum_block(lattice_, M_, it->first, FTy_, FTx_, std::to_string(it->first));
       sectors_.insert({it->first, Block});
     }
-
+    std::cout << "start initializeing maps" << std::endl;
     initialize_all_maps(rdms);
 
     std::cout << "size TI map " << lattice_.TI_map_.size() << std::endl;
