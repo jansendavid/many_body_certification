@@ -357,3 +357,11 @@ std::vector<std::pair<cpx, op_vec>> generate_all_terms(op_vec op, bool &unit_fou
 
   return terms;
 }
+std::pair<std::complex<double>, op_vec> sdp_get_form(op_vec op)
+{
+
+  auto [coeff_, nf] = get_normal_form(op);
+  // std::cout << "fac " << coeff_ << std::endl;
+  assert(std::abs(coeff_) - 1 < 1e-8);
+  return std::pair<std::complex<double>, op_vec>(coeff_, nf);
+}
