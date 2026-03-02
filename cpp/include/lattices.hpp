@@ -351,6 +351,13 @@ public:
 		}
 		return std::pair<std::string, std::complex<double>>(key, fac);
 	}
+	bool see_if_state_exists(op_vec spin_op)
+	{
+		flush_vector.clear();
+		bool found = false;
+		found = check_operator_translation(spin_op);
+		return found;
+	}
 	void generate_TI_map()
 	{
 
@@ -382,17 +389,22 @@ public:
 						auto v_x = op_dagg_first;
 
 						v_x.insert(v_x.end(), op_right.begin(), op_right.end());
+						auto [key, fac] = get_key(v_x);
 
-						bool found = check_operator_translation(v_x);
-
+						auto [fac_, nf] = get_normal_form(v_x);
+						bool found = false;
+						if (key == "0")
+						{
+						}
+						else
+						{
+							found = check_operator_translation(v_x);
+						}
 						if (found == false)
 						{
-							// auto [key, fac] = get_key(v_x);
-
-							auto [fac_, nf] = get_normal_form(v_x);
 
 							TI_map_.insert({print_op(nf),
-											{print_op(nf), 1}});
+											{key, 1}});
 
 							flush(v_x);
 						}
@@ -578,34 +590,37 @@ public:
 			else
 			{
 
-				// auto [key, fac] = this->lattice_.get_key(state);
-
-				auto [fac, nf] = get_normal_form(state);
-				auto it = TI_map_.find(print_op(nf));
-				if (it != TI_map_.end())
+				auto [key, fac] = get_key(state);
+				if (key == "0")
 				{
 				}
 				else
 				{
-					std::cout << "not found" << std::endl;
-				}
-				auto key = it->second.first;
-				if (key == "0")
-				{
-				}
-				{
-					// 	//     // assert(std::abs((fac * coeff).imag()) < 1e-9);
+					auto [fac, nf] = get_normal_form(state);
+					bool found = see_if_state_exists(nf);
+
+					if (!found)
+					{
+						std::cout << "adding rdm operator" << std::endl;
+						TI_map_.insert({print_op(nf),
+										{key, 1}});
+					}
+					auto it = TI_map_.find(print_op(nf));
+
+					auto key = it->second.first;
+
+					assert(std::abs((fac * it->second.second).imag()) < 1e-9);
 					mat = mat * (fac * it->second.second).real() / std::pow(2, degree);
 
-					if (rdms_eigen_.find(print_op(nf)) != rdms_eigen_.end())
+					if (rdms_eigen_.find(key) != rdms_eigen_.end())
 					{
 
-						rdms_eigen_[print_op(nf)] += mat;
+						rdms_eigen_[key] += mat;
 					}
 					else
 					{
 
-						rdms_eigen_.insert({print_op(nf), mat});
+						rdms_eigen_.insert({key, mat});
 					}
 				}
 			}

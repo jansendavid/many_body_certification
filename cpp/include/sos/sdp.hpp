@@ -10,19 +10,12 @@
 #include <unordered_map>
 #include <Eigen/Dense>
 #include "util.hpp"
+#include "spins.hpp"
 #include "symmetries.hpp"
 
 using namespace mosek::fusion;
 using namespace monty;
 using string_pair = std::pair<std::string, std::string>;
-std::pair<std::complex<double>, op_vec> sdp_get_form(op_vec op)
-{
-
-    auto [coeff_, nf] = get_normal_form(op);
-    // std::cout << "fac " << coeff_ << std::endl;
-    assert(std::abs(coeff_) - 1 < 1e-8);
-    return std::pair<std::complex<double>, op_vec>(coeff_, nf);
-}
 
 template <typename T>
 std::map<int, std::vector<op_vec>> get_mat_terms(T &states)

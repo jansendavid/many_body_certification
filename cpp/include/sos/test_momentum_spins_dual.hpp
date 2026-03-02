@@ -368,32 +368,33 @@ void test_multiple_blocks_higher_order_2d_rdm_sos()
   auto map_sec = get_sector_map();
   basis_structure states = get_states();
   get_order_one_monomials(states, map_sec, Ly, Lx, true);
-  int r = 2;
+  int r = 3;
   get_order_two_monomials(states, map_sec, Ly, Lx, r, r, -r, -r, true);
   get_order_three_monomials(states, map_sec, Ly, Lx, true);
 
-  // get_order_four_monomials(states, map_sec, Ly, Lx, true);
+  get_order_four_monomials(states, map_sec, Ly, Lx, true);
   basis_structure states_2;
   states_2[0] = states[0];
   states_2[1] = states[1];
 
   lattice.states_ = states_2;
-  auto data = get_rdms(1, Lx);
+  auto data = get_rdms(4, Lx);
 
-  rdms_struct rdms = {}; //(data); //{}; // data);
+  rdms_struct rdms(data);
+  //(data); //{}; // data);
   std::cout << rdms.size() << std::endl;
 
   Model::t M = new Model("sdo1");
   auto _M = finally([&]()
                     { M->dispose(); });
   auto basis = momentum_symmetry_solver_sos(lattice, M, rdms);
-  for (auto a : lattice.TI_map_)
-  {
-    if (std::abs(a.second.second) < 1e-4)
-    {
-      std::cout << "XXXXX" << std::endl;
-    }
-  }
+  // for (auto a : lattice.TI_map_)
+  // {
+  //   if (std::abs(a.second.second) < 1e-4)
+  //   {
+  //     std::cout << "XXXXX" << std::endl;
+  //   }
+  // }
   //  {std::cout<< a.first << " -> "<<a.second.first<<std::endl;}
   //   for(auto k: basis.total_refs_)
   //   {
@@ -406,7 +407,7 @@ void test_multiple_blocks_higher_order_2d_rdm_sos()
   auto b = define_xxz2d_sos(lattice, J, Delta);
 
   basis.set_b(b);
-
+  std::cout << "start fixing constraints " << std::endl;
   basis.fix_constrains();
   auto h = basis.get_costfunction();
   // //   std::cout<<C->toString()<<std::endl;

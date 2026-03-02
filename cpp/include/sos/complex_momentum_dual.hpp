@@ -138,8 +138,8 @@ public:
     int i = 0;
     for (auto it1 = lattice_.states_[sign_sector_].begin(); it1 != lattice_.states_[sign_sector_].end(); ++it1)
     {
-      int j = 0;
-      for (auto it2 = lattice_.states_[sign_sector_].begin(); it2 != lattice_.states_[sign_sector_].end(); ++it2)
+      int j = i;
+      for (auto it2 = it1; it2 != lattice_.states_[sign_sector_].end(); ++it2)
       {
 
         for (int mat_pos_y = 0; mat_pos_y < lattice_.Ly_; mat_pos_y++)
@@ -178,6 +178,11 @@ public:
 
                   As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({i + shift, j + shift}, 1. / 2 * total_prefactor.real());
                   As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({i + shift + dim, j + shift + dim}, 1. / 2 * total_prefactor.real());
+                  if (i != j)
+                  {
+                    As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({j + shift, i + shift}, 1. / 2 * total_prefactor.real());
+                    As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({j + shift + dim, i + shift + dim}, 1. / 2 * total_prefactor.real());
+                  }
                 }
                 if (std::abs(total_prefactor.imag()) > 1e-9)
                 {
@@ -187,6 +192,11 @@ public:
 
                   As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({i + shift, j + shift + dim}, -1. / 2 * total_prefactor.imag());
                   As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({j + shift, i + shift + dim}, 1. / 2 * total_prefactor.imag());
+                  if (i != j)
+                  {
+                    As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({i + shift + dim, j + shift}, 1. / 2 * total_prefactor.imag());
+                    As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({j + shift + dim, i + shift}, -1. / 2 * total_prefactor.imag());
+                  }
                 }
               }
             }
@@ -590,12 +600,14 @@ public:
       }
     }
     // Enforcing reduced density matrices. Todo, see if this also can be simplified by removing moving "1" into this loop
+    std::cout << "start generating constarins for rdms " << std::endl;
     for (auto lambda_ : Lambdas_)
     {
       for (auto string_and_matrix : this->sigmas_[lambda_.first])
       {
         if (string_and_matrix.first != "1")
         {
+
           int el = this->lattice_.variable_map_.at(string_and_matrix.first);
           auto a = lambda_.second;
 
