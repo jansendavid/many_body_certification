@@ -8,7 +8,7 @@
 using namespace mosek::fusion;
 using namespace monty;
 using int_pair = std::pair<int, int>;
-using TI_map_type = std::map<std::string, std::pair<std::string, std::complex<double>>>;
+using TI_map_type = std::unordered_map<std::string, std::pair<std::string, std::complex<double>>>;
 
 class LatticeBase
 {

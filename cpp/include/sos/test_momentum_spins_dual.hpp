@@ -309,17 +309,17 @@ void test_multiple_blocks_higher_order_2d_rdm()
   //   std::cout << " " << a.first << std::endl;
   // }
 
-  auto g = keys_with_value(lattice.TI_map_, "s_[x,(0,0)]s_[z,(1,0)]s_[z,(0,1)]s_[x,(3,3)]");
-  std::cout << g.size() << std::endl;
-  for (auto g_ : g)
-  {
-    std::cout << g_ << std::endl;
-  }
-  auto it = lattice.TI_map_.find("s_[x,(0,0)]s_[z,(1,0)]s_[z,(0,1)]s_[x,(3,3)]");
-  if (it != lattice.TI_map_.end())
-  {
-    std::cout << "found and key was " << it->second.first << std::endl;
-  }
+  // auto g = keys_with_value(lattice.TI_map_, "s_[x,(0,0)]s_[z,(1,0)]s_[z,(0,1)]s_[x,(3,3)]");
+  // std::cout << g.size() << std::endl;
+  // for (auto g_ : g)
+  // {
+  //   std::cout << g_ << std::endl;
+  // }
+  // auto it = lattice.TI_map_.find("s_[x,(0,0)]s_[z,(1,0)]s_[z,(0,1)]s_[x,(3,3)]");
+  // if (it != lattice.TI_map_.end())
+  // {
+  //   std::cout << "found and key was " << it->second.first << std::endl;
+  // }
 
   // auto it2 = lattice.variable_map_.find("s_[x,(0,0)]s_[z,(1,0)]s_[z,(0,1)]s_[x,(3,3)]");
   // if (it2 != lattice.variable_map_.end())
