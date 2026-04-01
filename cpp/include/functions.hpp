@@ -4,11 +4,10 @@
 #include <iomanip>
 #include <cmath>
 #include "fusion.h"
-#include <bits/stdc++.h>
-#include <xtensor/xarray.hpp>
-#include <xtensor/xio.hpp>
-#include <xtensor/xview.hpp>
-#include <xtensor/xnpy.hpp>
+#include <containers/xarray.hpp>
+#include <io/xio.hpp>
+#include <views/xview.hpp>
+#include <io/xnpy.hpp>
 #include <Eigen/Dense>
 #include <unsupported/Eigen/KroneckerProduct>
 #include"spins.hpp"
