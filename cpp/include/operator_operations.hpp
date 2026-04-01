@@ -49,18 +49,89 @@ public:
         return print_op(op_) < print_op(other.get_op());
     }
 };
-std::vector<operator_and_coeff> multiply_two_ops(std::vector<operator_and_coeff> &A, std::vector<operator_and_coeff> &B)
-{
-    std::map<std::string, operator_and_coeff> res;
+class SumOfOperators{
+    std::unordered_map<std::string, operator_and_coeff> terms_;
 
-    for (auto a : A)
+    public:
+    
+    std::unordered_map<std::string, operator_and_coeff>& get_terms()
+    {
+        return terms_;
+    }
+    void merge(std::unordered_map<std::string, operator_and_coeff>& to_merge)
+    {
+        terms_.merge(to_merge);
+    }
+    void erase(std::string key)
+    {terms_.erase(key);
+    return;}
+     
+     void insert(operator_and_coeff term)
+     {
+        auto key=print_op(term.get_op());
+         auto it=terms_.find(key);
+         if(it!=terms_.end())
+         {
+            it->second.add_coeff(term.get_coeff());
+         }
+         else{
+            terms_.insert({key, term});
+         }
+     }
+};
+template<typename LattceType>
+std::vector<std::vector<double>> convert_linear_constraints(LattceType& lattice, std::vector<SumOfOperators>& elements)
+{
+    std::vector<std::vector<double>> results;
+    for(int i=0; i<elements.size(); i++)
+    {
+        std::vector<double> real_part(lattice.variable_map_.size(), 0);
+            std::vector<double> imag_part(lattice.variable_map_.size(), 0);
+            bool include_imag=false;
+            bool include_real=false;
+        for(auto& term :elements[i].get_terms() )
+        {
+            
+            auto [key, coeff_map] = lattice.TI_map_.at(term.first);
+            auto el = lattice.variable_map_.at(key);
+            std::complex<double> total_coeff=coeff_map*term.second.get_coeff();
+            if(std::abs(total_coeff.real())>1e-9)
+            {
+                real_part[el]+=total_coeff.real();
+                include_real=true;
+            }
+            if(std::abs(total_coeff.imag())>1e-9)
+            {
+
+                imag_part[el]+=total_coeff.imag();
+                include_real=true;
+            }
+         
+
+        }
+        if(include_imag)
+        {
+            results.push_back(imag_part);
+        }
+        if(include_real)
+        {
+            results.push_back(real_part);
+        }
+    }
+return results;
+}
+SumOfOperators multiply_two_ops(SumOfOperators &A, SumOfOperators &B)
+{
+    SumOfOperators res;
+
+    for (auto a : A.get_terms())
     {
 
-        for (auto b : B)
+        for (auto b : B.get_terms())
         {
 
-            auto v_x = a.get_op();
-            auto vec_insert = b.get_op();
+            auto v_x = a.second.get_op();
+            auto vec_insert = b.second.get_op();
             std::complex<double> fac{1.};
             op_vec vec;
             if (print_op(v_x) == "1" and print_op(vec_insert) == "1")
@@ -73,123 +144,74 @@ std::vector<operator_and_coeff> multiply_two_ops(std::vector<operator_and_coeff>
                 fac = fac_t;
                 vec = vec_t;
             }
-            // if (print_op(vec) == "1")
-            // {
-            //     std::cout << print_op(a.get_op()) << " " << print_op(b.get_op()) << std::endl;
-            // // }
-            operator_and_coeff op_with_coeff(a.get_coeff() * b.get_coeff() * fac, vec);
-            auto it = res.find(print_op(vec));
-
-            if (it != res.end())
-            {
-                // if (print_op(vec) == "1")
-                // {
-                //     std::cout << "found " << a.get_coeff() << " " << b.get_coeff() << " " << fac << " " << op_with_coeff.get_coeff() << std::endl;
-                // }
-                auto m = op_with_coeff.get_coeff();
-                it->second.add_coeff(op_with_coeff.get_coeff()); // op_with_coeff.get_coeff());
-            }
-            else
-            {
-                res.insert({print_op(vec), op_with_coeff});
+            auto fac_tot=a.second.get_coeff() * b.second.get_coeff() * fac;
+            if(std::abs(fac_tot)>1e-9){
+            operator_and_coeff op_with_coeff(fac_tot, vec);
+            res.insert(op_with_coeff);
             }
         }
+    
+  
     }
-    std::vector<operator_and_coeff> res_vec;
-    for (auto it = res.begin(); it != res.end(); ++it)
-    {
-        if (std::abs(it->second.get_coeff()) > 1e-9)
-        {
-            res_vec.push_back(it->second);
-        }
-    }
-    return res_vec;
+    return res;
 }
-std::vector<operator_and_coeff> compute_anticommutator(std::vector<operator_and_coeff> &A, std::vector<operator_and_coeff> &B)
+// std::vector<operator_and_coeff> compute_anticommutator(std::vector<operator_and_coeff> &A, std::vector<operator_and_coeff> &B)
+// {
+//     // return [A,B]
+//     std::vector<operator_and_coeff> result;
+//     auto A_B = multiply_two_ops(A, B);
+
+//     auto B_A = multiply_two_ops(B, A);
+
+//     for (auto b_a : B_A)
+//     {
+//         auto it = std::find_if(A_B.begin(), A_B.end(), [&b_a](operator_and_coeff op_temp)
+//                                { return print_op(op_temp.get_op()) == print_op(b_a.get_op()); });
+//         if (it != A_B.end())
+//         {
+//             it->add_coeff(b_a.get_coeff());
+//         }
+//         else
+//         {
+//             A_B.push_back(operator_and_coeff(b_a.get_coeff(), b_a.get_op()));
+//         }
+//     }
+
+//     return A_B;
+// }
+
+SumOfOperators compute_commutator(SumOfOperators &A, SumOfOperators &B)
 {
     // return [A,B]
-    std::vector<operator_and_coeff> result;
+    SumOfOperators result;
     auto A_B = multiply_two_ops(A, B);
 
     auto B_A = multiply_two_ops(B, A);
-
-    for (auto b_a : B_A)
+    for(auto term : B_A.get_terms())
     {
-        auto it = std::find_if(A_B.begin(), A_B.end(), [&b_a](operator_and_coeff op_temp)
-                               { return print_op(op_temp.get_op()) == print_op(b_a.get_op()); });
-        if (it != A_B.end())
-        {
-            it->add_coeff(b_a.get_coeff());
-        }
-        else
-        {
-            A_B.push_back(operator_and_coeff(b_a.get_coeff(), b_a.get_op()));
-        }
+        operator_and_coeff op({-1.*term.second.get_coeff(), term.second.get_op()});
+        A_B.insert(op);
     }
+    std::set<std::string> to_delete_vec;
+    for(auto term : A_B.get_terms())
+    {
+        if(std::abs(term.second.get_coeff())<1e-9)
+        {
+            to_delete_vec.insert(term.first);
+    
+        }
+
+    }
+    for(auto key_to_delete:to_delete_vec )
+    {
+        A_B.erase(key_to_delete);
+    }
+
 
     return A_B;
 }
 
-std::vector<operator_and_coeff> compute_commutator(std::vector<operator_and_coeff> &A, std::vector<operator_and_coeff> &B)
-{
-    // return [A,B]
-    std::vector<operator_and_coeff> result;
-    auto A_B = multiply_two_ops(A, B);
 
-    auto B_A = multiply_two_ops(B, A);
-
-    std::vector<operator_and_coeff> operators_to_delete;
-    // for (auto)
-    for (auto a_b : A_B)
-    {
-        auto it = find(B_A.begin(), B_A.end(), a_b);
-        if (it != B_A.end())
-        {
-
-            operators_to_delete.push_back(operator_and_coeff(a_b.get_coeff(), a_b.get_op()));
-        }
-
-        //   // Check if the target value was found
-    }
-
-    // remove the values that cancel
-
-    for (auto op_to_delete : operators_to_delete)
-    {
-        {
-            auto it = find(A_B.begin(), A_B.end(), op_to_delete);
-            A_B.erase(it);
-        }
-        {
-            auto it = find(B_A.begin(), B_A.end(), op_to_delete);
-            B_A.erase(it);
-        }
-    }
-    for (auto b_a : B_A)
-    {
-        auto it = std::find_if(A_B.begin(), A_B.end(), [&b_a](operator_and_coeff op_temp)
-                               { return print_op(op_temp.get_op()) == print_op(b_a.get_op()); });
-        if (it != A_B.end())
-        {
-            it->add_coeff(-1. * b_a.get_coeff());
-        }
-        else
-        {
-            A_B.push_back(operator_and_coeff(-1. * b_a.get_coeff(), b_a.get_op()));
-        }
-    }
-
-    return A_B;
-}
-
-struct SumOfOperators
-{ // L=\sum_i l_i
-    int N_;
-    std::map<int, std::vector<std::pair<std::complex<double>, op_vec>>> op_;
-    SumOfOperators(int N) : N_(N)
-    { // Constructor
-    }
-};
 std::ostream &operator<<(std::ostream &os, const operator_and_coeff &dt)
 {
     os << "coeff: " << dt.coeff_ << " op: " << print_op(dt.op_);
