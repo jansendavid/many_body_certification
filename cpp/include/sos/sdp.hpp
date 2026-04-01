@@ -5,7 +5,6 @@
 #include <iomanip>
 #include <cmath>
 #include "fusion.h"
-#include <bits/stdc++.h>
 #include "spins.hpp"
 #include <unordered_map>
 #include <Eigen/Dense>
@@ -18,9 +17,9 @@ using namespace monty;
 using string_pair = std::pair<std::string, std::string>;
 
 template <typename T>
-std::map<int, std::vector<op_vec>> get_mat_terms(T &states)
+std::unordered_map<int, std::vector<op_vec>> get_mat_terms(T &states)
 {
-    std::map<int, std::vector<op_vec>> mat_terms;
+    std::unordered_map<int, std::vector<op_vec>> mat_terms;
     for (auto sec : states)
     {
 
@@ -50,7 +49,7 @@ std::map<int, std::vector<op_vec>> get_mat_terms(T &states)
 }
 
 template <typename T>
-void make_block(std::vector<T> &v_tot, std::map<std::string, matrix_organizer> &matrix_mapping, std::map<std::string, std::string> &elements_mapping, int shift, int unit)
+void make_block(std::vector<T> &v_tot, std::unordered_map<std::string, matrix_organizer> &matrix_mapping, std::unordered_map<std::string, std::string> &elements_mapping, int shift, int unit)
 {
     // make induvidual matrix block
     // generating all matrix elements
@@ -96,7 +95,7 @@ void make_block(std::vector<T> &v_tot, std::map<std::string, matrix_organizer> &
     return;
 }
 template <typename T>
-void get_sdp_block_zero(Model::t &M, std::vector<T> &v_tot, std::map<std::string, matrix_organizer> &matrix_mapping, std::map<std::string, std::string> &elements_mapping, std::map<std::string, int> &terms_mapping, Variable::t &y)
+void get_sdp_block_zero(Model::t &M, std::vector<T> &v_tot, std::unordered_map<std::string, matrix_organizer> &matrix_mapping, std::unordered_map<std::string, std::string> &elements_mapping,std::unordered_map<std::string, int> &terms_mapping, Variable::t &y)
 {
 
     int dim = 2 * (v_tot.size() + 1);
@@ -159,7 +158,7 @@ void get_sdp_block_zero(Model::t &M, std::vector<T> &v_tot, std::map<std::string
     return;
 }
 template <typename T>
-void get_sdp_block_general(Model::t &M, std::vector<T> &v_tot, std::map<std::string, matrix_organizer> &matrix_mapping, std::map<std::string, std::string> &elements_mapping, std::map<std::string, int> &terms_mapping, Variable::t &y)
+void get_sdp_block_general(Model::t &M, std::vector<T> &v_tot, std::unordered_map<std::string, matrix_organizer> &matrix_mapping, std::unordered_map<std::string, std::string> &elements_mapping, std::unordered_map<std::string, int> &terms_mapping, Variable::t &y)
 {
 
     // correct this should be but must remove in make_block
