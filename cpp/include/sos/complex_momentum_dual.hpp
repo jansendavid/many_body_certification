@@ -8,6 +8,7 @@
 #include "lattices.hpp"
 #include <cassert>
 #include "reduced_dms.hpp"
+#include "operator_operations.hpp"
 using namespace mosek::fusion;
 using namespace monty;
 
@@ -233,7 +234,8 @@ public:
   std::map<std::string, symmetry_sector> As_;
   // for the reduced density matrix
   std::map<rdm_operator, std::map<std::string, Matrix::t>> sigmas_;
-
+  std::vector<Parameter::t>  linear_constraints_coefficients_;
+   
   momentum_basis(Lattice &lattice, Model::t M, rdms_struct rdms) : lattice_(lattice), M_(M)
   {
     std::cout << "start" << std::endl;
@@ -346,7 +348,23 @@ public:
 
     return;
   }
-
+  void set_linear_constraints_vec(std::vector<std::vector<double>>  linear_constraints)
+  {
+    if(linear_constraints_coefficients_.size()<1)
+    {
+      for(int i=0; i<linear_constraints.size(); i++)
+      {
+        linear_constraints_coefficients_.push_back(M_->parameter("linear_constraint_"+std::to_string(i), lattice_.variable_map_.size()));
+      }
+    }
+    for(int i=0; i< linear_constraints.size(); i++)
+    {
+     
+      auto a = monty::new_array_ptr<double>(linear_constraints[i]);
+      linear_constraints_coefficients_[i]->setValue(a);
+    }
+    return;
+  }
   void generate_rdms(rdms_struct rdms)
   {
 
@@ -455,6 +473,12 @@ public:
     return Expr::dot(this->b_, y_);
   }
 };
+// struct linear_constraint{
+// std::string key;
+// double value;
+// linear_constraint(std::string key, double value):key_(key), value_(value){};
+
+// };
 template <typename Lattice>
 class momentum_symmetry_solver_sos : public momentum_basis<Lattice>
 {
@@ -473,6 +497,12 @@ public:
   Variable::t eta;
   Variable::t epsilon;
 
+  // dummy variable used to constrain magnetization
+  // todo add parameter that you can set and make a certain constraint fulfilled
+
+  Variable::t delta;
+  // a vector where each element is a constraint 
+  std::vector<Variable::t> linear_constraints_variable_; 
   momentum_symmetry_solver_sos(Lattice &lattice, Model::t M, rdms_struct rdms, bool maximize = true) : maximize_(maximize), momentum_basis<Lattice>(lattice, M, rdms)
   {
     if (maximize_)
@@ -553,6 +583,12 @@ public:
         energy_bouding_variables_.push_back(this->M_->variable("lower energy", Domain::greaterThan(0.)));
       }
     }
+    
+      for(int i=0; i<this->linear_constraints_coefficients_.size(); i++)
+      {
+        linear_constraints_variable_.push_back(this->M_->variable("LC"+std::to_string(i)));
+      }
+    
 
     std::vector<Expression::t> expressions_(this->lattice_.variable_map_.size(), Expr::constTerm(0));
 
@@ -626,6 +662,27 @@ public:
         expressions_[i] = Expr::add(expressions_[i], (exp_temporary->index(i)));
       }
     }
+    // adding lunear constarins
+    if(linear_constraints_variable_.size()>0)
+    {
+      auto exp_temporary = Expr::mul(linear_constraints_variable_[0], this->linear_constraints_coefficients_[0]);
+     
+    
+    for(int j=1; j<linear_constraints_variable_.size(); j++)
+    {
+      exp_temporary =Expr::add(exp_temporary,Expr::mul(linear_constraints_variable_[j], this->linear_constraints_coefficients_[j]));
+      for (int i = 0; i < linear_constraints_variable_[0]->getSize(); i++)
+      {
+        // energy_vec_->index(i)
+
+        expressions_[i] = Expr::add(expressions_[i], (exp_temporary->index(i)));
+      }
+      
+    }
+  }
+
+
+
     // adding a constant term for the 1:
     int el = this->lattice_.variable_map_.at("1");
     expressions_[el] = Expr::add(expressions_[el], epsilon);
