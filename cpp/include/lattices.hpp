@@ -361,10 +361,12 @@ public:
 	void generate_TI_map()
 	{
 
-		for (auto sector : states_)
+		for (auto& sector : states_)
 		{
 			std::cout << "sector " << sector.first << std::endl;
-			auto operators = sector.second;
+			for(auto& subsector : sector.second)
+			{
+			auto operators = subsector.second;
 			for (auto it1 = operators.begin(); it1 != operators.end(); ++it1)
 			{
 				auto op = *it1;
@@ -412,6 +414,7 @@ public:
 				}
 			}
 		}
+	}
 		// for (auto a : TI_map_)
 		// {
 		// 	std::cout << a.first << " -> " << a.second.first << std::endl;

@@ -3,7 +3,7 @@
 #include <iomanip>
 #include <cmath>
 #include "fusion.h"
-#include <bits/stdc++.h>
+
 #include "spins.hpp"
 #include <unordered_map>
 #include <Eigen/Dense>
@@ -23,7 +23,8 @@ int main()
   //  test_multiple_blocks_2d();
   // test_multiple_blocks_higher_order_2d();
   // test_multiple_blocks_higher_order_2d_rdm();
-  test_multiple_blocks_higher_order_2d_rdm_sos();
+test_multiple_blocks_higher_order_2d_rdm_sos();
+  //test_multiple_blocks_higher_order_2d_rdm_sos_with_linear_constraints();
   //    test_x();
   //    test_y();
   //    test_d8_symm();

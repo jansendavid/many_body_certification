@@ -182,7 +182,9 @@ public:
 
 /////////////////////////////////////////////////////////////////////////
 using op_vec = std::vector<spin_op>;
-using basis_structure = std::map<int, std::vector<op_vec>>;
+using sector_structure = std::map<int, std::vector<op_vec>>;
+using basis_structure = std::map<int, sector_structure>;
+
 /////////////////////////////////////////////////////////////////
 template <typename T>
 std::string print_op(const std::vector<T> &oper)

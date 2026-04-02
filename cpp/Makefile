@@ -4,9 +4,13 @@ INC+=-I$(MOSEK)/h/
 INC+=-I./include/
 INC+=-I./include/sos
 INC+=-I$(EIGEN)
+INC+=-I$(XTENSOR)
+INC+=-I$(XTENSOR)/xtensor
+
+INC+=-I$(XTL)
 #########################
 
-CCFLAGS=  -Wno-unused-variable -std=c++17 -O2 -std=gnu++1z
+CCFLAGS=  -Wno-unused-variable -std=c++20 -O2
 CCGFLAGS+=-I. $(DEBUGFLAGS) 
 
 LIBFLAGS=-lfusion64 -lmosek64
@@ -18,7 +22,7 @@ LIBSPATH_2=-L$(MOSEK)/bin/
 
 
 DB=-g
-CXX=g++
+compiler=$(CXX)
 ND=-DNDEBUG
 
 #-fopenmp -DOMPPAR
@@ -30,16 +34,16 @@ ND=-DNDEBUG
 #all: $(OBJECTS)
 ##############################
 2dxxz: src/2dxxz.cpp
-	g++ -std=c++11 src/2dxxz.cpp -o bin/$@ -std=c++20 -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
+	$(compiler) -std=c++11 src/2dxxz.cpp -o bin/$@ -std=c++20 -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
 1dxxz: src/1dxxz.cpp
-	g++ -std=c++11 src/1dxxz.cpp -o bin/$@ -std=c++20 -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
+	$(compiler) -std=c++11 src/1dxxz.cpp -o bin/$@ -std=c++20 -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
 ##tests##
 #######################################
 test_spins: tests/test_spins.cpp
-	g++ -std=c++11 tests/test_spins.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
+	$(compiler) -std=c++11 tests/test_spins.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
 
 test_ham_spins: tests/test_ham_spins.cpp
-	g++ -std=c++11 tests/test_ham_spins.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
+	$(compiler) -std=c++11 tests/test_ham_spins.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
 
 test_ham_spins_eff: tests/test_ham_spins_eff.cpp
 	g++ -std=c++11 tests/test_ham_spins_eff.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
@@ -58,10 +62,11 @@ test_momentum_spins_eff_xy: tests/test_momentum_spins_eff_xy.cpp
 	g++ -std=c++11 tests/test_momentum_spins_eff_xy.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
 
 test_momentum_spins_sos_dual: tests/test_momentum_spins_sos_dual.cpp
-	g++ -std=c++11 tests/test_momentum_spins_sos_dual.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
+	clang++ -std=c++11 -stdlib=libc++ tests/test_momentum_spins_sos_dual.cpp -o bin/test_momentum_spins_sos_dual -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-headerpad,128 -Wl,-rpath,$(MOSEK)/bin/ -Wl,-rpath,$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
+	
 
 test_momentum_spins_dual_xy: tests/test_momentum_spins_dual_xy.cpp
-	g++ -std=c++11 tests/test_momentum_spins_dual_xy.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
+	g++ -std=c++11 tests/test_momentum_spins_dual_xy.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
 
 
 test_momentum_spins_dual: tests/test_momentum_spins_dual.cpp

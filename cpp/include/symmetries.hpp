@@ -515,9 +515,16 @@ void add_state(basis_structure &states, op_vec op, std::map<std::pair<int, int>,
   // adds a state to a basis
   auto [fac, nf] = get_normal_form(op);
   auto sign = get_sec(nf);
+  int sector_partition=1;
+  if(states.at(map_sec.at(sign)).size()>1)
+  {
+    sector_partition=2;
+  }
   if (nf.size() > 0)
   {
-    states.at(map_sec.at(sign)).push_back(nf);
+   
+    states.at(map_sec.at(sign)).at((nf.size()%sector_partition)).push_back(nf);
+    
   }
 
   return;
@@ -531,6 +538,11 @@ void add_state_with_symmetries(basis_structure &states, op_vec op, std::map<std:
   bool print = false;
 
   auto sign = get_sec(nf);
+  int sector_partition=1;
+  if(states.at(map_sec.at(sign)).size()>1)
+  {
+    sector_partition=2;
+  }
   bool found = false;
   if (nf.size() > 0)
   {
@@ -548,8 +560,9 @@ void add_state_with_symmetries(basis_structure &states, op_vec op, std::map<std:
         {
           std::cout << print_op(op_ty) << std::endl;
         }
-        auto it = std::find(states.at(map_sec.at(sign)).begin(), states.at(map_sec.at(sign)).end(), op_ty);
-        if (it != states.at(map_sec.at(sign)).end())
+        auto it = std::find(states.at(map_sec.at(sign)).at((nf.size()%sector_partition)).begin(), states.at(map_sec.at(sign)).at((nf.size()%sector_partition)).end(), op_ty);
+       
+        if (it != states.at(map_sec.at(sign)).at((nf.size()%sector_partition)).end())
         {
           // std::cout<<print_op(nf)<< " was "<< print_op(*it)<<std::endl;
           found = true;
@@ -560,7 +573,8 @@ void add_state_with_symmetries(basis_structure &states, op_vec op, std::map<std:
 
     if (!found)
     {
-      states.at(map_sec.at(sign)).push_back(nf);
+      states.at(map_sec.at(sign)).at((nf.size()%sector_partition)).push_back(nf);
+
     }
   }
 
@@ -860,17 +874,21 @@ std::map<std::pair<int, int>, int> get_sector_map()
   map_sec.insert({std::pair<int, int>(-1, -1), 3});
   return map_sec;
 }
-basis_structure get_states()
+basis_structure get_states(int subsectors=2)
 {
   basis_structure states;
-  std::vector<op_vec> v_block_0;
-  std::vector<op_vec> v_block_1;
-  std::vector<op_vec> v_block_2;
-  std::vector<op_vec> v_block_3;
-  states.insert({0, v_block_0});
-  states.insert({1, v_block_1});
-  states.insert({2, v_block_2});
-  states.insert({3, v_block_3});
+  for(int i=0; i<4; i++)
+  {
+    sector_structure sector;
+    
+    for(int j=0; j<subsectors; j++)
+    {
+      std::vector<op_vec> v_block;
+      sector.insert({j, v_block});
+    }
+    states.insert({i, sector});
+  }
+
 
   return states;
 }
