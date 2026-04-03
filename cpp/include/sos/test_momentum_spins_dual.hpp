@@ -355,18 +355,26 @@ void test_multiple_blocks_higher_order_2d_rdm()
 }
 void test_multiple_blocks_higher_order_2d_rdm_sos()
 {
-
+   int Lx = 4;
+   int Ly = 4;
+ 
   // std::cout << "WARNING! Takes a lot of memory" << std::endl;
-  int Lx = 4;
-  int Ly = 4;
-  // op_vec op = {spin_op("y", {3, 2}, {Lx, Ly}), spin_op("z", {0, 2}, {Lx, Ly}), spin_op("x", {0, 3}, {Lx, Ly}), spin_op("x", {1, 0}, {Lx, Ly}), spin_op("z", {1, 3}, {Lx, Ly}), spin_op("y", {0, 3}, {Lx, Ly})};
+
+  // op_vec op = {spin_op("z", {3, 2}, {Lx, Ly}), spin_op("z", {3, 3}, {Lx, Ly}), spin_op("z", {1, 0}, {Lx, Ly}), spin_op("z", {0, 0}, {Lx, Ly})};
   // auto all_p = generate_all_permutations_xyz(op);
-  // std::cout << "start " << print_op(op) << std::endl;
-  // for (auto a : all_p)
+  // std::cout<<all_p.size()<<std::endl;
+  // for(auto p: all_p)
   // {
-  //   std::cout << print_op(a) << std::endl;
+  //   std::cout<<print_op(p)<<std::endl;
   // }
-  auto lattice = SquareLattice(Ly, Lx, true, false, "xyz", "xyz");
+//   // std::cout << "start " << print_op(op) << std::endl;
+//   // for (auto a : all_p)
+//   // {
+//   //   std::cout << print_op(a) << std::endl;
+//   // }
+   auto lattice = SquareLattice(Ly, Lx, true, false, "xyz", "xyz");
+
+
   auto map_sec = get_sector_map();
   basis_structure states = get_states(1);
 
