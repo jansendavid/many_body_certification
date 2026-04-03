@@ -3,7 +3,7 @@
 #include <iomanip>
 #include <cmath>
 #include "fusion.h"
-#include <bits/stdc++.h>
+//#include <bits/stdc++.h>
 #include "spins.hpp"
 #include <unordered_map>
 #include <Eigen/Dense>

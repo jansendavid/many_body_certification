@@ -4,13 +4,14 @@
 #include <iomanip>
 #include <cmath>
 #include "fusion.h"
-#include <bits/stdc++.h>
+#include"lattices.hpp"
+//#include <bits/stdc++.h>
 #include "spins.hpp"
 #include <unordered_map>
 #include <Eigen/Dense>
 #include "sos/complex_momentum_dual.hpp"
 #include "spin_hamiltonians_TIsym.hpp"
-#include "functions.hpp"
+//#include "functions.hpp"
 #include "reduced_dms.hpp"
 using namespace mosek::fusion;
 using namespace monty;
@@ -353,18 +354,26 @@ void test_multiple_blocks_higher_order_2d_rdm()
 }
 void test_multiple_blocks_higher_order_2d_rdm_sos()
 {
-
+   int Lx = 4;
+   int Ly = 4;
+ 
   // std::cout << "WARNING! Takes a lot of memory" << std::endl;
-  int Lx = 4;
-  int Ly = 4;
-  // op_vec op = {spin_op("y", {3, 2}, {Lx, Ly}), spin_op("z", {0, 2}, {Lx, Ly}), spin_op("x", {0, 3}, {Lx, Ly}), spin_op("x", {1, 0}, {Lx, Ly}), spin_op("z", {1, 3}, {Lx, Ly}), spin_op("y", {0, 3}, {Lx, Ly})};
+
+  // op_vec op = {spin_op("z", {3, 2}, {Lx, Ly}), spin_op("z", {3, 3}, {Lx, Ly}), spin_op("z", {1, 0}, {Lx, Ly}), spin_op("z", {0, 0}, {Lx, Ly})};
   // auto all_p = generate_all_permutations_xyz(op);
-  // std::cout << "start " << print_op(op) << std::endl;
-  // for (auto a : all_p)
+  // std::cout<<all_p.size()<<std::endl;
+  // for(auto p: all_p)
   // {
-  //   std::cout << print_op(a) << std::endl;
+  //   std::cout<<print_op(p)<<std::endl;
   // }
-  auto lattice = SquareLattice(Ly, Lx, true, false, "xyz", "xyz");
+//   // std::cout << "start " << print_op(op) << std::endl;
+//   // for (auto a : all_p)
+//   // {
+//   //   std::cout << print_op(a) << std::endl;
+//   // }
+   auto lattice = SquareLattice(Ly, Lx, true, false, "xyz", "xyz");
+
+
   auto map_sec = get_sector_map();
   basis_structure states = get_states();
   get_order_one_monomials(states, map_sec, Ly, Lx, true);
@@ -372,10 +381,12 @@ void test_multiple_blocks_higher_order_2d_rdm_sos()
   get_order_two_monomials(states, map_sec, Ly, Lx, r, r, -r, -r, true);
   get_order_three_monomials(states, map_sec, Ly, Lx, true);
 
-  get_order_four_monomials(states, map_sec, Ly, Lx, true);
+   get_order_four_monomials(states, map_sec, Ly, Lx, true);
   basis_structure states_2;
   states_2[0] = states[0];
   states_2[1] = states[1];
+  // states_2[2] = states[2];
+  // states_2[3] = states[3];
 
   lattice.states_ = states_2;
   auto data = get_rdms(4, Lx);

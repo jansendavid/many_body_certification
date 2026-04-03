@@ -733,7 +733,7 @@ std::set<op_vec> generate_all_permutations_xy(op_vec op)
   for (auto &a : permutations)
   {
     auto new_op = op;
-    std::for_each(new_op.begin(), new_op.end(), [a](spin_op n)
+    std::for_each(new_op.begin(), new_op.end(), [a](spin_op& n)
                   {
        auto old_d=n.get_dir();
        n.set_dir(a.at(old_d)); });
@@ -804,53 +804,93 @@ std::string apply_permutation(
 //   return all_P;
 // }
 
-std::set<op_vec> generate_all_permutations_xyz(op_vec op)
+// std::set<op_vec> generate_all_permutations_xyz(op_vec op)
+// {
+
+//   std::set<op_vec> all_P;
+//   // auto [fac, vec] = get_normal_form(op);
+//   // assert(fac.imag() < 1e-9);
+
+//   std::vector<std::map<std::string, std::string>> permutations(4);
+
+//   //  trivial permutation
+//   all_P.insert(op);
+//   // permutations[0].insert({"x", "x"});
+//   // permutations[0].insert({"y", "z"});
+//   // permutations[0].insert({"z", "y"});
+
+//   permutations[0].insert({"x", "y"});
+//   permutations[0].insert({"y", "x"});
+//   permutations[0].insert({"z", "z"});
+
+//   permutations[1].insert({"x", "y"});
+//   permutations[1].insert({"y", "z"});
+//   permutations[1].insert({"z", "x"});
+
+//   permutations[2].insert({"x", "z"});
+//   permutations[2].insert({"y", "x"});
+//   permutations[2].insert({"z", "y"});
+
+//   permutations[3].insert({"x", "z"});
+//   permutations[3].insert({"y", "y"});
+//   permutations[3].insert({"z", "x"});
+
+//   for (auto &a : permutations)
+//   {
+
+//     auto new_op = op;
+//     std::for_each(new_op.begin(), new_op.end(), [a](spin_op& n)
+//                   {
+//        auto old_d=n.get_dir();
+//        n.set_dir(a.at(old_d)); });
+  
+//     all_P.insert(new_op);
+//   }
+
+//   return all_P;
+// }
+std::set<op_vec>  generate_all_permutations_xyz(op_vec op)
 {
 
-  std::set<op_vec> all_P;
-  // auto [fac, vec] = get_normal_form(op);
-  // assert(fac.imag() < 1e-9);
-
-  std::vector<std::map<std::string, std::string>> permutations(4);
-
-  //  trivial permutation
-  all_P.insert(op);
-  // permutations[0].insert({"x", "x"});
-  // permutations[0].insert({"y", "z"});
-  // permutations[0].insert({"z", "y"});
-
-  permutations[0].insert({"x", "y"});
-  permutations[0].insert({"y", "x"});
-  permutations[0].insert({"z", "z"});
+  std::vector<op_vec> all_P;
+  auto [fac, vec] = get_normal_form(op);
+  assert(fac.imag() < 1e-9);
+  all_P.push_back(vec);
+  std::vector<std::map<std::string, std::string>> permutations(5);
+  permutations[0].insert({"x", "x"});
+  permutations[0].insert({"y", "z"});
+  permutations[0].insert({"z", "y"});
 
   permutations[1].insert({"x", "y"});
-  permutations[1].insert({"y", "z"});
-  permutations[1].insert({"z", "x"});
+  permutations[1].insert({"y", "x"});
+  permutations[1].insert({"z", "z"});
 
-  permutations[2].insert({"x", "z"});
-  permutations[2].insert({"y", "x"});
-  permutations[2].insert({"z", "y"});
+  permutations[2].insert({"x", "y"});
+  permutations[2].insert({"y", "z"});
+  permutations[2].insert({"z", "x"});
 
   permutations[3].insert({"x", "z"});
-  permutations[3].insert({"y", "y"});
-  permutations[3].insert({"z", "x"});
+  permutations[3].insert({"y", "x"});
+  permutations[3].insert({"z", "y"});
+
+  permutations[4].insert({"x", "z"});
+  permutations[4].insert({"y", "y"});
+  permutations[4].insert({"z", "x"});
 
   for (auto &a : permutations)
   {
-
     auto new_op = op;
-    std::for_each(new_op.begin(), new_op.end(), [a](spin_op n)
+    std::for_each(new_op.begin(), new_op.end(), [a](spin_op &n)
                   {
-       auto old_d=n.get_dir();
-       n.set_dir(a.at(old_d)); });
-    // auto [fac, vec] = get_normal_form(new_op);
-    // assert(fac.imag() < 1e-9);
-    all_P.insert(new_op);
+       auto old_d=n.get_dir(); 
+       n.set_dir(a.at(old_d));});
+    auto [fac, vec] = get_normal_form(new_op);
+    assert(fac.imag() < 1e-9);
+    all_P.push_back(vec);
   }
-
-  return all_P;
+  std::set<op_vec> s(all_P.begin(), all_P.end());
+  return s;
 }
-
 std::map<std::pair<int, int>, int> get_sector_map()
 {
   std::map<std::pair<int, int>, int> map_sec;

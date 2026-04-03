@@ -104,7 +104,7 @@ public:
 	SquareLattice(int Ly, int Lx, bool square, bool bilayer, std::string permuts = "xyz", std::string signsym = "xyz") : LatticeBase(Ly, Lx), bilayer_(bilayer), square_(square), permuts_(permuts), signsym_(signsym)
 	{
 		// assert(Lx == Ly);
-		if (permuts != "xyz" and permuts != "xy" and permuts != "None")
+		if (permuts != "xyz" and permuts != "yxz" and permuts != "zxy" and permuts != "xy" and permuts != "None")
 		{
 			std::cout << "permutation error" << std::endl;
 		}
@@ -163,24 +163,28 @@ public:
 	}
 	bool check_permutation_symm(op_vec op_org, op_vec op)
 	{
+	
 		std::set<op_vec> all_p;
 		auto [fac_org, nf_org] = get_normal_form(op_org);
+		auto [fac, nf] = get_normal_form(op);
 		if (permuts_ == "xyz" or permuts_ == "yxz" or permuts_ == "zxy" or permuts_ == "zyx")
 		{
-			all_p = generate_all_permutations_xyz(op);
+			
+			all_p = generate_all_permutations_xyz(nf);
 		}
 		else if (permuts_ == "xy")
 		{
-			all_p = generate_all_permutations_xy(op);
+			all_p = generate_all_permutations_xy(nf);
 		}
 		else if (permuts_ == "None")
 		{
-			all_p.insert(op);
+			all_p.insert(nf);
 		}
+
 		for (auto op_p : all_p)
 		{
-			auto [fac, nf] = get_normal_form(op_p);
-			auto it = TI_map_.find(print_op(nf));
+			//auto [fac, nf] = get_normal_form(op_p);
+			auto it = TI_map_.find(print_op(op_p));
 
 			if (it != TI_map_.end())
 			{
@@ -192,7 +196,7 @@ public:
 			}
 			else
 			{
-				flush_vector.push_back(op_p);
+				//flush_vector.push_back(op_p);
 			}
 		}
 		return false;
