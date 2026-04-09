@@ -523,7 +523,7 @@ void add_state(basis_structure &states, op_vec op, std::map<std::pair<int, int>,
   if (nf.size() > 0)
   {
    
-    states.at(map_sec.at(sign)).at((nf.size()%sector_partition)).push_back(nf);
+    states.at(map_sec.at(sign)).push_back(nf);
     
   }
 
@@ -560,9 +560,9 @@ void add_state_with_symmetries(basis_structure &states, op_vec op, std::map<std:
         {
           std::cout << print_op(op_ty) << std::endl;
         }
-        auto it = std::find(states.at(map_sec.at(sign)).at((nf.size()%sector_partition)).begin(), states.at(map_sec.at(sign)).at((nf.size()%sector_partition)).end(), op_ty);
+        auto it = std::find(states.at(map_sec.at(sign)).begin(), states.at(map_sec.at(sign)).end(), op_ty);
        
-        if (it != states.at(map_sec.at(sign)).at((nf.size()%sector_partition)).end())
+        if (it != states.at(map_sec.at(sign)).end())
         {
           // std::cout<<print_op(nf)<< " was "<< print_op(*it)<<std::endl;
           found = true;
@@ -573,7 +573,7 @@ void add_state_with_symmetries(basis_structure &states, op_vec op, std::map<std:
 
     if (!found)
     {
-      states.at(map_sec.at(sign)).at((nf.size()%sector_partition)).push_back(nf);
+      states.at(map_sec.at(sign)).push_back(nf);
 
     }
   }
@@ -914,14 +914,29 @@ std::map<std::pair<int, int>, int> get_sector_map()
   map_sec.insert({std::pair<int, int>(-1, -1), 3});
   return map_sec;
 }
-basis_structure get_states(int subsectors=2)
+basis_structure get_states()
 {
   basis_structure states;
   for(int i=0; i<4; i++)
   {
-    sector_structure sector;
+
+      std::vector<op_vec> v_block;
+      states.insert({i, v_block});
     
-    for(int j=0; j<subsectors; j++)
+
+  }
+
+
+  return states;
+}
+basis_structure_with_sub get_states_with_sub()
+{
+  basis_structure_with_sub states;
+  for(int i=0; i<4; i++)
+  {
+    basis_structure sector;
+    
+    for(int j=0; j<2; j++)
     {
       std::vector<op_vec> v_block;
       sector.insert({j, v_block});

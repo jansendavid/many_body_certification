@@ -353,6 +353,26 @@ void test_multiple_blocks_higher_order_2d_rdm()
   // std::cout << std::setprecision(9) << M->primalObjValue() << std::endl;
   //-0.702827317
 }
+std::vector<int> get_sign(op_vec op)
+{
+  std::vector<int> res;
+  std::vector<std::string> dirs = {"x", "y", "z"};
+  for (auto dir_ : dirs)
+  {
+    int fac = 1;
+    for (auto a : op)
+    {
+
+      if (a.get_dir() == dir_)
+      {
+        fac *= -1;
+      }
+    }    
+    res.push_back(fac);
+}
+
+  return res;
+}
 void test_multiple_blocks_higher_order_2d_rdm_sos()
 {
    int Lx = 4;
@@ -367,11 +387,11 @@ void test_multiple_blocks_higher_order_2d_rdm_sos()
   // {
   //   std::cout<<print_op(p)<<std::endl;
   // }
-//   // std::cout << "start " << print_op(op) << std::endl;
-//   // for (auto a : all_p)
-//   // {
-//   //   std::cout << print_op(a) << std::endl;
-//   // }
+  // std::cout << "start " << print_op(op) << std::endl;
+  // for (auto a : all_p)
+  // {
+  //   std::cout << print_op(a) << std::endl;
+  // }
    auto lattice = SquareLattice(Ly, Lx, true, false, "xyz", "xyz");
 
 
@@ -384,14 +404,28 @@ for(auto b: states)
   std::cout<<b.second.size()<<std::endl;
 }
    get_order_one_monomials(states, map_sec, Ly, Lx, true);
-  int r = 3;
+  int r = 1;
   get_order_two_monomials(states, map_sec, Ly, Lx, r, r, -r, -r, true);
-   get_order_three_monomials(states, map_sec, Ly, Lx, true);
+    // get_order_three_monomials(states, map_sec, Ly, Lx, true);
 
-  //get_order_four_monomials(states, map_sec, Ly, Lx, true);
+// for(auto a: states)
+// {
+//   std::cout<<"SS "<< a.first<<std::endl;
+//   for(auto b: a.second)
+//   {
+//     std::cout<< "b "<< b.first<<std::endl;
+//     for(auto c: b.second)
+//     {
+//       auto res=get_sign(c);
+//       std::cout<<print_op(c)<< " signe "<<res[0]<< " "<< res[1]<< "  "<<  res[2]<<std::endl;
+//     }
+//   }
+// }
+//   //get_order_four_monomials(states, map_sec, Ly, Lx, true);
   basis_structure states_2;
-  for(int i=0; i<4; i++)
-  {for(int j=0; j<states[i].size(); j++)
+  for(int i=0; i<2; i++)
+  {for(int j=0; j<1; j++)
+    //states[i].size(); j++)
     {
       states_2[i][j] = states[i][j];
     }
@@ -464,7 +498,7 @@ std::cout<< "end sector analysis"<<std::endl;
       i++;
     }
   }
-  // thord order -0.702827317
+ // thord order -0.702827317
   return;
 }
 void test_multiple_blocks_higher_order_2d_rdm_sos_with_linear_constraints()

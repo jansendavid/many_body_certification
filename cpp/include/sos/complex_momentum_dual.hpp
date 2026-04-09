@@ -225,6 +225,7 @@ for(auto& sector : lattice_.states_[sign_sector_])
 
     for(auto & sub_sector: lattice_.states_[sign_sector_])
     {
+      std::cout<< "generating subsector: "<<sub_sector.first<<std::endl;
       auto sub_sector_key=sub_sector.first;
       int i = 0;
       // iterating over the monomials
@@ -704,10 +705,10 @@ public:
       }
     }
     
-      // for(int i=0; i<this->linear_constraints_coefficients_.size(); i++)
-      // {
-      //   linear_constraints_variable_.push_back(this->M_->variable("LC"+std::to_string(i)));
-      // }
+      for(int i=0; i<this->linear_constraints_coefficients_.size(); i++)
+      {
+        linear_constraints_variable_.push_back(this->M_->variable("LC"+std::to_string(i)));
+      }
     
 
     std::vector<Expression::t> expressions_(this->lattice_.variable_map_.size(), Expr::constTerm(0));

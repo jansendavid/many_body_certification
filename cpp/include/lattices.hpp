@@ -368,9 +368,8 @@ public:
 		for (auto& sector : states_)
 		{
 			std::cout << "sector " << sector.first << std::endl;
-			for(auto& subsector : sector.second)
-			{
-			auto operators = subsector.second;
+		
+			auto operators = sector.second;
 			for (auto it1 = operators.begin(); it1 != operators.end(); ++it1)
 			{
 				auto op = *it1;
@@ -417,7 +416,7 @@ public:
 					}
 				}
 			}
-		}
+		
 	}
 		// for (auto a : TI_map_)
 		// {

@@ -72,6 +72,13 @@ test_momentum_spins_dual_xy: tests/test_momentum_spins_dual_xy.cpp
 test_momentum_spins_dual: tests/test_momentum_spins_dual.cpp
 	g++ -std=c++11 tests/test_momentum_spins_dual.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
 
+simple_spin_chain: tests/simple_spin_chain.cpp
+	clang++ -std=c++11 -stdlib=libc++ tests/simple_spin_chain.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-headerpad,128 -Wl,-rpath,$(MOSEK)/bin/ -Wl,-rpath,$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
+	
+simple_spin_chain_original: tests/simple_spin_chain_original.cpp
+	clang++ -std=c++11 -stdlib=libc++ tests/simple_spin_chain_original.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-headerpad,128 -Wl,-rpath,$(MOSEK)/bin/ -Wl,-rpath,$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
+	
+
 
 test: src/test.cpp
 	g++ -std=c++11 src/test.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
