@@ -516,10 +516,10 @@ void add_state(basis_structure &states, op_vec op, std::map<std::pair<int, int>,
   auto [fac, nf] = get_normal_form(op);
   auto sign = get_sec(nf);
   int sector_partition=1;
-  if(states.at(map_sec.at(sign)).size()>1)
-  {
-    sector_partition=2;
-  }
+  // if(states.at(map_sec.at(sign)).size()>1)
+  // {
+  //   sector_partition=2;
+  // }
   if (nf.size() > 0)
   {
    
@@ -538,11 +538,7 @@ void add_state_with_symmetries(basis_structure &states, op_vec op, std::map<std:
   bool print = false;
 
   auto sign = get_sec(nf);
-  int sector_partition=1;
-  if(states.at(map_sec.at(sign)).size()>1)
-  {
-    sector_partition=2;
-  }
+
   bool found = false;
   if (nf.size() > 0)
   {

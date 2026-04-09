@@ -12,8 +12,8 @@
 using namespace mosek::fusion;
 using namespace monty;
 
-using SubsymmetrySector = std::map<int, std::vector<std::vector<matrix_organizer>>>;
-using AType=std::map<std::string, std::map<int,SubsymmetrySector>>;  
+using symmetry_sector = std::map<int, std::vector<std::vector<matrix_organizer>>>;
+
 // // implementing momentum symmetrie in x and y direction
 template <typename Lattice>
 class momentum_block
@@ -21,7 +21,7 @@ class momentum_block
 public:
   std::vector<std::vector<Variable::t>> blocks_;
   int sign_sector_{0};
-  std::map<int, std::vector<std::vector<int>>> block_shifts;
+  std::vector<std::vector<int>> block_shifts;
   Lattice &lattice_;
 
   Eigen::MatrixXcd &FTx_;
@@ -35,34 +35,22 @@ public:
 
   void initialize_blocks_general()
   {
-    for(auto& sector : lattice_.states_[sign_sector_])
-    {
-      int dim_x = lattice_.states_[sign_sector_][sector.first].size();
-      
+
+    int dim_x = lattice_.states_[sign_sector_].size(); // operators_.size(); // dimension of other blocks
+
     for (int j = 0; j < lattice_.Ly_; j++)
     {
-      block_shifts[sector.first].push_back({});
+      block_shifts.push_back({});
 
       for (int i = 0; i < lattice_.Lx_; i++)
       {
-        block_shifts[sector.first][j].push_back(dim_x);
+        block_shifts[j].push_back(dim_x);
       }
     }
-      // for (int j = 0; j < lattice_.Ly_; j++)
-    // {
-    //   block_shifts.push_back({});
-
-    //   for (int i = 0; i < lattice_.Lx_; i++)
-    //   {
-    //     block_shifts[j].push_back(dim_x);
-    //   }
-    // }
-    }
-    
 
     return;
   }
-  void initialize_blocks(AType &As)
+  void initialize_blocks(std::map<std::string, symmetry_sector> &As)
   {
     if (sign_sector_ == 0)
     {
@@ -75,123 +63,48 @@ public:
     }
     return;
   }
-  void initialize_blocks_zero(AType &As)
+  void initialize_blocks_zero(std::map<std::string, symmetry_sector> &As)
   {
 
-    
+    int dim_0 = lattice_.states_[sign_sector_].size() + 1;
     // operators_.size() + 1;       // dimension of 0th block
-    // auto it_zero=lattice_.states_[sign_sector_].begin();
-    // int zero_subsector=it_zero->first;
-    // assert(std::abs(zero_subsector)<1e-9);
-    // int dim_0 = lattice_.states_[sign_sector_][zero_subsector].size()+1;
-    // std::cout<<" lattice_.states_[sign_sector_].size() "<<lattice_.states_[sign_sector_].size()<<std::endl;
-for(auto& sector : lattice_.states_[sign_sector_])
-{
-  std::cout<<"xxx size "<<sector.first <<" "<<sector.second.size()<<std::endl;
-  block_shifts.insert({sector.first, {}});
-  int dim = lattice_.states_[sign_sector_][sector.first].size();
-  int shift = 0;
-  
-  // dealing with the sector with 1 operator
-  if(sector.first == 0 and sign_sector_ == 0)
-  {
-    std::cout<< "first "<<std::endl;
-     block_shifts[sector.first].push_back({});
-    
-     block_shifts[sector.first][0].push_back(dim+1);
+    int dim_x = lattice_.states_[sign_sector_].size(); // dimension of other blocks
+
+    block_shifts.push_back({});
+
+    // initializing block shifts
+    block_shifts[0].push_back(dim_0);
     for (int i = 1; i < lattice_.Lx_; i++)
     {
 
-      block_shifts[sector.first][0].push_back(dim);
+      block_shifts[0].push_back(dim_x);
     }
-    for (int i = 1; i < lattice_.Lx_; i++)
+
+    for (int i = 1; i < lattice_.Ly_; i++)
     {
-      block_shifts[sector.first].push_back({});
+      block_shifts.push_back({});
       for (int j = 0; j < lattice_.Lx_; j++)
       {
-        block_shifts[sector.first][i].push_back(dim);
+        block_shifts[i].push_back(dim_x);
       }
     }
-     }
-    
-  // }
-   else{
-     std::cout<< "xx sign sector "<<sector.first<<std::endl;
-    for (int j = 0; j < lattice_.Ly_; j++)
-    {
-      block_shifts[sector.first].push_back({});
 
-      for (int i = 0; i < lattice_.Lx_; i++)
-      {
-        block_shifts[sector.first][j].push_back(dim);
-      }
-    }
-   }
-}
-  //     std::cout<< "sign sector "<<sign_sector_<<std::endl;
-   for(auto& sector : lattice_.states_[sign_sector_])
-   {
-     std::cout<<" size "<<sector.first <<" "<<sector.second.size()<<std::endl;
-     std::cout<<block_shifts[sector.first].size()<<std::endl;
-  //   // for(auto b: sector.second)
-  //   // {
-  //   //   std::cout<<b.size()<<std::endl;
-  //   // }
-  }
+    As["1"][sign_sector_][0][0].add_values({0, 0}, 1. / 2);
+    As["1"][sign_sector_][0][0].add_values({dim_0, dim_0}, 1. / 2);
 
-  //for(auto a: b)
-//   return;
-// }
-
-  
-  // for (int i = shift; i < lattice_.Ly_; i++)
-  // {
-  //   block_shifts.push_back({});
-  //   for (int j = 0; j < lattice_.Lx_; j++)
-  //   {
-  //     block_shifts[i].push_back(dim_x);
-  //   }
-  // }
-
-// }
-//     block_shifts.push_back({});
-
-//     // initializing block shifts
-//     block_shifts[0].push_back(dim_0);
-//     for (int i = 1; i < lattice_.Lx_; i++)
-//     {
-
-//       block_shifts[0].push_back(dim_x);
-//     }
-
-//     for (int i = 1; i < lattice_.Ly_; i++)
-//     {
-//       block_shifts.push_back({});
-//       for (int j = 0; j < lattice_.Lx_; j++)
-//       {
-//         block_shifts[i].push_back(dim_x);
-//       }
-//     }
-    int zero_subsector=0;
-    int dim=block_shifts[zero_subsector][0][0];
-    std::cout<<"dim "<<dim<<std::endl;
-    std::cout<< "ind "<<sign_sector_<< " and "<<zero_subsector<<std::endl;
-
-    As["1"][sign_sector_][zero_subsector][0][0].add_values({0, 0}, 1. / 2);
-    As["1"][sign_sector_][zero_subsector][0][0].add_values({dim, dim}, 1. / 2);
-    std::cout<< "ind "<<sign_sector_<< " and "<<zero_subsector<<std::endl;
     //   //     // The "c" terms first row and column in block 0
     int i = 0;
-   
-    for (auto it = lattice_.states_[sign_sector_][zero_subsector].begin(); it != lattice_.states_[sign_sector_][zero_subsector].end(); ++it)
+
+    for (auto it = lattice_.states_[sign_sector_].begin(); it != lattice_.states_[sign_sector_].end(); ++it)
     {
       auto op = *it;
       // get normal form
       auto [coeff_jw, nf] = lattice_.get_form_of_TI_map(op);
-
+      // get_normal_form(op);
       // get translation invariant representation
 
-   
+      // auto ti_key = lattice_.TI_map_.at(print_op(nf)).first;
+
       auto [ti_key, coeff_ti] = lattice_.TI_map_.at(print_op(nf));
       auto total_coeff = coeff_jw * coeff_ti;
       auto el = lattice_.variable_map_.at(ti_key);
@@ -199,17 +112,17 @@ for(auto& sector : lattice_.states_[sign_sector_])
       if (std::abs(total_coeff.real()) > 1e-9)
       {
 
-        As[ti_key][sign_sector_][zero_subsector][0][0].add_values({0, i + 1}, 1. / 2 * total_coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
-        As[ti_key][sign_sector_][zero_subsector][0][0].add_values({i + 1, 0}, 1. / 2 * total_coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
-        As[ti_key][sign_sector_][zero_subsector][0][0].add_values({dim, i + 1 + dim}, 1. / 2 * total_coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
-        As[ti_key][sign_sector_][zero_subsector][0][0].add_values({i + 1 + dim, dim}, 1. / 2 * total_coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
+        As[ti_key][sign_sector_][0][0].add_values({0, i + 1}, 1. / 2 * total_coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
+        As[ti_key][sign_sector_][0][0].add_values({i + 1, 0}, 1. / 2 * total_coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
+        As[ti_key][sign_sector_][0][0].add_values({dim_0, i + 1 + dim_0}, 1. / 2 * total_coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
+        As[ti_key][sign_sector_][0][0].add_values({i + 1 + dim_0, dim_0}, 1. / 2 * total_coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
       }
       if (std::abs(total_coeff.imag()) > 1e-9)
       {
-        As[ti_key][sign_sector_][zero_subsector][0][0].add_values({i + 1, dim}, 1. / 2 * total_coeff.imag() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
-        As[ti_key][sign_sector_][zero_subsector][0][0].add_values({0, i + 1 + dim}, -1. / 2 * total_coeff.imag() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
-        As[ti_key][sign_sector_][zero_subsector][0][0].add_values({i + 1 + dim, 0}, -1. / 2 * total_coeff.imag() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
-        As[ti_key][sign_sector_][zero_subsector][0][0].add_values({dim, i + 1}, 1. / 2 * total_coeff.imag() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
+        As[ti_key][sign_sector_][0][0].add_values({i + 1, dim_0}, 1. / 2 * total_coeff.imag() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
+        As[ti_key][sign_sector_][0][0].add_values({0, i + 1 + dim_0}, -1. / 2 * total_coeff.imag() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
+        As[ti_key][sign_sector_][0][0].add_values({i + 1 + dim_0, 0}, -1. / 2 * total_coeff.imag() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
+        As[ti_key][sign_sector_][0][0].add_values({dim_0, i + 1}, 1. / 2 * total_coeff.imag() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
       }
 
       // assert(std::abs(coeff.imag()) < 1e-9);
@@ -219,20 +132,15 @@ for(auto& sector : lattice_.states_[sign_sector_])
 
     return;
   }
-  void generate_block(AType &As)
+  void generate_block(std::map<std::string, symmetry_sector> &As)
   {
     //     const auto start{std::chrono::steady_clock::now()};
 
-    for(auto & sub_sector: lattice_.states_[sign_sector_])
-    {
-      std::cout<< "generating subsector: "<<sub_sector.first<<std::endl;
-      auto sub_sector_key=sub_sector.first;
-      int i = 0;
-      // iterating over the monomials
-    for (auto it1 = sub_sector.second.begin(); it1 != sub_sector.second.end(); ++it1)
+    int i = 0;
+    for (auto it1 = lattice_.states_[sign_sector_].begin(); it1 != lattice_.states_[sign_sector_].end(); ++it1)
     {
       int j = i;
-      for (auto it2 = it1; it2 != sub_sector.second.end(); ++it2)
+      for (auto it2 = it1; it2 != lattice_.states_[sign_sector_].end(); ++it2)
       {
 
         for (int mat_pos_y = 0; mat_pos_y < lattice_.Ly_; mat_pos_y++)
@@ -240,12 +148,11 @@ for(auto& sector : lattice_.states_[sign_sector_])
           for (int mat_pos_x = 0; mat_pos_x < lattice_.Lx_; mat_pos_x++)
           {
 
-            // 			      // determines if first block of zeroth moment blocks, 1 if zero block, zeroth otherwise
-
-            int shift = block_shifts[sub_sector_key][mat_pos_y][mat_pos_x] % lattice_.states_[sign_sector_][sub_sector_key].size();
+            // 			      // determines if first block of zeroth moment blocks
+            int shift = block_shifts[mat_pos_y][mat_pos_x] % lattice_.states_[sign_sector_].size();
 
             // 			      // gives the shift between real and complex components
-            int dim = block_shifts[sub_sector_key][mat_pos_y][mat_pos_x];
+            int dim = block_shifts[mat_pos_y][mat_pos_x];
 
             for (int pos_y = 0; pos_y < lattice_.Ly_; pos_y++)
             {
@@ -269,28 +176,27 @@ for(auto& sector : lattice_.states_[sign_sector_])
 
                 if (std::abs(total_prefactor.real()) > 1e-9)
                 {
-//std::cout<<sign_sector_ <<" "<<sub_sector_key << " "<<mat_pos_y<< " "<<mat_pos_x<<" "<<dim<<std::endl;
-                  As[construct.op_][sign_sector_][sub_sector_key][mat_pos_y][mat_pos_x].add_values({i + shift, j + shift}, 1. / 2 * total_prefactor.real());
-                  As[construct.op_][sign_sector_][sub_sector_key][mat_pos_y][mat_pos_x].add_values({i + shift + dim, j + shift + dim}, 1. / 2 * total_prefactor.real());
+
+                  As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({i + shift, j + shift}, 1. / 2 * total_prefactor.real());
+                  As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({i + shift + dim, j + shift + dim}, 1. / 2 * total_prefactor.real());
                   if (i != j)
                   {
-                    As[construct.op_][sign_sector_][sub_sector_key][mat_pos_y][mat_pos_x].add_values({j + shift, i + shift}, 1. / 2 * total_prefactor.real());
-                    As[construct.op_][sign_sector_][sub_sector_key][mat_pos_y][mat_pos_x].add_values({j + shift + dim, i + shift + dim}, 1. / 2 * total_prefactor.real());
+                    As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({j + shift, i + shift}, 1. / 2 * total_prefactor.real());
+                    As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({j + shift + dim, i + shift + dim}, 1. / 2 * total_prefactor.real());
                   }
                 }
-//                 std::cout<< "done "<<std::endl;
                 if (std::abs(total_prefactor.imag()) > 1e-9)
                 {
 
                   // assert(i != j);
                   //  X^T[0,1]-X[0,1]=-H[0,1]
 
-                  As[construct.op_][sign_sector_][sub_sector_key][mat_pos_y][mat_pos_x].add_values({i + shift, j + shift + dim}, -1. / 2 * total_prefactor.imag());
-                  As[construct.op_][sign_sector_][sub_sector_key][mat_pos_y][mat_pos_x].add_values({j + shift, i + shift + dim}, 1. / 2 * total_prefactor.imag());
+                  As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({i + shift, j + shift + dim}, -1. / 2 * total_prefactor.imag());
+                  As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({j + shift, i + shift + dim}, 1. / 2 * total_prefactor.imag());
                   if (i != j)
                   {
-                    As[construct.op_][sign_sector_][sub_sector_key][mat_pos_y][mat_pos_x].add_values({i + shift + dim, j + shift}, 1. / 2 * total_prefactor.imag());
-                    As[construct.op_][sign_sector_][sub_sector_key][mat_pos_y][mat_pos_x].add_values({j + shift + dim, i + shift}, -1. / 2 * total_prefactor.imag());
+                    As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({i + shift + dim, j + shift}, 1. / 2 * total_prefactor.imag());
+                    As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({j + shift + dim, i + shift}, -1. / 2 * total_prefactor.imag());
                   }
                 }
               }
@@ -302,7 +208,7 @@ for(auto& sector : lattice_.states_[sign_sector_])
       }
       i += 1;
     }
-  }
+
     return;
   }
 };
@@ -325,7 +231,7 @@ public:
   Lattice &lattice_;
   // enforcing constarans ye nergy_vec_<=E_upper
   // contains the matrices As, for each sign symmetrye we have LxL blocks
-  AType As_;
+  std::map<std::string, symmetry_sector> As_;
   // for the reduced density matrix
   std::map<rdm_operator, std::map<std::string, Matrix::t>> sigmas_;
   std::vector<Parameter::t>  linear_constraints_coefficients_;
@@ -360,7 +266,7 @@ public:
       auto Block = momentum_block(lattice_, M_, it->first, FTy_, FTx_, std::to_string(it->first));
       sectors_.insert({it->first, Block});
     }
-  //   // std::cout << "start initializeing maps" << std::endl;
+    std::cout << "start initializeing maps" << std::endl;
     initialize_all_maps(rdms);
 
     std::cout << "size TI map " << lattice_.TI_map_.size() << std::endl;
@@ -372,52 +278,32 @@ public:
 
     for (auto it = lattice.variable_map_.begin(); it != lattice.variable_map_.end(); it++)
     {
-      As_.insert({it->first, {}});//SubsymmetrySector()
+      As_.insert({it->first, symmetry_sector()});
       for (auto it_sign_sector = sectors_.begin(); it_sign_sector != sectors_.end(); ++it_sign_sector)
       {
-        As_[it->first][it_sign_sector->first]={};
-        for(auto & subsymmtery:lattice.states_[it_sign_sector->first] )
-        {
-          As_[it->first][it_sign_sector->first][subsymmtery.first]={};
-         
+        As_[it->first][it_sign_sector->first] = {};
+
         for (int i = 0; i < lattice_.Ly_; i++)
         {
-          As_[it->first][it_sign_sector->first][subsymmtery.first].push_back({});
+          As_[it->first][it_sign_sector->first].push_back({});
           for (int j = 0; j < lattice_.Lx_; j++)
           {
-            As_[it->first][it_sign_sector->first][subsymmtery.first][i].push_back(matrix_organizer());
+            As_[it->first][it_sign_sector->first][i].push_back(matrix_organizer());
           }
         }
       }
     }
-   }
-  //  std::cout<< "As "<<As_.size()<<std::endl;
-  //  auto it=As_.begin();
-  //  std::cout<< it->second.size()<<std::endl;
-  //  for(auto as: it->second)
-  //  {
-  //  std::cout<< as.second.size()<<std::endl;
-  //  for(auto bs: as.second )
-  //  {
-  //   std::cout<<"bs "<< bs.second.size()<<std::endl;
-  //   for(auto cs: bs.second )
-  //   {
-  //     std::cout<<"cs "<< cs.size()<<std::endl;
-  //   }
-  //  }
-  //  }
-     std::cout << "initialze blocks " << std::endl;
-    
+    std::cout << "initialze blocks " << std::endl;
     for (auto &sector : sectors_)
     {
       sector.second.initialize_blocks(As_);
     }
-  //   // std::cout << "finished initializeing blocks" << std::endl;
+    std::cout << "finished initializeing blocks" << std::endl;
     for (auto it_2 = sectors_.begin(); it_2 != sectors_.end(); ++it_2)
     {
       it_2->second.generate_block(As_);
     }
-  //   std::cout << "finished making the As matrices" << std::endl;
+    std::cout << "finished making the As matrices" << std::endl;
 
     return;
   };
@@ -482,7 +368,7 @@ public:
   void generate_rdms(rdms_struct rdms)
   {
 
-    auto offset = lattice_.states_[1][0][0][0].offset_; // change this to be derived from baso
+    auto offset = lattice_.states_[1][0][0].offset_; // change this to be derived from baso
 
     int i = 0;
     std::cout << "rdms size " << rdms.rdms.size() << std::endl;
@@ -503,16 +389,16 @@ public:
   Variable::t y_;
   momentum_symmetry_solver_dual(Lattice &lattice, Model::t M, rdms_struct rdms) : momentum_basis<Lattice>(lattice, M, rdms)
   {
-  
+    std::cout << "start " << std::endl;
     y_ = this->M_->variable("T", this->lattice_.variable_map_.size());
     // fix 1
     auto el = this->lattice_.variable_map_.at("1");
     this->M_->constraint(y_->index(el), Domain::equalsTo(1.0));
- 
+    std::cout << "start " << std::endl;
     // fix zero
     el = this->lattice_.variable_map_.at("0");
     this->M_->constraint(y_->index(el), Domain::equalsTo(0.0));
-
+    std::cout << "start " << std::endl;
   }
   void fix_constrains()
   {
@@ -520,8 +406,7 @@ public:
     // iterate over sign sector
     for (auto sign_symm_sector : this->sectors_)
     {
-      for(auto &subsector: this->lattice_.states_[sign_symm_sector])
-      {
+
       for (int i = 0; i < this->lattice_.Ly_; i++)
       {
         for (int j = 0; j < this->lattice_.Lx_; j++)
@@ -534,11 +419,11 @@ public:
             {
               continue;
             }
-            if (this->As_[op.first][sign_symm_sector.first][subsector.first][i][j].has_elements_)
+            if (this->As_[op.first][sign_symm_sector.first][i][j].has_elements_)
             {
-              int matrix_dimension = 2 * sign_symm_sector.second.block_shifts[subsector.first][i][j];
+              int matrix_dimension = 2 * sign_symm_sector.second.block_shifts[i][j];
 
-              matrices.push_back(Expr::mul(y_->index(op.second), this->As_[op.first][sign_symm_sector.first][subsector.first][i][j].make_matrix(matrix_dimension, matrix_dimension)));
+              matrices.push_back(Expr::mul(y_->index(op.second), this->As_[op.first][sign_symm_sector.first][i][j].make_matrix(matrix_dimension, matrix_dimension)));
             }
           }
 
@@ -556,7 +441,6 @@ public:
         }
       }
     }
-  }
     std::cout << "Finished generating the PSD constraints" << std::endl;
     for (auto state : this->sigmas_)
     {
@@ -599,13 +483,13 @@ template <typename Lattice>
 class momentum_symmetry_solver_sos : public momentum_basis<Lattice>
 {
 public:
-  std::map<int, std::map<int,std::vector<std::vector<Expression::t>>>> Xs_;
+  std::map<int, std::vector<std::vector<Expression::t>>> Xs_;
   // Lambdas are the Lagrangian stemmeing from psd density matrices
   std::map<rdm_operator, Expression::t> Lambdas_;
 
   // here we store the C matrices (the constants)
   // std::map<int, std::vector<std::vector<Matrix::t>>> Cs_;
-  std::map<int, std::map<int,std::vector<std::vector<Matrix::t>>>> zeros_;
+  std::map<int, std::vector<std::vector<Matrix::t>>> zeros_;
   // variables introduced to bound the energy
   std::vector<Variable::t> energy_bouding_variables_;
   bool maximize_{true}; // if cost function is a maximization problem
@@ -636,38 +520,33 @@ public:
       Xs_[sign_symm_sector.first] = {};
       // Cs_[sign_symm_sector.first] = {};
       zeros_[sign_symm_sector.first] = {};
-      for (auto  subsector : this->lattice_.states_[sign_symm_sector.first])
-      {
-    
-        Xs_[sign_symm_sector.first][subsector.first] = {};
 
-        zeros_[sign_symm_sector.first][subsector.first] = {};
       for (int i = 0; i < this->lattice_.Ly_; i++)
       {
-        Xs_[sign_symm_sector.first][subsector.first].push_back({});
+        Xs_[sign_symm_sector.first].push_back({});
         // Cs_[sign_symm_sector.first].push_back({});
-        zeros_[sign_symm_sector.first][subsector.first].push_back({});
+        zeros_[sign_symm_sector.first].push_back({});
 
         for (int j = 0; j < this->lattice_.Lx_; j++)
         {
 
-          int matrix_dimension = 2 * sign_symm_sector.second.block_shifts[subsector.first][i][j];
+          int matrix_dimension = 2 * sign_symm_sector.second.block_shifts[i][j];
 
-          auto X = this->M_->variable("X_" + std::to_string(sign_symm_sector.first) + "_" + std::to_string(subsector.first)+"_"+ std::to_string(i) + std::to_string(j), Domain::inPSDCone(matrix_dimension));
+          auto X = this->M_->variable("X_" + std::to_string(sign_symm_sector.first) + "_" + std::to_string(i) + std::to_string(j), Domain::inPSDCone(matrix_dimension));
 
           // This is "minus" x, thus, we must replace all x with neg(x)
           if (maximize_)
           {
-            Xs_[sign_symm_sector.first][subsector.first][i].push_back(Expr::neg(X));
+            Xs_[sign_symm_sector.first][i].push_back(Expr::neg(X));
           }
           else
           {
-            Xs_[sign_symm_sector.first][subsector.first][i].push_back((X));
+            Xs_[sign_symm_sector.first][i].push_back((X));
           }
         }
       }
     }
-  }
+
     int i = 0;
     for (auto op : rdms.rdms)
     {
@@ -688,7 +567,7 @@ public:
 
   void fix_constrains()
   {
-  //   // wanting to solve the sdp
+    // wanting to solve the sdp
     // Tr<X,C>, s.t. for all i, Tr<X,A_i>=b_i
     if (this->bounding_observable_)
     {
@@ -715,10 +594,7 @@ public:
 
     for (auto sign_symm_sector : this->sectors_)
     {
-      std::cout<<"sign_symm_sector "<<sign_symm_sector.first<<std::endl;
-      for (auto  subsector : this->lattice_.states_[sign_symm_sector.first])
-      {
-        std::cout<<"sub_symm_sector "<<subsector.first<<std::endl;
+
       for (int i = 0; i < this->lattice_.Ly_; i++)
       {
         for (int j = 0; j < this->lattice_.Lx_; j++)
@@ -726,8 +602,7 @@ public:
 
           for (auto op : this->lattice_.variable_map_)
           {
-           int matrix_dimension = 2 * sign_symm_sector.second.block_shifts[subsector.first][i][j];
-            //std::cout<<"md "<<matrix_dimension<<std::endl;
+            int matrix_dimension = 2 * sign_symm_sector.second.block_shifts[i][j];
             if (op.first == "0")
             {
               continue;
@@ -736,25 +611,23 @@ public:
             {
               if (op.first == "1")
               {
-
-                if (this->As_[op.first][sign_symm_sector.first][subsector.first][i][j].has_elements_)
+                if (this->As_[op.first][sign_symm_sector.first][i][j].has_elements_)
                 {
-                 // std::cout<<"p "<< op.first<<std::endl;
-                   int el = this->lattice_.variable_map_.at(op.first);
-                  // std::cout<<"done"<<std::endl;
+                  int el = this->lattice_.variable_map_.at(op.first);
                   // generatin the C matrix blocks (the one that will be used om the cost function min(C,X))
-            
-                 expressions_[el] = Expr::add(expressions_[el], Expr::dot(this->As_[op.first][sign_symm_sector.first][subsector.first][i][j].make_matrix(matrix_dimension, matrix_dimension), (Xs_[sign_symm_sector.first][subsector.first][i][j])));
+                  // auto C = this->As_[op.first][sign_symm_sector.first][i][j].make_matrix(matrix_dimension, matrix_dimension);
+                  // Cs_[sign_symm_sector.first][i].push_back(C);
+                  expressions_[el] = Expr::add(expressions_[el], Expr::dot(this->As_[op.first][sign_symm_sector.first][i][j].make_matrix(matrix_dimension, matrix_dimension), (Xs_[sign_symm_sector.first][i][j])));
                 }
               }
-               else
+              else
               {
-                if (this->As_[op.first][sign_symm_sector.first][subsector.first][i][j].has_elements_)
+                if (this->As_[op.first][sign_symm_sector.first][i][j].has_elements_)
                 {
 
                   int el = this->lattice_.variable_map_.at(op.first);
                   // making the constrains Tr<A_,X> which we will assign to b_i later
-                  expressions_[el] = Expr::add(expressions_[el], Expr::dot(this->As_[op.first][sign_symm_sector.first][subsector.first][i][j].make_matrix(matrix_dimension, matrix_dimension), (Xs_[sign_symm_sector.first][subsector.first][i][j])));
+                  expressions_[el] = Expr::add(expressions_[el], Expr::dot(this->As_[op.first][sign_symm_sector.first][i][j].make_matrix(matrix_dimension, matrix_dimension), (Xs_[sign_symm_sector.first][i][j])));
                 }
               }
             }
@@ -762,7 +635,6 @@ public:
         }
       }
     }
-  }
     // Enforcing reduced density matrices. Todo, see if this also can be simplified by removing moving "1" into this loop
     std::cout << "start generating constarins for rdms " << std::endl;
     for (auto lambda_ : Lambdas_)
