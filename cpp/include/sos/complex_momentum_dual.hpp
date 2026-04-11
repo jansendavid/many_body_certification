@@ -52,91 +52,18 @@ public:
   }
   void initialize_blocks(std::map<std::string, symmetry_sector> &As)
   {
-    if (sign_sector_ == 0)
-    {
-
-      initialize_blocks_zero(As);
-    }
-    else
-    {
+   
       initialize_blocks_general();
-    }
+    
     return;
   }
-  void initialize_blocks_zero(std::map<std::string, symmetry_sector> &As)
-  {
-
-    int dim_0 = lattice_.states_[sign_sector_].size() + 1;
-    // operators_.size() + 1;       // dimension of 0th block
-    int dim_x = lattice_.states_[sign_sector_].size(); // dimension of other blocks
-
-    block_shifts.push_back({});
-
-    // initializing block shifts
-    block_shifts[0].push_back(dim_0);
-    for (int i = 1; i < lattice_.Lx_; i++)
-    {
-
-      block_shifts[0].push_back(dim_x);
-    }
-
-    for (int i = 1; i < lattice_.Ly_; i++)
-    {
-      block_shifts.push_back({});
-      for (int j = 0; j < lattice_.Lx_; j++)
-      {
-        block_shifts[i].push_back(dim_x);
-      }
-    }
-
-    As["1"][sign_sector_][0][0].add_values({0, 0}, 1. / 2);
-    As["1"][sign_sector_][0][0].add_values({dim_0, dim_0}, 1. / 2);
-
-    //   //     // The "c" terms first row and column in block 0
-    int i = 0;
-
-    for (auto it = lattice_.states_[sign_sector_].begin(); it != lattice_.states_[sign_sector_].end(); ++it)
-    {
-      auto op = *it;
-      // get normal form
-      auto [coeff_jw, nf] = lattice_.get_form_of_TI_map(op);
-      // get_normal_form(op);
-      // get translation invariant representation
-
-      // auto ti_key = lattice_.TI_map_.at(print_op(nf)).first;
-
-      auto [ti_key, coeff_ti] = lattice_.TI_map_.at(print_op(nf));
-      auto total_coeff = coeff_jw * coeff_ti;
-      auto el = lattice_.variable_map_.at(ti_key);
-      // std::cout << "coeff " << total_coeff << std::endl;
-      if (std::abs(total_coeff.real()) > 1e-9)
-      {
-
-        As[ti_key][sign_sector_][0][0].add_values({0, i + 1}, 1. / 2 * total_coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
-        As[ti_key][sign_sector_][0][0].add_values({i + 1, 0}, 1. / 2 * total_coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
-        As[ti_key][sign_sector_][0][0].add_values({dim_0, i + 1 + dim_0}, 1. / 2 * total_coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
-        As[ti_key][sign_sector_][0][0].add_values({i + 1 + dim_0, dim_0}, 1. / 2 * total_coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
-      }
-      if (std::abs(total_coeff.imag()) > 1e-9)
-      {
-        As[ti_key][sign_sector_][0][0].add_values({i + 1, dim_0}, 1. / 2 * total_coeff.imag() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
-        As[ti_key][sign_sector_][0][0].add_values({0, i + 1 + dim_0}, -1. / 2 * total_coeff.imag() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
-        As[ti_key][sign_sector_][0][0].add_values({i + 1 + dim_0, 0}, -1. / 2 * total_coeff.imag() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
-        As[ti_key][sign_sector_][0][0].add_values({dim_0, i + 1}, 1. / 2 * total_coeff.imag() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
-      }
-
-      // assert(std::abs(coeff.imag()) < 1e-9);
-
-      i++;
-    }
-
-    return;
-  }
+ 
   void generate_block(std::map<std::string, symmetry_sector> &As)
   {
     //     const auto start{std::chrono::steady_clock::now()};
 
     int i = 0;
+
     for (auto it1 = lattice_.states_[sign_sector_].begin(); it1 != lattice_.states_[sign_sector_].end(); ++it1)
     {
       int j = i;
@@ -149,7 +76,8 @@ public:
           {
 
             // 			      // determines if first block of zeroth moment blocks
-            int shift = block_shifts[mat_pos_y][mat_pos_x] % lattice_.states_[sign_sector_].size();
+            int shift =0;
+            // block_shifts[mat_pos_y][mat_pos_x] % lattice_.states_[sign_sector_].size();
 
             // 			      // gives the shift between real and complex components
             int dim = block_shifts[mat_pos_y][mat_pos_x];
@@ -172,6 +100,7 @@ public:
                 // }
                 std::complex<double>
                     total_prefactor = construct.prefac_ * FT_factor_x * FT_factor_y;
+                 
                 // assert(std::abs(total_prefactor)<1e-9); maybe not include values  that are zero
 
                 if (std::abs(total_prefactor.real()) > 1e-9)
@@ -246,7 +175,7 @@ public:
       {
         std::complex<double> phase(0., -2. * i * j * pi / lattice_.Lx_);
 
-        FTx_(i, j) = std::exp(phase);
+        FTx_(i, j) = std::exp(phase)/std::sqrt(lattice_.Ly_);
       }
     }
     FTy_ = Eigen::MatrixXcd(lattice_.Ly_, lattice_.Ly_);
@@ -256,7 +185,7 @@ public:
       {
         std::complex<double> phase(0., -2. * i * j * pi / lattice_.Ly_);
 
-        FTy_(i, j) = std::exp(phase);
+        FTy_(i, j) = std::exp(phase)/std::sqrt(lattice_.Ly_);
       }
     }
     std::cout << "start initializeing blocks" << std::endl;
@@ -293,10 +222,17 @@ public:
         }
       }
     }
+     
     std::cout << "initialze blocks " << std::endl;
     for (auto &sector : sectors_)
     {
+    
       sector.second.initialize_blocks(As_);
+      if(sector.first==0)
+      {
+        As_["1"][0][0][0].add_values({0, 0}, 1. / 2);
+        As_["1"][0][0][0].add_values({sector.second.block_shifts[0][0], sector.second.block_shifts[0][0]}, 1. / 2);
+      }
     }
     std::cout << "finished initializeing blocks" << std::endl;
     for (auto it_2 = sectors_.begin(); it_2 != sectors_.end(); ++it_2)
