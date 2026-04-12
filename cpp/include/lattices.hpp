@@ -18,6 +18,7 @@ public:
 	int Lx_;
 	TI_map_type TI_map_;
 	std::map<std::string, int> variable_map_;
+	std::unordered_map<std::string, std::pair<std::complex<double>, op_vec>> nf_cache;
 	void generate_TI_map(std::map<std::string, op_vec> &mat_terms, std::vector<op_vec> &operators_, int sign_sector_) {};
 	struct G_el
 	{
@@ -32,8 +33,19 @@ public:
 		std::string op_;
 		G_op(std::complex<double> prefac, std::string op) : prefac_(prefac), op_(op) {};
 	};
+	auto get_nf_cached(const op_vec &op)
+    {
+        std::string key = print_op(op);
 
-	G_op generate_G_element_sos(op_vec op1, op_vec op2, int j, int i)
+        auto it = nf_cache.find(key);
+        if (it != nf_cache.end())
+            return it->second;
+
+        auto res = get_normal_form(op);
+        nf_cache.emplace(key, res);
+        return res;
+    }
+	G_op generate_G_element_sos_double(op_vec op1, op_vec op2, int j, int i)
 	{
 		// Generate all elements of the first row with translation in y direction. j go in y direction
 
@@ -66,7 +78,11 @@ public:
 		v_x.insert(v_x.end(), new_op.begin(), new_op.end());
 		// auto [fac, vec] = get_normal_form(v_x);
 		// std::cout << print_op(v_x) << std::endl;
-		auto [fac, nf] = get_normal_form(v_x);
+		auto [fac, nf] = get_nf_cached(v_x);
+		if(nf.size()%2==0)
+		{
+			
+		}
 
 		auto [ti_key, ti_val] = TI_map_.at(print_op(nf));
 		// std::cout << "end" << std::endl;
@@ -75,20 +91,60 @@ public:
 		cpx total_fac = fac * ti_val;
 		return G_op(total_fac, ti_key);
 	}
-};
+	G_op generate_G_element_sos(op_vec op1, op_vec op2, int j, int i)
+	{
+		// Generate all elements of the first row with translation in y direction. j go in y direction
 
+		auto op_dagg_first = dagger_operator(op1);
+
+		// auto [fac_dagg, op_dagger] = get_normal_form(op_dagg_first);
+
+		// assert(std::abs(fac_dagg.imag()) < 1e-9);
+		op_vec new_op_y;
+		op_vec new_op;
+		if (j > 0)
+		{
+			new_op_y = translation_y(op2, j, Ly_);
+		}
+		else
+		{
+
+			new_op_y = op2;
+		}
+		if (i > 0)
+		{
+			new_op = translation(new_op_y, i, Lx_);
+		}
+		else
+		{
+			new_op = new_op_y;
+		}
+		auto v_x = op_dagg_first;
+
+		v_x.insert(v_x.end(), new_op.begin(), new_op.end());
+
+		auto [fac, nf] = get_normal_form(v_x);
+
+		auto [ti_key, ti_val] = TI_map_.at(print_op(nf));
+		
+		cpx total_fac = fac * ti_val;
+		return G_op(total_fac, ti_key);
+	}
+};
+template<typename Basis>
 class SquareLattice : public LatticeBase
 {
 public:
 	std::string permuts_;
 	// sign symmetry of the Hamiltonian
 	std::string signsym_;
-	basis_structure states_;
+	Basis states_;
 	// vector in which all elements found while looking for translation invariance will be added and flushed (reset ) once an element is added
 	std::vector<op_vec> flush_vector;
 
 	bool bilayer_;
 	bool square_;
+
 	std::vector<int> get_offset_vec()
 	{
 		if (bilayer_)
@@ -101,7 +157,7 @@ public:
 		}
 	}
 
-	SquareLattice(int Ly, int Lx, bool square, bool bilayer, std::string permuts = "xyz", std::string signsym = "xyz") : LatticeBase(Ly, Lx), bilayer_(bilayer), square_(square), permuts_(permuts), signsym_(signsym)
+	SquareLattice(Basis& states, int Ly, int Lx, bool square, bool bilayer, std::string permuts = "xyz", std::string signsym = "xyz") : LatticeBase(Ly, Lx), states_(states),bilayer_(bilayer), square_(square), permuts_(permuts), signsym_(signsym)
 	{
 		// assert(Lx == Ly);
 		if (permuts != "xyz" and permuts != "yxz" and permuts != "zxy" and permuts != "xy" and permuts != "None")
@@ -113,15 +169,16 @@ public:
 			std::cout << "sign symmetrie error" << std::endl;
 		}
 	};
+	
 	void flush(op_vec op_key)
 	{
 
-		auto [fac_key, nf_key] = get_normal_form(op_key);
+		auto [fac_key, nf_key] = get_nf_cached(op_key);
 
 		for (auto &op : flush_vector)
 		{
 			// std::cout << print_op(op) << std::endl;
-			auto [fac, nf] = get_normal_form(op);
+			auto [fac, nf] = get_nf_cached(op);
 
 			TI_map_.insert({print_op(nf),
 							{print_op(nf_key), std::conj(fac) * fac_key}});
@@ -131,16 +188,33 @@ public:
 	};
 	bool check_operator_translation(op_vec op)
 	{
+		if(op.size()<1)
+		{
+			auto it = TI_map_.find(print_op(op));
+		
+			if (it != TI_map_.end())
+			{
 
+				TI_map_.insert({print_op(op),
+								{it->second.first, 1. * it->second.second}});
+				// flush(it->second.first, fac);
+
+				return true;
+			}
+			else{
+				return false;
+			}
+		
+		}
 		bool found = false;
 
 		auto all_t = all_translations(op, Lx_, Ly_);
-		auto [fac_op, nf_op] = get_normal_form(op);
+		auto [fac_op, nf_op] = get_nf_cached(op);
 
 		for (const auto &op_t : all_t)
 		{
 
-			auto [fac, nf] = get_normal_form(op_t);
+			auto [fac, nf] = get_nf_cached(op_t);
 			auto it = TI_map_.find(print_op(nf));
 			flush_vector.push_back(op_t);
 			if (it != TI_map_.end())
@@ -165,8 +239,8 @@ public:
 	{
 	
 		std::set<op_vec> all_p;
-		auto [fac_org, nf_org] = get_normal_form(op_org);
-		auto [fac, nf] = get_normal_form(op);
+		auto [fac_org, nf_org] = get_nf_cached(op_org);
+		auto [fac, nf] = get_nf_cached(op);
 		if (permuts_ == "xyz" or permuts_ == "yxz" or permuts_ == "zxy" or permuts_ == "zyx")
 		{
 			
@@ -203,19 +277,19 @@ public:
 	}
 	bool check_additional_symmetries(op_vec op_org, op_vec op)
 	{
-		auto [fac_org, nf_org] = get_normal_form(op_org);
+		auto [fac_org, nf_org] = get_nf_cached(op_org);
 		bool found = false;
 		if (square_)
 		{
 			auto dsvec = generate_all_d8(op, Lx_);
 			for (auto &d8s : dsvec)
 			{
-				auto [fac, nf] = get_normal_form(d8s);
+				auto [fac, nf] = get_nf_cached(d8s);
 				auto it = TI_map_.find(print_op(nf));
 
 				auto mirrored_ds8 = mirror(d8s);
 
-				auto [fac_mir, nf_mir] = get_normal_form(mirrored_ds8);
+				auto [fac_mir, nf_mir] = get_nf_cached(mirrored_ds8);
 
 				if (it != TI_map_.end())
 				{
@@ -260,7 +334,7 @@ public:
 				if (bilayer_)
 				{
 					auto op_flip_layer = flip_layer((d8s));
-					auto [fac_flip, nf_flip] = get_normal_form(op_flip_layer);
+					auto [fac_flip, nf_flip] = get_nf_cached(op_flip_layer);
 					auto it_flip = TI_map_.find(print_op(nf_flip));
 					if (it_flip != TI_map_.end())
 					{
@@ -282,7 +356,7 @@ public:
 					}
 
 					auto op_flip_layer_mirr = flip_layer(mirrored_ds8);
-					auto [fac_flip_mirr, nf_flip_mirr] = get_normal_form(op_flip_layer_mirr);
+					auto [fac_flip_mirr, nf_flip_mirr] = get_nf_cached(op_flip_layer_mirr);
 					auto it_flip_mirr = TI_map_.find(print_op(nf_flip_mirr));
 					if (it_flip_mirr != TI_map_.end())
 					{
@@ -325,7 +399,7 @@ public:
 	std::pair<std::string, std::complex<double>> get_key(op_vec spin_op)
 	{
 
-		auto [fac, nf] = get_normal_form(spin_op);
+		auto [fac, nf] = get_nf_cached(spin_op);
 
 		std::string key = print_op(nf);
 
@@ -355,6 +429,10 @@ public:
 		}
 		return std::pair<std::string, std::complex<double>>(key, fac);
 	}
+	void clear_caches() {
+        nf_cache.clear();
+
+    }
 	bool see_if_state_exists(op_vec spin_op)
 	{
 		flush_vector.clear();
@@ -372,21 +450,19 @@ public:
 			for (auto it1 = operators.begin(); it1 != operators.end(); ++it1)
 			{
 				auto op = *it1;
-				// std::cout << " op 1: " << print_op(*it1) << std::endl;
-
-				bool found = check_operator_translation(op);
-				if (found == false)
-				{
-					auto [key, fac] = get_key(op);
-					auto [fac_, nf] = get_normal_form(op);
-					TI_map_.insert({print_op(nf),
-									{key, 1}});
-				}
+			
 				for (auto it2 = it1; it2 != operators.end(); ++it2)
 				{
-
+					//std::cout << " op 2: " << print_op(*it1) << std::endl;
 					auto op_dagg_first = dagger_operator(op);
-					auto all_t = all_translations(*it2, Lx_, Ly_);
+					std::vector<op_vec> all_t;
+					if(it2->size()>0)
+					{
+						 all_t = all_translations(*it2, Lx_, Ly_);
+					}
+					else{
+						all_t.push_back(*it2);
+					}
 					for (auto &op_right : all_t)
 					{
 						flush_vector.clear();
@@ -395,7 +471,7 @@ public:
 						v_x.insert(v_x.end(), op_right.begin(), op_right.end());
 						auto [key, fac] = get_key(v_x);
 
-						auto [fac_, nf] = get_normal_form(v_x);
+						auto [fac_, nf] = get_nf_cached(v_x);
 						bool found = false;
 						if (key == "0")
 						{
@@ -415,11 +491,76 @@ public:
 					}
 				}
 			}
+			clear_caches();
 		}
-		// for (auto a : TI_map_)
-		// {
-		// 	std::cout << a.first << " -> " << a.second.first << std::endl;
-		// }
+	
+
+		return;
+	}
+	void operator_run(std::vector<op_vec>& operators_1, std::vector<op_vec>& operators_2)
+	{
+		for (auto it1 = operators_1.begin(); it1 != operators_1.end(); ++it1)
+			{
+				auto op=*it1;
+			for (auto it2 = operators_2.begin(); it2 != operators_2.end(); ++it2)
+				{
+					auto op_dagg_first = dagger_operator(op);
+					std::vector<op_vec> all_t;
+					if(it2->size()>0)
+					{
+						 all_t = all_translations(*it2, Lx_, Ly_);
+					}
+					else{
+						all_t.push_back(*it2);
+					}
+							for (auto &op_right : all_t)
+					{
+						flush_vector.clear();
+						auto v_x = op_dagg_first;
+
+						v_x.insert(v_x.end(), op_right.begin(), op_right.end());
+						auto [key, fac] = get_key(v_x);
+
+						auto [fac_, nf] = get_nf_cached(v_x);
+						if(nf.size()%2!=0)
+						{key="0";}
+						bool found = false;
+						if (key == "0")
+						{
+						}
+						else
+						{
+							found = check_operator_translation(v_x);
+						}
+						if (found == false)
+						{
+
+							TI_map_.insert({print_op(nf),
+											{key, 1}});
+
+							flush(v_x);
+						}
+					}
+				}
+	
+				clear_caches();
+			}
+
+		return;
+	}
+	void generate_TI_map_double()
+	{
+
+		for (auto &sector : states_)
+		{
+			operator_run(sector.second.at(0), sector.second.at(0));
+			operator_run(sector.second.at(1), sector.second.at(1));
+			operator_run(sector.second.at(0), sector.second.at(1));
+			operator_run(sector.second.at(1), sector.second.at(0));
+
+		}
+	
+	
 
 		return;
 	}
@@ -600,7 +741,7 @@ public:
 				}
 				else
 				{
-					auto [fac, nf] = get_normal_form(state);
+					auto [fac, nf] = get_nf_cached(state);
 					bool found = see_if_state_exists(nf);
 
 					if (!found)
@@ -641,7 +782,7 @@ public:
 	std::pair<std::complex<double>, op_vec> get_form_of_TI_map(const op_vec &op)
 	{
 
-		auto [coeff_, nf] = get_normal_form(op);
+		auto [coeff_, nf] = get_nf_cached(op);
 
 		return std::pair<std::complex<double>, op_vec>(coeff_, nf);
 	}

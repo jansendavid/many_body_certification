@@ -16,8 +16,8 @@ using string_pair = std::pair<std::string, std::string>;
 
 // HAMILTONIANS WHEN USING TRANSLATION SYMMETRY
 // NOTE: all are of the form vec{S_i}vec{S_j}
-
-std::vector<double> define_correlation_function_sos(std::map<std::string, int> refs, SquareLattice lattice, std::pair<std::string, std::string> dirs, std::pair<std::vector<int>, std::vector<int>> pos)
+template<typename Lattice>
+std::vector<double> define_correlation_function_sos(std::map<std::string, int> refs, Lattice lattice, std::pair<std::string, std::string> dirs, std::pair<std::vector<int>, std::vector<int>> pos)
 {
 
       std::vector<double> vals(refs.size(), 0);
@@ -33,8 +33,8 @@ std::vector<double> define_correlation_function_sos(std::map<std::string, int> r
 
       return vals;
 }
-
-std::vector<double> define_bilayer_correlation_sos(std::map<std::string, int> refs, SquareLattice lattice, std::pair<std::string, std::string> dirs, std::pair<std::vector<int>, std::vector<int>> pos)
+template<typename Lattice>
+std::vector<double> define_bilayer_correlation_sos(std::map<std::string, int> refs, Lattice lattice, std::pair<std::string, std::string> dirs, std::pair<std::vector<int>, std::vector<int>> pos)
 {
 
       std::vector<double> vals(refs.size(), 0);
@@ -51,8 +51,8 @@ std::vector<double> define_bilayer_correlation_sos(std::map<std::string, int> re
 
       return vals;
 }
-
-std::vector<double> define_xxz2d_sos(SquareLattice lattice, double J, double Delta)
+template<typename Lattice>
+std::vector<double> define_xxz2d_sos(Lattice lattice, double J, double Delta)
 {
       std::vector<string_pair> dirs{string_pair("x", "x"), string_pair("z", "z"), string_pair("y", "y")};
       std::vector<double> vals(lattice.variable_map_.size(), 0);
@@ -107,7 +107,8 @@ std::vector<double> define_xxz2d_sos(SquareLattice lattice, double J, double Del
 
       return vals;
 }
-std::vector<double> define_J1J22d_sos(std::map<std::string, int> refs, SquareLattice lattice, double J1, double J2)
+template<typename Lattice>
+std::vector<double> define_J1J22d_sos(std::map<std::string, int> refs,Lattice lattice, double J1, double J2)
 {
       std::vector<string_pair> dirs{string_pair("x", "x"), string_pair("z", "z"), string_pair("y", "y")};
       std::vector<double> vals(refs.size(), 0);
@@ -500,8 +501,8 @@ std::vector<double> define_J1J22d_sos(std::map<std::string, int> refs, SquareLat
 //       return vals;
 // }
 // 1d models
-
-std::vector<double> define_xxz_1d_sos(std::map<std::string, int> refs, SquareLattice lattice, double J, double Delta)
+template<typename Lattice>
+std::vector<double> define_xxz_1d_sos(std::map<std::string, int> refs, Lattice lattice, double J, double Delta)
 {
       std::vector<string_pair> dirs{string_pair("x", "x"), string_pair("z", "z"), string_pair("y", "y")};
       std::vector<double> vals(refs.size(), 0);
@@ -532,7 +533,8 @@ std::vector<double> define_xxz_1d_sos(std::map<std::string, int> refs, SquareLat
 
       return vals;
 }
-std::vector<double> define_J1J2_1d_sos(std::map<std::string, int> refs, SquareLattice lattice, double J1, double J2)
+template<typename Lattice>
+std::vector<double> define_J1J2_1d_sos(std::map<std::string, int> refs, Lattice lattice, double J1, double J2)
 {
       std::vector<string_pair> dirs{string_pair("x", "x"), string_pair("z", "z"), string_pair("y", "y")};
       std::vector<double> vals(refs.size(), 0);
@@ -581,8 +583,8 @@ std::vector<double> define_J1J2_1d_sos(std::map<std::string, int> refs, SquareLa
 
       return vals;
 }
-
-std::vector<double> define_TFI_1d_sos(std::map<std::string, int> refs, SquareLattice lattice, double J, double h)
+template<typename Lattice>
+std::vector<double> define_TFI_1d_sos(std::map<std::string, int> refs, Lattice lattice, double J, double h)
 {
       std::vector<string_pair> dirs{string_pair("z", "z")};
       std::vector<double> vals(refs.size(), 0);
@@ -626,8 +628,8 @@ std::vector<double> define_TFI_1d_sos(std::map<std::string, int> refs, SquareLat
 
       return vals;
 }
-
-std::vector<double> define_magnetization_sos(std::map<std::string, int> refs, SquareLattice lattice, std::string term)
+template<typename Lattice>
+std::vector<double> define_magnetization_sos(std::map<std::string, int> refs, Lattice lattice, std::string term)
 {
 
       auto offset_vector = lattice.get_offset_vec();

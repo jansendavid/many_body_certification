@@ -81,7 +81,9 @@ simple_spin_chain_original: tests/simple_spin_chain_original.cpp
 simple_2d_lattice: tests/simple_2d_lattice.cpp
 	clang++ -std=c++11 -stdlib=libc++ tests/simple_2d_lattice.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-headerpad,128 -Wl,-rpath,$(MOSEK)/bin/ -Wl,-rpath,$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
 	
-
+simple_2d_lattice_double: tests/simple_2d_lattice_double.cpp
+	clang++ -std=c++11 -stdlib=libc++ tests/simple_2d_lattice_double.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-headerpad,128 -Wl,-rpath,$(MOSEK)/bin/ -Wl,-rpath,$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
+	
 
 
 test: src/test.cpp
