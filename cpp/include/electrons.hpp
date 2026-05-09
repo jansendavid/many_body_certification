@@ -132,6 +132,10 @@ std::string print_op(const op_vec& oper)
 
 op_vec dagger_operator(op_vec oper)
 {
+  if(oper.size()<1)
+  {
+return oper;
+  }
  double coeff=1;
   op_vec new_op;
   reverse(oper.begin(),oper.end());
