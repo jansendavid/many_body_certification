@@ -101,8 +101,8 @@ test_functions: tests/test_functions.cpp
 momentum_test: src/momentum_test.cpp
 	g++ -std=c++11 src/momentum_test.cpp -o bin/$@ -std=c++20 -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
 #sos
-test_ham_spins_dual: sos/test_ham_spins_dual.cpp
-	g++ -std=c++11 sos/test_ham_spins_dual.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
+test_ham_spins_dual: include/sos/test_ham_spins_dual.cpp
+	g++ -std=c++11 include/sos/test_ham_spins_dual.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
 test_ham_spins_sos: include/sos/test_ham_spins_sos.cpp
 	g++ -std=c++11 include/sos/test_ham_spins_sos.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
 

@@ -4,17 +4,41 @@
 #include <iomanip>
 #include <cmath>
 #include "fusion.h"
-#include "spins.hpp"
+#include <bits/stdc++.h>
+
 #include <unordered_map>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include "definitions.hpp"
-#include "symmetries.hpp"
+// defenitions
 using namespace mosek::fusion;
 using namespace monty;
-// defenitions
 const double pi = std::acos(-1.0);
 //
+std::shared_ptr<ndarray<int, 1>> nint(const std::vector<int> &X) { return new_array_ptr<int>(X); }
+std::shared_ptr<ndarray<double, 1>> ndou(const std::vector<double> &X) { return new_array_ptr<double>(X); }
+
+template <class T>
+int getIndex(std::vector<T> v, T K)
+{
+  auto it = find(v.begin(), v.end(), K);
+
+  // If element was found
+  if (it != v.end())
+  {
+
+    // calculating the index
+    // of K
+    int index = it - v.begin();
+    return index;
+  }
+  else
+  {
+    // If the element is not
+    // present in the vector
+    return -1;
+  }
+}
 struct matrix_organizer
 {
   std::vector<int_pair> matrix_positions;
@@ -60,14 +84,5 @@ struct matrix_organizer
     }
 
     return Matrix::sparse(dim1, dim2, nint(rows), nint(cols), ndou(T));
-  }
-  void print()
-  {
-    std::cout << "start" << std::endl;
-    for (int i = 0; i < matrix_values.size(); i++)
-    {
-      std::cout << "(" << matrix_positions[i].first << "," << matrix_positions[i].second << ") =" << matrix_values[i] << std::endl;
-    }
-    std::cout << "end" << std::endl;
   }
 };
