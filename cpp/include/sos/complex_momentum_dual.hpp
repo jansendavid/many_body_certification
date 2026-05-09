@@ -120,7 +120,7 @@ public:
     }
     return;
   }
- 
+
   void generate_block(std::map<std::string, symmetry_sector> &As)
   {
     //     const auto start{std::chrono::steady_clock::now()};
