@@ -25,9 +25,9 @@ std::vector<double> define_correlation_function_sos(std::map<std::string, int> r
       op_vec v_p = {spin_op(dirs.first, pos.second, offset_vector), spin_op(dirs.first, pos.first, offset_vector)};
       auto [fac_p, nf_p] = get_normal_form(v_p);
       assert(abs(fac_p.imag()) < 1e-9);
-      auto [key_p, coeff_map_p] = lattice.TI_map_.at(print_op(nf_p));
+      auto [key_p, coeff_map_p] = lattice.TI_map_.at(key_dir_pos(nf_p));
       assert(abs(coeff_map_p.imag()) < 1e-9);
-      auto el_p = refs.at(key_p);
+      auto el_p = refs.at(op_key_label(key_p));
 
       vals[el_p] += fac_p.real() * coeff_map_p.real() / 4.;
 
@@ -43,9 +43,9 @@ std::vector<double> define_bilayer_correlation_sos(std::map<std::string, int> re
 
       auto [fac_p, nf_p] = get_normal_form(v_p);
       assert(abs(fac_p.imag()) < 1e-9);
-      auto [key_p, coeff_map_p] = lattice.TI_map_.at(print_op(nf_p));
+      auto [key_p, coeff_map_p] = lattice.TI_map_.at(key_dir_pos(nf_p));
       assert(abs(coeff_map_p.imag()) < 1e-9);
-      auto el_p = refs.at(key_p);
+      auto el_p = refs.at(op_key_label(key_p));
 
       vals[el_p] += fac_p.real() * coeff_map_p.real() / 4.;
 
@@ -63,11 +63,11 @@ std::vector<double> define_xxz2d_sos(Lattice lattice, double J, double Delta)
             op_vec v_p = {spin_op(term.first, {0, 0}, offset_vector), spin_op(term.second, {1, 0}, offset_vector)};
             // auto [fac_p, nf_p] = get_normal_form(v_p);
 
-            auto [key_p, coeff_map_p] = lattice.TI_map_.at(print_op(v_p));
+            auto [key_p, coeff_map_p] = lattice.TI_map_.at(key_dir_pos(v_p));
 
             assert(abs(coeff_map_p.imag()) < 1e-8);
 
-            auto el_p = lattice.variable_map_.at(key_p);
+            auto el_p = lattice.variable_map_.at(op_key_label(key_p));
 
             double coeff = J;
             if (term == string_pair("z", "z"))
@@ -86,8 +86,8 @@ std::vector<double> define_xxz2d_sos(Lattice lattice, double J, double Delta)
 
             op_vec v_t = {spin_op(term.first, {0, 0}, offset_vector), spin_op(term.second, {0, 1}, offset_vector)};
             // auto [fac_t, nf_t] = get_normal_form(v_t);
-            auto [key_t, coeff_map_t] = lattice.TI_map_.at(print_op(v_t));
-            auto el_t = lattice.variable_map_.at(key_t);
+            auto [key_t, coeff_map_t] = lattice.TI_map_.at(key_dir_pos(v_t));
+            auto el_t = lattice.variable_map_.at(op_key_label(key_t));
             coeff = J;
             if (term == string_pair("z", "z"))
             {
@@ -120,9 +120,9 @@ std::vector<double> define_J1J22d_sos(std::map<std::string, int> refs,Lattice la
             op_vec v_p = {spin_op(term.first, {0, 0}, offset_vector), spin_op(term.second, {1, 0}, offset_vector)};
             auto [fac_p, nf_p] = get_normal_form(v_p);
 
-            auto [key_p, coeff_map_p] = lattice.TI_map_.at(print_op(nf_p));
+            auto [key_p, coeff_map_p] = lattice.TI_map_.at(key_dir_pos(nf_p));
 
-            auto el_p = refs.at(key_p);
+            auto el_p = refs.at(op_key_label(key_p));
 
             double coeff = J1;
 
@@ -137,8 +137,8 @@ std::vector<double> define_J1J22d_sos(std::map<std::string, int> refs,Lattice la
 
             op_vec v_t = {spin_op(term.first, {0, 0}, offset_vector), spin_op(term.second, {0, 1}, offset_vector)};
             auto [fac_t, nf_t] = get_normal_form(v_t);
-            auto [key_t, coeff_map_t] = lattice.TI_map_.at(print_op(nf_t));
-            auto el_t = refs.at(key_t);
+            auto [key_t, coeff_map_t] = lattice.TI_map_.at(key_dir_pos(nf_t));
+            auto el_t = refs.at(op_key_label(key_t));
 
             if (std::abs(fac_t.imag()) > 1e-9 or std::abs(coeff_map_t.imag()) > 1e-9)
             {
@@ -157,9 +157,9 @@ std::vector<double> define_J1J22d_sos(std::map<std::string, int> refs,Lattice la
             op_vec v_p = {spin_op(term.first, {0, 0}, offset_vector), spin_op(term.second, {1, 1}, offset_vector)};
             auto [fac_p, nf_p] = get_normal_form(v_p);
 
-            auto [key_p, coeff_map_p] = lattice.TI_map_.at(print_op(nf_p));
+            auto [key_p, coeff_map_p] = lattice.TI_map_.at(key_dir_pos(nf_p));
 
-            auto el_p = refs.at(key_p);
+            auto el_p = refs.at(op_key_label(key_p));
 
             double coeff = J2;
 
@@ -174,8 +174,8 @@ std::vector<double> define_J1J22d_sos(std::map<std::string, int> refs,Lattice la
 
             op_vec v_t = {spin_op(term.first, {0, 0}, offset_vector), spin_op(term.second, {1, lattice.Lx_ - 1}, offset_vector)};
             auto [fac_t, nf_t] = get_normal_form(v_t);
-            auto [key_t, coeff_map_t] = lattice.TI_map_.at(print_op(nf_t));
-            auto el_t = refs.at(key_t);
+            auto [key_t, coeff_map_t] = lattice.TI_map_.at(key_dir_pos(nf_t));
+            auto el_t = refs.at(op_key_label(key_t));
 
             if (std::abs(fac_t.imag()) > 1e-9 or std::abs(coeff_map_t.imag()) > 1e-9)
             {
@@ -512,8 +512,8 @@ std::vector<double> define_xxz_1d_sos(std::map<std::string, int> refs, Lattice l
 
             op_vec v_t = {spin_op(term.first, {0, 0}, offset_vector), spin_op(term.second, {0, 1}, offset_vector)};
             auto [fac_t, nf_t] = get_normal_form(v_t);
-            auto [key_t, coeff_map_t] = lattice.TI_map_.at(print_op(nf_t));
-            auto el_t = refs.at(key_t);
+            auto [key_t, coeff_map_t] = lattice.TI_map_.at(key_dir_pos(nf_t));
+            auto el_t = refs.at(op_key_label(key_t));
             double coeff = J;
             if (term == string_pair("z", "z"))
             {
@@ -545,8 +545,8 @@ std::vector<double> define_J1J2_1d_sos(std::map<std::string, int> refs, Lattice 
 
             op_vec v_t = {spin_op(term.first, {0, 0}, offset_vector), spin_op(term.second, {0, 1}, offset_vector)};
             auto [fac_t, nf_t] = get_normal_form(v_t);
-            auto [key_t, coeff_map_t] = lattice.TI_map_.at(print_op(nf_t));
-            auto el_t = refs.at(key_t);
+            auto [key_t, coeff_map_t] = lattice.TI_map_.at(key_dir_pos(nf_t));
+            auto el_t = refs.at(op_key_label(key_t));
             double coeff = J1;
             if (std::abs(fac_t.imag()) > 1e-9 or std::abs(coeff_map_t.imag()) > 1e-9)
             {
@@ -565,9 +565,9 @@ std::vector<double> define_J1J2_1d_sos(std::map<std::string, int> refs, Lattice 
             op_vec v_p = {spin_op(term.first, {0, 0}, offset_vector), spin_op(term.second, {0, 2}, offset_vector)};
             auto [fac_p, nf_p] = get_normal_form(v_p);
 
-            auto [key_p, coeff_map_p] = lattice.TI_map_.at(print_op(nf_p));
+            auto [key_p, coeff_map_p] = lattice.TI_map_.at(key_dir_pos(nf_p));
 
-            auto el_p = refs.at(key_p);
+            auto el_p = refs.at(op_key_label(key_p));
 
             double coeff = J2;
 
@@ -595,8 +595,8 @@ std::vector<double> define_TFI_1d_sos(std::map<std::string, int> refs, Lattice l
 
             op_vec v_t = {spin_op(term.first, {0, 0}, offset_vector), spin_op(term.second, {0, 1}, offset_vector)};
             auto [fac_t, nf_t] = get_normal_form(v_t);
-            auto [key_t, coeff_map_t] = lattice.TI_map_.at(print_op(nf_t));
-            auto el_t = refs.at(key_t);
+            auto [key_t, coeff_map_t] = lattice.TI_map_.at(key_dir_pos(nf_t));
+            auto el_t = refs.at(op_key_label(key_t));
 
             if (std::abs(fac_t.imag()) > 1e-9 or std::abs(coeff_map_t.imag()) > 1e-9)
             {
@@ -613,9 +613,9 @@ std::vector<double> define_TFI_1d_sos(std::map<std::string, int> refs, Lattice l
       op_vec v_p = {spin_op(term, {0, 0}, offset_vector)};
       auto [fac_p, nf_p] = get_normal_form(v_p);
 
-      auto [key_p, coeff_map_p] = lattice.TI_map_.at(print_op(nf_p));
+      auto [key_p, coeff_map_p] = lattice.TI_map_.at(key_dir_pos(nf_p));
 
-      auto el_p = refs.at(key_p);
+      auto el_p = refs.at(op_key_label(key_p));
 
       if (std::abs(fac_p.imag()) > 1e-9 or std::abs(coeff_map_p.imag()) > 1e-9)
       {
@@ -638,9 +638,9 @@ std::vector<double> define_magnetization_sos(std::map<std::string, int> refs, La
 
       auto [fac_p, nf_p] = get_normal_form(v_p);
 
-      auto [key_p, coeff_map_p] = lattice.TI_map_.at(print_op(nf_p));
+      auto [key_p, coeff_map_p] = lattice.TI_map_.at(key_dir_pos(nf_p));
 
-      auto el_p = refs.at(key_p);
+      auto el_p = refs.at(op_key_label(key_p));
 
       if (std::abs(fac_p.imag()) > 1e-9 or std::abs(coeff_map_p.imag()) > 1e-9)
       {

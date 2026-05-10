@@ -35,9 +35,9 @@ int main()
     get_order_one_monomials(states, map_sec, Ly, Lx, true);
    int r = 3;
   get_order_two_monomials(states, map_sec, Ly, Lx, r, r, -r, -r, true);
-// get_order_three_monomials(states, map_sec, Ly, Lx, true);
+get_order_three_monomials(states, map_sec, Ly, Lx, true);
  
-//   get_order_four_monomials(states, map_sec, Ly, Lx, true);
+  get_order_four_monomials(states, map_sec, Ly, Lx, true);
 std::cout<<states.size()<<std::endl;
 for(auto b: states)
 {
@@ -94,7 +94,7 @@ for(auto b: states)
    int i = 0;
    for (auto val : lattice.variable_map_)
    {
-     if (val.first == "1" or val.first == "0")
+    if (val.first == "1" || val.first == "0")
      {
        std::cout << val.first << " " << -1. * (*(M->getConstraint(i)->dual()))[0] << std::endl;
        // np_vec(i, 0) = -1. * (*(M->getConstraint(i)->dual()))[0];

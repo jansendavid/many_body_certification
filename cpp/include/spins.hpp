@@ -6,18 +6,20 @@
 #include <cassert>
 #include <map>
 #include <algorithm>
+#include <cstdint>
+#include <cstdio>
 using cpx = std::complex<double>;
 
 class spin_op_parent
 {
   std::string dir_;
   std::vector<int> site_;
+  std::string symbol_;
 
 public:
   std::vector<int> offset_;
   std::vector<int> shifts_;
   std::string exp_;
-  std::string symbol_;
   bool unit = false;
   spin_op_parent(std::string dir, std::vector<int> site, std::vector<int> offset, std::string symbol) : dir_(dir), site_(site), offset_(offset), symbol_(symbol)
   {
@@ -65,6 +67,23 @@ public:
   {
     return dir_;
   }
+  // Compact, canonical code for dir_:
+  // 0: identity/unspecified (unit)
+  // 1: x, 2: y, 3: z
+  std::uint8_t dir_code() const
+  {
+    if (unit)
+      return 0;
+    if (dir_ == "x")
+      return 1;
+    if (dir_ == "y")
+      return 2;
+    if (dir_ == "z")
+      return 3;
+    // Keep this hard-failing to avoid silent key collisions.
+    assert(false && "Unexpected spin operator direction");
+    return 0;
+  }
   spin_op_parent() { unit = true; };
   // can this function be improved?
   int const pos() const
@@ -78,6 +97,18 @@ public:
     }
 
     return position;
+  }
+  std::uint32_t pos_u32() const
+  {
+    const int p = pos();
+    assert(p >= 0);
+    return static_cast<std::uint32_t>(p);
+  }
+  // 1-to-1 encoding of a single factor as a 32-bit word.
+  // Layout: (pos << 2) | dir_code, with 2 bits for x/y/z.
+  std::uint32_t packed_dir_pos() const
+  {
+    return (pos_u32() << 2) | static_cast<std::uint32_t>(dir_code());
   }
   spin_op_parent get_mirror_parent()
   {
@@ -184,6 +215,64 @@ public:
 using op_vec = std::vector<spin_op>;
 using basis_structure = std::map<int, std::vector<op_vec>>;
 using basis_structure_with_sub = std::map<int, basis_structure >;
+
+// Canonical (reversible) key for an operator product:
+// each factor is encoded as packed_dir_pos() = (pos << 2) | dir_code.
+using op_key = std::vector<std::uint32_t>;
+
+// Special op_key values used across the codebase:
+// - identity: empty vector (same semantics as print_op(...) == "1")
+// - zero: a sentinel that cannot collide with packed_dir_pos()
+inline op_key op_key_identity()
+{
+  return {};
+}
+inline op_key op_key_zero()
+{
+  return {0xFFFFFFFFu};
+}
+inline bool is_zero_key(const op_key &k)
+{
+  return k.size() == 1 && k[0] == 0xFFFFFFFFu;
+}
+inline bool is_identity_key(const op_key &k)
+{
+  return k.empty();
+}
+
+inline std::string op_key_label(const op_key &k)
+{
+  if (is_identity_key(k))
+    return "1";
+  if (is_zero_key(k))
+    return "0";
+
+  // Stable, collision-free label for (dir,pos) packed words.
+  // Format: "k[<hex>.<hex>...]" (not meant to be parsed back).
+  std::string s;
+  s.reserve(3 + 9 * k.size());
+  s += "k[";
+  for (std::size_t i = 0; i < k.size(); ++i)
+  {
+    char buf[11];
+    std::snprintf(buf, sizeof(buf), "%08x", k[i]);
+    if (i)
+      s += ".";
+    s += buf;
+  }
+  s += "]";
+  return s;
+}
+
+template <typename T>
+op_key key_dir_pos(const std::vector<T> &oper)
+{
+  op_key out;
+  out.reserve(oper.size());
+  for (const auto &O : oper)
+    out.push_back(O.packed_dir_pos());
+  return out;
+}
 
 
 

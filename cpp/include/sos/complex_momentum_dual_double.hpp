@@ -72,7 +72,7 @@ public:
       auto [coeff, nf] = get_normal_form(op);
       // get translation invariant representation
 
-      auto ti_key = lattice_.TI_map_.at(print_op(nf)).first;
+      auto ti_key = op_key_label(lattice_.TI_map_.at(key_dir_pos(nf)).first);
 
       //auto el = this->lattice_.variable_map_.at(ti_key);
 
@@ -99,7 +99,7 @@ public:
       auto [coeff, nf] = get_normal_form(op);
       // get translation invariant representation
 
-      auto ti_key = lattice_.TI_map_.at(print_op(nf)).first;
+      auto ti_key = op_key_label(lattice_.TI_map_.at(key_dir_pos(nf)).first);
       std::cout<< "key "<<ti_key <<std::endl;
       //auto el = this->lattice_.variable_map_.at(ti_key);
 

@@ -8,7 +8,22 @@
 using namespace mosek::fusion;
 using namespace monty;
 using int_pair = std::pair<int, int>;
-using TI_map_type = std::unordered_map<std::string, std::pair<std::string, std::complex<double>>>;
+
+struct op_key_hash
+{
+	std::size_t operator()(const op_key &k) const noexcept
+	{
+		// 64-bit-ish mix; deterministic, fast, good enough for small vectors.
+		std::size_t h = 1469598103934665603ull;
+		for (std::uint32_t x : k)
+		{
+			h ^= static_cast<std::size_t>(x) + 0x9e3779b97f4a7c15ull + (h << 6) + (h >> 2);
+		}
+		return h;
+	}
+};
+
+using TI_map_type = std::unordered_map<op_key, std::pair<op_key, std::complex<double>>, op_key_hash>;
 
 class LatticeBase
 {
@@ -18,7 +33,7 @@ public:
 	int Lx_;
 	TI_map_type TI_map_;
 	std::map<std::string, int> variable_map_;
-	std::unordered_map<std::string, std::pair<std::complex<double>, op_vec>> nf_cache;
+	std::unordered_map<op_key, std::pair<std::complex<double>, op_vec>, op_key_hash> nf_cache;
 	void generate_TI_map(std::map<std::string, op_vec> &mat_terms, std::vector<op_vec> &operators_, int sign_sector_) {};
 	struct G_el
 	{
@@ -31,11 +46,11 @@ public:
 	{
 		std::complex<double> prefac_;
 		std::string op_;
-		G_op(std::complex<double> prefac, std::string op) : prefac_(prefac), op_(op) {};
+		G_op(std::complex<double> prefac, std::string op) : prefac_(prefac), op_(std::move(op)) {};
 	};
 	auto get_nf_cached(const op_vec &op)
     {
-        std::string key = print_op(op);
+        op_key key = key_dir_pos(op);
 
         auto it = nf_cache.find(key);
         if (it != nf_cache.end())
@@ -84,12 +99,12 @@ public:
 			
 		}
 
-		auto [ti_key, ti_val] = TI_map_.at(print_op(nf));
+		auto [ti_key, ti_val] = TI_map_.at(key_dir_pos(nf));
 		// std::cout << "end" << std::endl;
 		//  assert(fac == ti_val);std::cout<<"start"<<std::endl;
 
 		cpx total_fac = fac * ti_val;
-		return G_op(total_fac, ti_key);
+		return G_op(total_fac, op_key_label(ti_key));
 	}
 	G_op generate_G_element_sos(op_vec op1, op_vec op2, int j, int i)
 	{
@@ -125,10 +140,10 @@ public:
 
 		auto [fac, nf] = get_normal_form(v_x);
 
-		auto [ti_key, ti_val] = TI_map_.at(print_op(nf));
+		auto [ti_key, ti_val] = TI_map_.at(key_dir_pos(nf));
 		
 		cpx total_fac = fac * ti_val;
-		return G_op(total_fac, ti_key);
+		return G_op(total_fac, op_key_label(ti_key));
 	}
 };
 template<typename Basis>
@@ -170,18 +185,19 @@ public:
 		}
 	};
 	
-	void flush(op_vec op_key)
+	void flush(op_vec op_in)
 	{
 
-		auto [fac_key, nf_key] = get_nf_cached(op_key);
+		auto [fac_key, nf_key] = get_nf_cached(op_in);
+		const op_key nf_key_k = key_dir_pos(nf_key);
 
 		for (auto &op : flush_vector)
 		{
 			// std::cout << print_op(op) << std::endl;
 			auto [fac, nf] = get_nf_cached(op);
 
-			TI_map_.insert({print_op(nf),
-							{print_op(nf_key), std::conj(fac) * fac_key}});
+			TI_map_.insert({key_dir_pos(nf),
+							{nf_key_k, std::conj(fac) * fac_key}});
 		}
 
 		flush_vector.clear();
@@ -190,12 +206,12 @@ public:
 	{
 		if(op.size()<1)
 		{
-			auto it = TI_map_.find(print_op(op));
+			auto it = TI_map_.find(key_dir_pos(op));
 		
 			if (it != TI_map_.end())
 			{
 
-				TI_map_.insert({print_op(op),
+				TI_map_.insert({key_dir_pos(op),
 								{it->second.first, 1. * it->second.second}});
 				// flush(it->second.first, fac);
 
@@ -215,12 +231,12 @@ public:
 		{
 
 			auto [fac, nf] = get_nf_cached(op_t);
-			auto it = TI_map_.find(print_op(nf));
+			auto it = TI_map_.find(key_dir_pos(nf));
 			flush_vector.push_back(op_t);
 			if (it != TI_map_.end())
 			{
 
-				TI_map_.insert({print_op(nf_op),
+				TI_map_.insert({key_dir_pos(nf_op),
 								{it->second.first, std::conj(fac_op) * fac * it->second.second}});
 				// flush(it->second.first, fac);
 
@@ -258,12 +274,12 @@ public:
 		for (auto op_p : all_p)
 		{
 			//auto [fac, nf] = get_normal_form(op_p);
-			auto it = TI_map_.find(print_op(op_p));
+			auto it = TI_map_.find(key_dir_pos(op_p));
 
 			if (it != TI_map_.end())
 			{
 
-				TI_map_.insert({print_op(nf_org),
+				TI_map_.insert({key_dir_pos(nf_org),
 								{it->second.first, std::conj(fac_org) * fac * it->second.second}});
 				// flush(it->second.first, fac);
 				return true;
@@ -285,7 +301,7 @@ public:
 			for (auto &d8s : dsvec)
 			{
 				auto [fac, nf] = get_nf_cached(d8s);
-				auto it = TI_map_.find(print_op(nf));
+				auto it = TI_map_.find(key_dir_pos(nf));
 
 				auto mirrored_ds8 = mirror(d8s);
 
@@ -294,7 +310,7 @@ public:
 				if (it != TI_map_.end())
 				{
 
-					TI_map_.insert({print_op(nf_org),
+					TI_map_.insert({key_dir_pos(nf_org),
 									{it->second.first, std::conj(fac_org) * fac * it->second.second}});
 
 					return true;
@@ -303,11 +319,11 @@ public:
 				{
 					flush_vector.push_back(d8s);
 				}
-				auto it_mirrored = TI_map_.find(print_op(nf_mir));
+				auto it_mirrored = TI_map_.find(key_dir_pos(nf_mir));
 				if (it_mirrored != TI_map_.end())
 				{
 
-					TI_map_.insert({print_op(nf_org),
+					TI_map_.insert({key_dir_pos(nf_org),
 									{it_mirrored->second.first, std::conj(fac_org) * fac_mir * it_mirrored->second.second}});
 
 					return true;
@@ -335,11 +351,11 @@ public:
 				{
 					auto op_flip_layer = flip_layer((d8s));
 					auto [fac_flip, nf_flip] = get_nf_cached(op_flip_layer);
-					auto it_flip = TI_map_.find(print_op(nf_flip));
+					auto it_flip = TI_map_.find(key_dir_pos(nf_flip));
 					if (it_flip != TI_map_.end())
 					{
 
-						TI_map_.insert({print_op(nf_org),
+						TI_map_.insert({key_dir_pos(nf_org),
 										{it->second.first, std::conj(fac_org) * fac_flip * it->second.second}});
 
 						return true;
@@ -357,11 +373,11 @@ public:
 
 					auto op_flip_layer_mirr = flip_layer(mirrored_ds8);
 					auto [fac_flip_mirr, nf_flip_mirr] = get_nf_cached(op_flip_layer_mirr);
-					auto it_flip_mirr = TI_map_.find(print_op(nf_flip_mirr));
+					auto it_flip_mirr = TI_map_.find(key_dir_pos(nf_flip_mirr));
 					if (it_flip_mirr != TI_map_.end())
 					{
 
-						TI_map_.insert({print_op(nf_org),
+						TI_map_.insert({key_dir_pos(nf_org),
 										{it->second.first, std::conj(fac_org) * fac_flip_mirr * it->second.second}});
 
 						return true;
@@ -396,38 +412,38 @@ public:
 		return false;
 	}
 
-	std::pair<std::string, std::complex<double>> get_key(op_vec spin_op)
+	std::pair<op_key, std::complex<double>> get_key(op_vec spin_op)
 	{
 
 		auto [fac, nf] = get_nf_cached(spin_op);
 
-		std::string key = print_op(nf);
+		op_key key = key_dir_pos(nf);
 
 		if (signsym_ == "xyz")
 		{
 			if (is_zero_signsym_xyz(nf))
 			{
-				key = "0";
+				key = op_key_zero();
 			}
 		}
 		else if (signsym_ == "xy")
 		{
 			if (is_zero_signsym_xy(nf))
 			{
-				key = "0";
+				key = op_key_zero();
 			}
 		}
 		else if (signsym_ == "y")
 		{
 			if (is_zero_signsym_y(nf))
 			{
-				key = "0";
+				key = op_key_zero();
 			}
 		}
 		else
 		{
 		}
-		return std::pair<std::string, std::complex<double>>(key, fac);
+		return std::pair<op_key, std::complex<double>>(key, fac);
 	}
 	void clear_caches() {
         nf_cache.clear();
@@ -473,7 +489,7 @@ public:
 
 						auto [fac_, nf] = get_nf_cached(v_x);
 						bool found = false;
-						if (key == "0")
+						if (is_zero_key(key))
 						{
 						}
 						else
@@ -483,7 +499,7 @@ public:
 						if (found == false)
 						{
 
-							TI_map_.insert({print_op(nf),
+							TI_map_.insert({key_dir_pos(nf),
 											{key, 1}});
 
 							flush(v_x);
@@ -523,9 +539,9 @@ public:
 
 						auto [fac_, nf] = get_nf_cached(v_x);
 						if(nf.size()%2!=0)
-						{key="0";}
+						{key = op_key_zero();}
 						bool found = false;
-						if (key == "0")
+						if (is_zero_key(key))
 						{
 						}
 						else
@@ -535,7 +551,7 @@ public:
 						if (found == false)
 						{
 
-							TI_map_.insert({print_op(nf),
+							TI_map_.insert({key_dir_pos(nf),
 											{key, 1}});
 
 							flush(v_x);
@@ -572,7 +588,7 @@ public:
 		for (const auto &[k, v] : TI_map_)
 		{
 
-			unique_values.insert(v.first);
+			unique_values.insert(op_key_label(v.first));
 		}
 
 		int i = 0;
@@ -736,7 +752,7 @@ public:
 			{
 
 				auto [key, fac] = get_key(state);
-				if (key == "0")
+				if (is_zero_key(key))
 				{
 				}
 				else
@@ -747,25 +763,25 @@ public:
 					if (!found)
 					{
 						std::cout << "adding rdm operator" << std::endl;
-						TI_map_.insert({print_op(nf),
+						TI_map_.insert({key_dir_pos(nf),
 										{key, 1}});
 					}
-					auto it = TI_map_.find(print_op(nf));
+					auto it = TI_map_.find(key_dir_pos(nf));
 
-					auto key = it->second.first;
+					const std::string rep_label = op_key_label(it->second.first);
 
 					assert(std::abs((fac * it->second.second).imag()) < 1e-9);
 					mat = mat * (fac * it->second.second).real() / std::pow(2, degree);
 
-					if (rdms_eigen_.find(key) != rdms_eigen_.end())
+					if (rdms_eigen_.find(rep_label) != rdms_eigen_.end())
 					{
 
-						rdms_eigen_[key] += mat;
+						rdms_eigen_[rep_label] += mat;
 					}
 					else
 					{
 
-						rdms_eigen_.insert({key, mat});
+						rdms_eigen_.insert({rep_label, mat});
 					}
 				}
 			}
