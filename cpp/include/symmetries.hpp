@@ -97,20 +97,20 @@ rdms_struct get_rdms(int Lx, int dim)
     // rdm_operator newstate_5({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {1, 1}, {1, 2}, {1, 3}, {2, 2}});
     // data.add_operator(newstate_5);
 
-    // // rdm_operator newstate_55({{0, 0}, {2, 1}, {0, 2}, {2, 3}, {1, 1}, {1, 2}, {1, 3}, {2, 2}});
-    // // data.add_operator(newstate_55);
+    rdm_operator newstate_55({{0, 0}, {2, 1}, {0, 2}, {2, 3}, {1, 1}, {1, 2}, {1, 3}, {2, 2}});
+    data.add_operator(newstate_55);
     // //  rdm_operator newstate_6({{0,0}, {0,1}, {0,2},{0,3},{1,1},{1,2},{1,3},{2,2},{3,3}});
     // // data.add_operator(newstate_6);
     // //  rdm_operator newstate_7({{0,0}, {0,1}, {0,2},{0,3},{1,1},{1,2},{1,3},{2,2},{3,3}});
     // // data.add_operator(newstate_7);
   }
-  if (dim >= 6)
-  {
-    rdm_operator newstate({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}});
-    data.add_operator(newstate);
-    rdm_operator newstate_1({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}});
-    data.add_operator(newstate_1);
-  }
+  // if (dim >= 6)
+  // {
+  //   rdm_operator newstate({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}});
+  //   data.add_operator(newstate);
+  //   rdm_operator newstate_1({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}});
+  //   data.add_operator(newstate_1);
+  // }
 
   return data;
 }
