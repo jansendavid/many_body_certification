@@ -159,6 +159,7 @@ public:
 
 	bool bilayer_;
 	bool square_;
+	std::set<op_vec> extra_states_;
 
 	std::vector<int> get_offset_vec()
 	{
@@ -172,7 +173,7 @@ public:
 		}
 	}
 
-	SquareLattice(Basis& states, int Ly, int Lx, bool square, bool bilayer, std::string permuts = "xyz", std::string signsym = "xyz") : LatticeBase(Ly, Lx), states_(states),bilayer_(bilayer), square_(square), permuts_(permuts), signsym_(signsym)
+	SquareLattice(Basis& states, int Ly, int Lx, bool square, bool bilayer, std::string permuts = "xyz", std::string signsym = "xyz", std::set<op_vec> extra_states={}) : LatticeBase(Ly, Lx), states_(states),bilayer_(bilayer), square_(square), permuts_(permuts), signsym_(signsym), extra_states_(extra_states)
 	{
 		// assert(Lx == Ly);
 		if (permuts != "xyz" and permuts != "yxz" and permuts != "zxy" and permuts != "xy" and permuts != "None")
@@ -509,7 +510,27 @@ public:
 			}
 			clear_caches();
 		}
-	
+		for(auto &state: extra_states_)
+		{
+			bool found = false;
+			auto [key, fac] = get_key(state);
+			auto [fac_, nf] = get_nf_cached(state);
+			if (is_zero_key(key))
+			{
+			}
+			else
+			{
+				found = check_operator_translation(state);
+			}
+			if (found == false)
+			{
+
+				TI_map_.insert({key_dir_pos(nf),
+								{key, 1}});
+
+				//flush(state);
+			}
+		}
 
 		return;
 	}
@@ -762,7 +783,7 @@ public:
 
 					if (!found)
 					{
-						std::cout << "adding rdm operator" << std::endl;
+						//std::cout << "adding rdm operator" << std::endl;
 						TI_map_.insert({key_dir_pos(nf),
 										{key, 1}});
 					}
