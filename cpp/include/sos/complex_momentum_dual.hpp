@@ -305,11 +305,13 @@ public:
   void initialize_all_maps(rdms_struct rdms)
   {
     this->lattice_.generate_TI_map();
+    std::cout<< "started generating rdm map"<<std::endl;
     if (rdms.size() > 0)
     {
 
       generate_rdms(rdms);
     }
+    std::cout<< "finished generating rdm map"<<std::endl;
     this->lattice_.make_map();
 
     b_ = M_->parameter("b", lattice_.variable_map_.size());
@@ -362,8 +364,8 @@ public:
   }
   void generate_rdms(rdms_struct rdms)
   {
-
-    auto offset = lattice_.states_[1][0][0].offset_; // change this to be derived from baso
+// spurce of error, avoid hardcoding this
+    auto offset = lattice_.states_[0][0][0].offset_; // change this to be derived from baso
 
     int i = 0;
     std::cout << "rdms size " << rdms.rdms.size() << std::endl;
@@ -386,14 +388,22 @@ public:
   {
     std::cout << "start " << std::endl;
     y_ = this->M_->variable("T", this->lattice_.variable_map_.size());
+    this->M_->constraint(y_,  Domain::lessThan(1.0));
+    this->M_->constraint(y_, Domain::greaterThan(-1.0));
+  
     // fix 1
+    std::cout << "start fix one" << std::endl;
     auto el = this->lattice_.variable_map_.at("1");
     this->M_->constraint(y_->index(el), Domain::equalsTo(1.0));
-    std::cout << "start " << std::endl;
+    std::cout << "start fix zero " << std::endl;
     // fix zero
+    auto it=this->lattice_.variable_map_.find("0");
+    if(it!=this->lattice_.variable_map_.end())
+    {
     el = this->lattice_.variable_map_.at("0");
     this->M_->constraint(y_->index(el), Domain::equalsTo(0.0));
     std::cout << "start " << std::endl;
+    }
   }
   void fix_constrains()
   {
@@ -452,6 +462,21 @@ public:
     }
     std::cout << "Finished density matrices " << std::endl;
     // bounding energy
+    if(this->linear_constraints_coefficients_.size()>0)
+    {
+      std::cout<< "adding linear constrains "<<this->linear_constraints_coefficients_.size()<<std::endl;
+      for(auto &vec : this->linear_constraints_coefficients_)
+      {
+
+        //auto vec_arr = monty::new_array_ptr<double>(vec);
+         this->M_->constraint(Expr::dot(vec, y_), Domain::equalsTo(0.0));
+      }
+      
+  
+  }
+
+
+
     if (this->bounding_observable_)
     {
       // std::cout << "introduing bounds" << std::endl;
@@ -657,23 +682,27 @@ public:
         expressions_[i] = Expr::add(expressions_[i], (exp_temporary->index(i)));
       }
     }
-    // adding lunear constarins
+    // adding linear constarins
     if(linear_constraints_variable_.size()>0)
     {
-      auto exp_temporary = Expr::mul(linear_constraints_variable_[0], this->linear_constraints_coefficients_[0]);
-     
-    
-    for(int j=1; j<linear_constraints_variable_.size(); j++)
-    {
-      exp_temporary =Expr::add(exp_temporary,Expr::mul(linear_constraints_variable_[j], this->linear_constraints_coefficients_[j]));
-      for (int i = 0; i < linear_constraints_variable_[0]->getSize(); i++)
-      {
-        // energy_vec_->index(i)
-
-        expressions_[i] = Expr::add(expressions_[i], (exp_temporary->index(i)));
-      }
-      
+      std::cout<< "start "<<linear_constraints_variable_.size()<<std::endl;
+      auto exp_temporary = Expr::mul(this->linear_constraints_coefficients_[0],linear_constraints_variable_[0]);
+      //Expr::mul(linear_constraints_variable_[0], this->linear_constraints_coefficients_[0]);
+      for(int j=1; j<linear_constraints_variable_.size(); j++)
+         {
+          exp_temporary =Expr::add(exp_temporary,Expr::mul(this->linear_constraints_coefficients_[j],linear_constraints_variable_[j]));
+            //Expr::mul(linear_constraints_variable_[j], this->linear_constraints_coefficients_[j]));
     }
+    std::cout<< "done 1"<<std::endl;
+    //expressions_ = Expr::add(expressions_, (exp_temporary));
+    for (int i = 0; i < expressions_.size(); i++)
+        {
+          // energy_vec_->index(i)
+  
+          expressions_[i] = Expr::add(expressions_[i], (exp_temporary->index(i)));
+        }
+        std::cout<< "done 2"<<std::endl;
+ 
   }
 
 
@@ -681,25 +710,40 @@ public:
     // adding a constant term for the 1:
     int el = this->lattice_.variable_map_.at("1");
     expressions_[el] = Expr::add(expressions_[el], epsilon);
-
-    for (auto a : this->lattice_.variable_map_)
+  const std::size_t vm_total = this->lattice_.variable_map_.size();
+  std::cout << "equality constraints: " << vm_total << " variables" << std::endl;
+  std::size_t vm_done = 0;
+  int vm_last_pct = -1;
+  for (const auto &[key, el] : this->lattice_.variable_map_)
+  {
+    std::cout<<"start "<<std::endl;
+    if (key == "0")
     {
-      if (a.first != "0")
+      this->M_->constraint(expressions_[el], Domain::equalsTo(0.));
+    }
+    else
+    {
+      std::cout<<"x "<<std::endl;
+      this->M_->constraint(
+          Expr::add(expressions_[el], this->b_->index(el)),
+          Domain::equalsTo(0.));
+    
+    }
+    std::cout<<"vm done "<<vm_done<<std::endl;
+    ++vm_done;
+    if (vm_total > 0)
+    {
+      const int pct = static_cast<int>((100ull * vm_done) / vm_total);
+      if (pct != vm_last_pct || vm_done == vm_total)
       {
-
-        int el = this->lattice_.variable_map_.at(a.first);
-        //=-1*b[el]
-        this->M_->constraint(Expr::add(expressions_[el], this->b_->index(el)), Domain::equalsTo(0.));
-      }
-      // fixing that zero is zero
-      // normally \eta=0 but we just eliminate eta
-      if (a.first == "0")
-      {
-        int el = this->lattice_.variable_map_.at(a.first);
-        this->M_->constraint(expressions_[el], Domain::equalsTo(0.));
+        vm_last_pct = pct;
+        std::cout << "equality constraints progress: " << pct << "% (" << vm_done << "/" << vm_total << ")\r"
+                  << std::flush;
       }
     }
-
+  }
+  if (vm_total > 0)
+    std::cout << std::endl;
     std::cout << "Finished generating the PSD constraints ones " << std::endl;
     return;
   }
