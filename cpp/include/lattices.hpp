@@ -138,7 +138,7 @@ public:
 
 		v_x.insert(v_x.end(), new_op.begin(), new_op.end());
 
-		auto [fac, nf] = get_normal_form(v_x);
+		auto [fac, nf] = get_nf_cached(v_x);
 
 		auto [ti_key, ti_val] = TI_map_.at(key_dir_pos(nf));
 		
@@ -510,6 +510,7 @@ public:
 			}
 			clear_caches();
 		}
+		std::cout<< "start generating initial states"<<std::endl;
 		for(auto &state: extra_states_)
 		{
 			bool found = false;
