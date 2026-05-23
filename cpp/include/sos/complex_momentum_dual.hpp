@@ -221,6 +221,8 @@ public:
   std::map<rdm_operator, std::map<std::string, Matrix::t>> sigmas_;
   std::vector<Parameter::t>  linear_constraints_coefficients_;
   Parameter::t P;
+  int nr_of_linear_constraints{0};
+
    
   momentum_basis(Lattice &lattice, Model::t M, rdms_struct rdms) : lattice_(lattice), M_(M)
   {
@@ -342,12 +344,10 @@ public:
   }
   void set_linear_constraints_vec(std::vector<std::vector<double>>  linear_constraints)
   {
-    if(linear_constraints_coefficients_.size()<1)
+    
+    if(nr_of_linear_constraints<1)
     {
-      for(int i=0; i<linear_constraints.size(); i++)
-      {
-        linear_constraints_coefficients_.push_back(M_->parameter(lattice_.variable_map_.size()));
-      }
+      nr_of_linear_constraints=linear_constraints.size();
       auto shape = monty::new_array_ptr<int>({
         static_cast<int>(lattice_.variable_map_.size()),
         static_cast<int>(linear_constraints.size())
@@ -355,39 +355,18 @@ public:
     
     P = M_->parameter(shape);
     }
-    int m = lattice_.variable_map_.size();
-int n = linear_constraints.size();
+{
+  const int m = static_cast<int>(lattice_.variable_map_.size());
+const int n = nr_of_linear_constraints;
 
-auto data =
-    monty::new_array_ptr<double>(
-        monty::shape_t<2>(
-            m,
-            n));
-            // i over linear cons
-           // std::cout<< "start xxx "<< n << ","<<m << ","<<lattice_.variable_map_.size()<<" ,"<< linear_constraints[].size() std::endl;
-               for(int i=0; i< n; i++)
-    {
-      for(auto j=0; j<m; j++)
-     {
-     // std::cout<< lattice_.variable_map_.size()<<" "<< linear_constraints[i].size()<<std::endl;
+std::vector<double> flat(m * n, 0.0);
+for (int i = 0; i < n; ++i)
+    for (int j = 0; j < m; ++j)
+        flat[j * n + i] = linear_constraints[i][j];
 
+P->setValue(monty::new_array_ptr<double>(flat));
 
-   
-      (*data)(j,i) = linear_constraints[i][j];
-     }
-    }
-    // for(int i=0; i< n; i++)
-    // {
-    //   for(auto j=0; j<m; j++)
-    //  {
-    //   std::cout<< lattice_.variable_map_.size()<<std::endl;
-    //   auto a = monty::new_array_ptr<double>(linear_constraints[i]);
-    //   linear_constraints_coefficients_[i]->setValue(a);
-   
-    //   (*data)(j,i) = linear_constraints[j][i];
-    //  }
-    // }
-    P->setValue(data);
+  }
     return;
   }
   void generate_rdms(rdms_struct rdms)
@@ -490,16 +469,25 @@ public:
     }
     std::cout << "Finished density matrices " << std::endl;
     // bounding energy
-    if(this->linear_constraints_coefficients_.size()>0)
+    if(this->nr_of_linear_constraints>0)
     {
-      std::cout<< "adding linear constrains "<<this->linear_constraints_coefficients_.size()<<std::endl;
-      for(auto &vec : this->linear_constraints_coefficients_)
-      {
+      const int m = this->P->getSize(0);
+      const int n = this->P->getSize(1);
+      std::cout<< "adding linear constrains "<<n<<std::endl;
+      // for(auto &vec : this->linear_constraints_coefficients_)
+      // {
 
-        //auto vec_arr = monty::new_array_ptr<double>(vec);
-         this->M_->constraint(Expr::dot(vec, y_), Domain::equalsTo(0.0));
-      }
-      
+      //   //auto vec_arr = monty::new_array_ptr<double>(vec);
+      //    this->M_->constraint(Expr::dot(vec, y_), Domain::equalsTo(0.0));
+      // }
+
+      for (int i = 0; i < n; ++i)
+{
+    this->M_->constraint(
+        Expr::dot(this->P->slice(new_array_ptr<int>({0, i}), 
+                           new_array_ptr<int>({m, i+1}))->reshape(m), y_),
+        Domain::equalsTo(0.0));
+}
   
   }
 
@@ -634,14 +622,14 @@ public:
       }
     }
     
-      for(int i=0; i<this->linear_constraints_coefficients_.size(); i++)
-      {
-        linear_constraints_variable_.push_back(this->M_->variable());
+      // for(int i=0; i<this->linear_constraints_coefficients_.size(); i++)
+      // {
+      //   linear_constraints_variable_.push_back(this->M_->variable());
        
-      }
-      if(this->linear_constraints_coefficients_.size()>0)
+      // }
+      if(this->nr_of_linear_constraints>0)
       {
-      linear_constraints_variable2_=this->M_->variable( this->linear_constraints_coefficients_.size());
+      linear_constraints_variable2_=this->M_->variable( this->nr_of_linear_constraints);
       //this->M_->variable(this->linear_constraints_coefficients_.size());
       }
     std::vector<Expression::t> expressions_(this->lattice_.variable_map_.size(), Expr::constTerm(0));
@@ -844,11 +832,11 @@ for (int i = 0; i < expressions_.size(); i++)
     }
     // adding linear constarins
    auto toalvec=MM;
-    if(linear_constraints_variable_.size()>0)
+    if(this->nr_of_linear_constraints>0)
     {
       //matrix_organizer linear_c_matrix;
       auto result = Expr::mul(this->P, linear_constraints_variable2_);
-std::cout<< "start "<<linear_constraints_variable_.size()<<std::endl;
+std::cout<< "startxxxx "<<this->nr_of_linear_constraints<<std::endl;
     //   auto exp_temporary = Expr::mul(this->linear_constraints_coefficients_[0],linear_constraints_variable_[0]);
     //   //Expr::mul(linear_constraints_variable_[0], this->linear_constraints_coefficients_[0]);
     //   for(int j=1; j<linear_constraints_variable_.size(); j++)
@@ -862,7 +850,7 @@ std::cout<< "start "<<linear_constraints_variable_.size()<<std::endl;
         {
     //       // energy_vec_->index(i)
   
-           expressions_[i] = Expr::add(expressions_[i], (result->index(i)));
+        //   expressions_[i] = Expr::add(expressions_[i], (result->index(i)));
         }
         toalvec=Expr::add(MM,result);
     //     std::cout<< "done 2"<<std::endl;
