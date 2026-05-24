@@ -221,6 +221,7 @@ public:
   std::map<rdm_operator, std::map<std::string, Matrix::t>> sigmas_;
   std::vector<Parameter::t>  linear_constraints_coefficients_;
   Parameter::t P;
+  std::vector<std::pair<std::vector<int>, std::vector<double>>> linear_constraints_sparse_;
   int nr_of_linear_constraints{0};
 
    
@@ -342,6 +343,30 @@ public:
 
     return;
   }
+//   void set_linear_constraints_vec(std::vector<std::vector<double>> linear_constraints)
+// {
+//     nr_of_linear_constraints = linear_constraints.size();
+    
+//     // Store as sparse rows instead of dense matrix
+//     linear_constraints_sparse_.clear();
+    
+//     const int m = static_cast<int>(lattice_.variable_map_.size());
+    
+//     for (int i = 0; i < nr_of_linear_constraints; i++)
+//     {
+//         std::vector<int>    idx;
+//         std::vector<double> val;
+//         for (int j = 0; j < m; j++)
+//         {
+//             if (std::abs(linear_constraints[i][j]) > 1e-15)
+//             {
+//                 idx.push_back(j);
+//                 val.push_back(linear_constraints[i][j]);
+//             }
+//         }
+//         linear_constraints_sparse_.push_back({idx, val});
+//     }
+// }
   void set_linear_constraints_vec(std::vector<std::vector<double>>  linear_constraints)
   {
     
@@ -469,27 +494,27 @@ public:
     }
     std::cout << "Finished density matrices " << std::endl;
     // bounding energy
-    if(this->nr_of_linear_constraints>0)
-    {
-      const int m = this->P->getSize(0);
-      const int n = this->P->getSize(1);
-      std::cout<< "adding linear constrains "<<n<<std::endl;
-      // for(auto &vec : this->linear_constraints_coefficients_)
-      // {
+//     if(this->nr_of_linear_constraints>0)
+//     {
+//       const int m = this->P->getSize(0);
+//       const int n = this->P->getSize(1);
+//       std::cout<< "adding linear constrains "<<n<<std::endl;
+//       // for(auto &vec : this->linear_constraints_coefficients_)
+//       // {
 
-      //   //auto vec_arr = monty::new_array_ptr<double>(vec);
-      //    this->M_->constraint(Expr::dot(vec, y_), Domain::equalsTo(0.0));
-      // }
+//       //   //auto vec_arr = monty::new_array_ptr<double>(vec);
+//       //    this->M_->constraint(Expr::dot(vec, y_), Domain::equalsTo(0.0));
+//       // }
 
-      for (int i = 0; i < n; ++i)
-{
-    this->M_->constraint(
-        Expr::dot(this->P->slice(new_array_ptr<int>({0, i}), 
-                           new_array_ptr<int>({m, i+1}))->reshape(m), y_),
-        Domain::equalsTo(0.0));
-}
+//       for (int i = 0; i < n; ++i)
+// {
+//     this->M_->constraint(
+//         Expr::dot(this->P->slice(new_array_ptr<int>({0, i}), 
+//                            new_array_ptr<int>({m, i+1}))->reshape(m), y_),
+//         Domain::equalsTo(0.0));
+// }
   
-  }
+//   }
 
 
 
@@ -540,6 +565,7 @@ public:
   // a vector where each element is a constraint 
   std::vector<Variable::t> linear_constraints_variable_;
   Variable::t linear_constraints_variable2_; 
+
   momentum_symmetry_solver_sos(Lattice &lattice, Model::t M, rdms_struct rdms, bool maximize = true) : maximize_(maximize), momentum_basis<Lattice>(lattice, M, rdms)
   {
     if (maximize_)
@@ -634,22 +660,10 @@ public:
       }
     std::vector<Expression::t> expressions_(this->lattice_.variable_map_.size(), Expr::constTerm(0));
 // 1. Stack all X matrices into a single expression vector
-std::vector<Expression::t> X_parts;
-for (auto& [sector, Xi] : Xs_)
-    for (auto& row : Xi)
-        for (auto& Xij : row)
-            X_parts.push_back(Expr::reshape(Xij, Xij->getSize()));
-
-auto x_flat = Expr::vstack(monty::new_array_ptr(X_parts));
-
-// 2. Build sparse constraint matrix
 int n_constraints = this->lattice_.variable_map_.size();
-int n_vars        = x_flat->getSize();
+//Expression::t MM = Expr::constTerm(std::vector<double>(n_constraints, 0.0));
+Expression::t MM = nullptr;
 
-std::vector<int>    rows, cols;
-std::vector<double> vals;
-
-int col_offset = 0;
 for (auto& sign_symm_sector : this->sectors_)
 {
     for (int i = 0; i < this->lattice_.Ly_; i++)
@@ -657,11 +671,17 @@ for (auto& sign_symm_sector : this->sectors_)
         for (int j = 0; j < this->lattice_.Lx_; j++)
         {
             int block_size = 2 * sign_symm_sector.second.block_shifts[i][j];
+            if (block_size == 0) continue;
+
+            int n_vars_block = block_size * block_size;
+            auto x_block = Expr::reshape(Xs_[sign_symm_sector.first][i][j], n_vars_block);
+
+            std::vector<int>    rows_b, cols_b;
+            std::vector<double> vals_b;
 
             for (auto& op : this->lattice_.variable_map_)
             {
                 if (op.first == "0") continue;
-
                 auto& A_block = this->As_[op.first][sign_symm_sector.first][i][j];
                 if (!A_block.has_elements_) continue;
 
@@ -675,25 +695,106 @@ for (auto& sign_symm_sector : this->sectors_)
                         double v = (*data)[r * block_size + c];
                         if (std::abs(v) > 1e-15)
                         {
-                            rows.push_back(el);
-                            cols.push_back(col_offset + r * block_size + c);
-                            vals.push_back(v);
+                            rows_b.push_back(el);
+                            cols_b.push_back(r * block_size + c);
+                            vals_b.push_back(v);
                         }
                     }
             }
-            col_offset += block_size * block_size;
+
+            if (vals_b.empty()) continue;
+
+            auto A_block_sparse = Matrix::sparse(
+                n_constraints, n_vars_block,
+                monty::new_array_ptr(rows_b),
+                monty::new_array_ptr(cols_b),
+                monty::new_array_ptr(vals_b)
+            );
+
+            auto contribution = Expr::mul(A_block_sparse, x_block);
+            if (MM == nullptr)
+                MM = contribution;
+            else
+                MM = Expr::add(MM, contribution);
         }
     }
 }
 
-// 3. Single constraint call
-auto A_sparse = Matrix::sparse(
-    n_constraints, n_vars,
-    monty::new_array_ptr(rows),
-    monty::new_array_ptr(cols),
-    monty::new_array_ptr(vals)
-);
-auto MM=Expr::mul(A_sparse, x_flat);
+vectors.push_back(MM);
+// std::vector<Expression::t> X_parts;
+// for (auto& [sector, Xi] : Xs_)
+//     for (auto& row : Xi)
+//         for (auto& Xij : row)
+//             X_parts.push_back(Expr::reshape(Xij, Xij->getSize()));
+
+// auto x_flat = Expr::vstack(monty::new_array_ptr(X_parts));
+
+// // 2. Build sparse constraint matrix
+//int n_constraints = this->lattice_.variable_map_.size();
+int n_vars        = 0; //x_flat->getSize();
+
+// //assert((long long)n_constraints * n_vars <= (long long)INT_MAX);
+// std::cout << "n_constraints=" << n_constraints 
+//           << " n_vars=" << n_vars 
+//           << " product=" << (long long)n_constraints * n_vars << std::endl;
+std::vector<int>    rows, cols;
+std::vector<double> vals;
+
+long long col_offset = 0;
+// for (auto& sign_symm_sector : this->sectors_)
+// {
+//     for (int i = 0; i < this->lattice_.Ly_; i++)
+//     {
+//         for (int j = 0; j < this->lattice_.Lx_; j++)
+//         {
+//             int block_size = 2 * sign_symm_sector.second.block_shifts[i][j];
+
+//             for (auto& op : this->lattice_.variable_map_)
+//             {
+//                 if (op.first == "0") continue;
+
+//                 auto& A_block = this->As_[op.first][sign_symm_sector.first][i][j];
+//                 if (!A_block.has_elements_) continue;
+
+//                 int el    = op.second;
+//                 auto mat  = A_block.make_matrix(block_size, block_size);
+//                 auto data = mat->getDataAsArray();
+
+//                 for (int r = 0; r < block_size; r++)
+//                     for (int c = 0; c < block_size; c++)
+//                     {
+//                         double v = (*data)[r * block_size + c];
+//                         if (std::abs(v) > 1e-15)
+//                         {
+//                             rows.push_back(el);
+//                             assert(col_offset + r * block_size + c <= INT_MAX);
+//                             cols.push_back((int)(col_offset + r * block_size + c));
+//                             vals.push_back(v);
+//                         }
+//                     }
+//             }
+//             col_offset += (long long)block_size * block_size;
+//         }
+//     }
+// }
+// // Diagnostics AFTER the loop:
+// std::cout << "n_constraints=" << n_constraints 
+//           << " n_vars=" << n_vars 
+//           << " nnz=" << vals.size()
+//           << " max_col=" << *std::max_element(cols.begin(), cols.end())
+//           << " max_row=" << *std::max_element(rows.begin(), rows.end())
+//           << std::endl;
+
+// assert(*std::max_element(cols.begin(), cols.end()) < n_vars);
+// assert(*std::max_element(rows.begin(), rows.end()) < n_constraints);
+// // 3. Single constraint call
+// auto A_sparse = Matrix::sparse(
+//     n_constraints, n_vars,
+//     monty::new_array_ptr(rows),
+//     monty::new_array_ptr(cols),
+//     monty::new_array_ptr(vals)
+// );
+// auto MM=Expr::mul(A_sparse, x_flat);
 vectors.push_back(MM);
 
 //this->M_->constraint(Expr::mul(A_sparse, x_flat), Domain::equalsTo(0.));
@@ -760,22 +861,68 @@ vectors.push_back(MM);
     // 1. Stack all Lambda expressions into a flat vector
     
 // 1. Stack all Lambda expressions into a flat vector
-std::vector<Expression::t> L_parts;
-for (auto& [key, lambda_expr] : Lambdas_)
-    L_parts.push_back(Expr::reshape(lambda_expr, lambda_expr->getSize()));
+// std::vector<Expression::t> L_parts;
+// for (auto& [key, lambda_expr] : Lambdas_)
+//     L_parts.push_back(Expr::reshape(lambda_expr, lambda_expr->getSize()));
 
-auto l_flat = Expr::vstack(monty::new_array_ptr(L_parts));
+// auto l_flat = Expr::vstack(monty::new_array_ptr(L_parts));
 
-// 2. Build sparse matrix from sigmas_
-n_constraints = this->lattice_.variable_map_.size();
-n_vars        = l_flat->getSize();
+// // 2. Build sparse matrix from sigmas_
+// n_constraints = this->lattice_.variable_map_.size();
+// n_vars        = l_flat->getSize();
 
-rows = {}; cols = {}; vals = {};
+// rows = {}; cols = {}; vals = {};
 
-col_offset = 0;
+// col_offset = 0;
+// for (auto& [key, lambda_expr] : Lambdas_)
+// {
+//     int block_size = (int)std::round(std::sqrt(lambda_expr->getSize()));  // lambda is block_size x block_size
+
+//     for (auto& [op_string, mat] : this->sigmas_[key])
+//     {
+//         if (op_string == "1") continue;
+
+//         int el    = this->lattice_.variable_map_.at(op_string);
+//         auto data = mat->getDataAsArray();
+
+//         for (int r = 0; r < block_size; r++)
+//             for (int c = 0; c < block_size; c++)
+//             {
+//                 double v = (*data)[r * block_size + c];
+//                 if (std::abs(v) > 1e-15)
+//                 {
+//                   int col_idx = (int)(col_offset + r * block_size + c);
+//                   assert(col_idx < n_vars);  // catch bad indices early
+//                     rows.push_back(el);
+//                     cols.push_back(col_idx);
+//                     vals.push_back(v);
+//                 }
+//             }
+//     }
+//     col_offset +=  (long long)block_size * block_size;  // advance by full matrix size
+// }
+
+// // 3. Build sparse matrix and final constraint
+// auto S_sparse = Matrix::sparse(
+//     n_constraints, n_vars,
+//     monty::new_array_ptr(rows),
+//     monty::new_array_ptr(cols),
+//     monty::new_array_ptr(vals)
+// );
+
+// auto v = Expr::mul(S_sparse, l_flat);
+// vectors.push_back(v);
+
+Expression::t v = nullptr;
+
 for (auto& [key, lambda_expr] : Lambdas_)
 {
-    int block_size = (int)std::round(std::sqrt(lambda_expr->getSize()));  // lambda is block_size x block_size
+    int block_size = (int)std::round(std::sqrt(lambda_expr->getSize()));
+    int n_vars_block = block_size * block_size;
+    auto l_block = Expr::reshape(lambda_expr, n_vars_block);
+
+    std::vector<int>    rows_b, cols_b;
+    std::vector<double> vals_b;
 
     for (auto& [op_string, mat] : this->sigmas_[key])
     {
@@ -787,30 +934,33 @@ for (auto& [key, lambda_expr] : Lambdas_)
         for (int r = 0; r < block_size; r++)
             for (int c = 0; c < block_size; c++)
             {
-                double v = (*data)[r * block_size + c];
-                if (std::abs(v) > 1e-15)
+                double v_entry = (*data)[r * block_size + c];
+                if (std::abs(v_entry) > 1e-15)
                 {
-                    rows.push_back(el);
-                    cols.push_back(col_offset + r * block_size + c);
-                    vals.push_back(v);
+                    rows_b.push_back(el);
+                    cols_b.push_back(r * block_size + c);
+                    vals_b.push_back(v_entry);
                 }
             }
     }
-    col_offset += block_size * block_size;  // advance by full matrix size
+
+    if (vals_b.empty()) continue;
+
+    auto S_block_sparse = Matrix::sparse(
+        n_constraints, n_vars_block,
+        monty::new_array_ptr(rows_b),
+        monty::new_array_ptr(cols_b),
+        monty::new_array_ptr(vals_b)
+    );
+
+    auto contribution = Expr::mul(S_block_sparse, l_block);
+    if (v == nullptr)
+        v = contribution;
+    else
+        v = Expr::add(v, contribution);
 }
 
-// 3. Build sparse matrix and final constraint
-auto S_sparse = Matrix::sparse(
-    n_constraints, n_vars,
-    monty::new_array_ptr(rows),
-    monty::new_array_ptr(cols),
-    monty::new_array_ptr(vals)
-);
-
-auto v = Expr::mul(S_sparse, l_flat);
 vectors.push_back(v);
-
-
 
 for (int i = 0; i < expressions_.size(); i++)
 {
@@ -857,7 +1007,38 @@ std::cout<< "startxxxx "<<this->nr_of_linear_constraints<<std::endl;
   //expressions_=Expr::add(expressions_,result  );
  
   }
-
+// if (this->nr_of_linear_constraints > 0)
+// {
+//     const int m = n_constraints;
+    
+//     // Build result as sparse vector expression
+//     std::vector<Expression::t> result_parts(n_constraints, Expr::constTerm(0.));
+    
+//     for (int i = 0; i < this->nr_of_linear_constraints; i++)
+//     {
+//         auto& [idx, val] = this->linear_constraints_sparse_[i];
+//         auto v_sparse = Matrix::sparse(
+//             m, 1,
+//             monty::new_array_ptr(idx),                          // rows
+//             monty::new_array_ptr(std::vector<int>(idx.size(), 0)), // cols (all 0)
+//             monty::new_array_ptr(val)
+//         );
+//         // Each linear constraint contributes v_sparse * variable2_[i] to result
+//         auto contrib = Expr::mul(v_sparse, linear_constraints_variable2_->index(i));
+//         auto contrib_flat = Expr::reshape(contrib, m);
+        
+//         for (int j = 0; j < (int)idx.size(); j++)
+//             result_parts[idx[j]] = Expr::add(result_parts[idx[j]], 
+//                                              Expr::mul(val[j], linear_constraints_variable2_->index(i)));
+//     }
+    
+//     auto result = Expr::vstack(monty::new_array_ptr(result_parts));
+    
+//     //if (MM != nullptr)
+//         toalvec = Expr::add(MM, result);
+//     //else
+//       //  toalvec = result;
+// }
 
 
     // adding a constant term for the 1:
