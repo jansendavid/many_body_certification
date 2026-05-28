@@ -532,7 +532,7 @@ public:
 				//flush(state);
 			}
 		}
-
+		std::cout<<"finished geneating initial state"<<std::endl;
 		return;
 	}
 	void operator_run(std::vector<op_vec>& operators_1, std::vector<op_vec>& operators_2)

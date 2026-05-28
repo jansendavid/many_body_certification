@@ -418,7 +418,7 @@ rdms_struct get_rdms_bilayer(int Ly, int Lx, int dim, bool bilayer)
         if (!found)
         {
           rdm_ops.push_back(print_op(nf));
-          rdm_operator newstate;
+           newstate;
           for (auto site_op : nf)
           {
             newstate.op_.push_back(site_op.site_);

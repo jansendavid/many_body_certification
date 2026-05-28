@@ -92,11 +92,15 @@ for(auto b: states)
    std::cout << "Solution : " << std::endl;
    std::cout << std::setprecision(9) << M->primalObjValue() << std::endl;
    int i = 0;
+   auto con = M->getConstraint(0);
+
+    auto dual = con->dual();
    for (auto val : lattice.variable_map_)
    {
     if (val.first == "1" || val.first == "0")
      {
-       std::cout << val.first << " " << -1. * (*(M->getConstraint(i)->dual()))[0] << std::endl;
+      std::cout <<val.first << " " << -1*(*dual)[i] << std::endl;
+       //std::cout << val.first << " " << -1. * (*(M->getConstraint(i)->dual()))[0] << std::endl;
        // np_vec(i, 0) = -1. * (*(M->getConstraint(i)->dual()))[0];
  
        i++;
