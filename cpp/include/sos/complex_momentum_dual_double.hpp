@@ -19,7 +19,6 @@ template <typename Lattice>
 class momentum_block_double
 {
 public:
-  std::vector<std::vector<Variable::t>> blocks_;
   int sign_sector_{0};
   std::vector<std::vector<int>> block_shifts;
   Lattice &lattice_;
@@ -27,10 +26,9 @@ public:
   Eigen::MatrixXcd &FTx_;
   Eigen::MatrixXcd &FTy_;
 
-  momentum_block_double(Lattice &lattice, Model::t M, int sign_sector, Eigen::MatrixXcd &FTy, Eigen::MatrixXcd &FTx, std::string sector_label = "") : lattice_(lattice), sign_sector_(sign_sector), FTy_(FTy), FTx_(FTx)
+  momentum_block_double(Lattice &lattice, int sign_sector, Eigen::MatrixXcd &FTy, Eigen::MatrixXcd &FTx)
+      : lattice_(lattice), sign_sector_(sign_sector), FTy_(FTy), FTx_(FTx)
   {
-    // std::cout << FTx_ << std::endl;
-    // std::cout << FTy_ << std::endl;
   }
   void initialize_blocks_zero(std::map<std::string, symmetry_sector> &As)
   {
@@ -289,7 +287,7 @@ public:
     for (auto it = lattice_.states_.begin(); it != lattice_.states_.end(); ++it)
     {
 
-      auto Block = momentum_block_double(lattice_, M_, it->first, FTy_, FTx_, std::to_string(it->first));
+      auto Block = momentum_block_double(lattice_, it->first, FTy_, FTx_);
       sectors_.insert({it->first, Block});
     }
     std::cout << "start initializeing maps" << std::endl;
