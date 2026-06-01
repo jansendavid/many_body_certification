@@ -153,80 +153,58 @@ public:
 
  void run_loop(std::vector<op_vec>& operator_1,std::vector<op_vec>& operator_2,std::map<std::string, symmetry_sector> &As, std::complex<double> fac_orig, std::pair<int,int> shift)
  {
- 
-  int i = 0;
+  const int Ly = lattice_.Ly_;
+  const int Lx = lattice_.Lx_;
+  const int n_states = static_cast<int>(lattice_.states_[sign_sector_][0].size() +
+                                        lattice_.states_[sign_sector_][1].size());
 
+  int i = 0;
   for (auto it1 = operator_1.begin(); it1 != operator_1.end(); ++it1)
   {
     int j = 0;
     for (auto it2 = operator_2.begin(); it2 != operator_2.end(); ++it2)
     {
-
-      for (int mat_pos_y = 0; mat_pos_y < lattice_.Ly_; mat_pos_y++)
+      // generate_G_element_sos depends only on (it1, it2, pos_y, pos_x), not on mat_pos.
+      for (int pos_y = 0; pos_y < Ly; ++pos_y)
       {
-        for (int mat_pos_x = 0; mat_pos_x < lattice_.Lx_; mat_pos_x++)
+        for (int pos_x = 0; pos_x < Lx; ++pos_x)
         {
+          auto construct = lattice_.generate_G_element_sos(*it1, *it2, pos_y, pos_x);
+          if (construct.op_ == "0")
+            continue;
 
-          // 			      // determines if first block of zeroth moment blocks
-          
-       int shift_initial=block_shifts[mat_pos_y][mat_pos_x] % (lattice_.states_[sign_sector_][0].size()+lattice_.states_[sign_sector_][1].size());
+          assert(std::abs((construct.prefac_ * fac_orig).imag()) < 1e-9);
 
-          // 			      // gives the shift between real and complex components
-          int dim = block_shifts[mat_pos_y][mat_pos_x];
-
-          for (int pos_y = 0; pos_y < lattice_.Ly_; pos_y++)
+          for (int mat_pos_y = 0; mat_pos_y < Ly; ++mat_pos_y)
           {
-            std::complex<double> FT_factor_y = FTy_(pos_y, mat_pos_y);
+            const std::complex<double> FT_factor_y = FTy_(pos_y, mat_pos_y);
 
-            for (int pos_x = 0; pos_x < lattice_.Lx_; pos_x++)
+            for (int mat_pos_x = 0; mat_pos_x < Lx; ++mat_pos_x)
             {
-              std::complex<double> FT_factor_x = FTx_(pos_x, mat_pos_x);
-
-              //              // to do, correct so that all terms appearing here appear in map
-              //std::cout<< "bb"<<std::endl;
-              auto construct = lattice_.generate_G_element_sos(*it1, *it2, pos_y, pos_x);
-              //std::cout<< "xx"<<std::endl;
-              if(construct.op_=="0")
-              {}
-              else{
-
-                assert(std::abs((construct.prefac_*fac_orig).imag())<1e-9 );
-              // if (i == j)
-              // {
-
-              //   std::cout << construct.prefac_ << "  " << construct.op_ << std::endl;
-              // }
-              std::complex<double>
-                  total_prefactor = construct.prefac_ *fac_orig* FT_factor_x * FT_factor_y;
-              // assert(std::abs(total_prefactor)<1e-9); maybe not include values  that are zero
+              const int shift_initial = block_shifts[mat_pos_y][mat_pos_x] % n_states;
+              const int dim = block_shifts[mat_pos_y][mat_pos_x];
+              const std::complex<double> FT_factor_x = FTx_(pos_x, mat_pos_x);
+              const std::complex<double> total_prefactor =
+                  construct.prefac_ * fac_orig * FT_factor_x * FT_factor_y;
 
               if (std::abs(total_prefactor.real()) > 1e-9)
               {
-                //assert
-                As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({i + shift.first+shift_initial, j + shift.second+shift_initial}, 1. / 2 * total_prefactor.real());
-                As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({i + shift.first + dim+shift_initial, j + shift.second + dim+shift_initial}, 1. / 2 * total_prefactor.real());
-                // if (i != j)
-                // {
-                //   As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({j + shift.first, i + shift.second}, 1. / 2 * total_prefactor.real());
-                //   As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({j + shift + dim, i + shift + dim}, 1. / 2 * total_prefactor.real());
-                // }
+                As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values(
+                    {i + shift.first + shift_initial, j + shift.second + shift_initial},
+                    1. / 2 * total_prefactor.real());
+                As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values(
+                    {i + shift.first + dim + shift_initial, j + shift.second + dim + shift_initial},
+                    1. / 2 * total_prefactor.real());
               }
               if (std::abs(total_prefactor.imag()) > 1e-9)
               {
-
-                // assert(i != j);
-                //  X^T[0,1]-X[0,1]=-H[0,1]
-
-                As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({i + shift.first+shift_initial, j + shift.second + dim+shift_initial}, -1. / 2 * total_prefactor.imag());
-               // As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({j + shift.first, i + shift.second + dim}, 1. / 2 * total_prefactor.imag());
-                As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({i + shift.first + dim+shift_initial, j + shift.second+shift_initial}, 1. / 2 * total_prefactor.imag());
-                // if (i != j)
-                // {
-                //   As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({i + shift + dim, j + shift}, 1. / 2 * total_prefactor.imag());
-                //   As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({j + shift + dim, i + shift}, -1. / 2 * total_prefactor.imag());
-                // }
+                As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values(
+                    {i + shift.first + shift_initial, j + shift.second + dim + shift_initial},
+                    -1. / 2 * total_prefactor.imag());
+                As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values(
+                    {i + shift.first + dim + shift_initial, j + shift.second + shift_initial},
+                    1. / 2 * total_prefactor.imag());
               }
-            }
             }
           }
         }
@@ -236,7 +214,6 @@ public:
     }
     i += 1;
   }
-
  }
   void generate_block(std::map<std::string, symmetry_sector> &As)
   {
