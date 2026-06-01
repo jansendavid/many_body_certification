@@ -1399,6 +1399,52 @@ void get_order_three_monomials(basis_structure &states, std::map<std::pair<int, 
     }
   }
 }
+void get_order_four_monomials_double(basis_structure_with_sub &states, std::map<std::pair<int, int>, int> &map_sec, int Ly, int Lx, bool use_symm)
+{
+  std::vector<std::string> dirs = {"x", "y", "z"};
+  for (auto s1 : dirs)
+  {
+    for (auto s2 : dirs)
+    {
+      for (auto s3 : dirs)
+      {
+
+        {
+          for (auto s4 : dirs)
+          {
+
+            {
+              op_vec v0 = {spin_op(s1, {0, 0}, {Ly, Lx}), spin_op(s2, {1, 0}, {Ly, Lx}), spin_op(s3, {0, 1}, {Ly, Lx}), spin_op(s4, {1, 1}, {Ly, Lx})};
+              auto [fac, vec] = get_normal_form(v0);
+
+              if (use_symm)
+              {
+                add_state_with_symmetries_double(states, v0, map_sec, Ly, Lx);
+              }
+              else
+              {
+                add_state_double(states, v0, map_sec);
+              }
+            }
+            {
+              op_vec v0 = {spin_op(s1, {0, 0}, {Ly, Lx}), spin_op(s2, {1, 0}, {Ly, Lx}), spin_op(s3, {2, 0}, {Ly, Lx}), spin_op(s4, {3, 0}, {Ly, Lx})};
+              auto [fac, vec] = get_normal_form(v0);
+
+              if (use_symm)
+              {
+                add_state_with_symmetries_double(states, v0, map_sec, Ly, Lx);
+              }
+              else
+              {
+                add_state_double(states, v0, map_sec);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
 void get_order_four_monomials(basis_structure &states, std::map<std::pair<int, int>, int> &map_sec, int Ly, int Lx, bool use_symm)
 {
   std::vector<std::string> dirs = {"x", "y", "z"};
