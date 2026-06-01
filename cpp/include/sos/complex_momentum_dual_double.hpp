@@ -9,13 +9,11 @@
 #include <cassert>
 #include "reduced_dms.hpp"
 #include "operator_operations.hpp"
-#include <chrono>
 using namespace mosek::fusion;
 using namespace monty;
 
 using symmetry_sector = std::map<int, std::vector<std::vector<matrix_organizer>>>;
 
-// // implementing momentum symmetrie in x and y direction
 template <typename Lattice>
 class momentum_block_double
 {
@@ -212,7 +210,6 @@ public:
  }
   void generate_block(std::map<std::string, symmetry_sector> &As)
   {
-    //     const auto start{std::chrono::steady_clock::now()};
 std::complex<double> prefac(1.,0.);
 int dim=lattice_.states_[sign_sector_][0].size();
 std::pair<int,int> shift={0,0};
@@ -245,7 +242,6 @@ class momentum_basis_double
 public:
   Model::t M_;
   std::map<int, momentum_block_double<Lattice>> sectors_;
-  std::string sector_;
 
   Eigen::MatrixXcd FTx_;
   Eigen::MatrixXcd FTy_;
@@ -264,7 +260,6 @@ public:
 
   momentum_basis_double(Lattice &lattice, Model::t M, rdms_struct rdms) : lattice_(lattice), M_(M)
   {
-    std::cout << "start" << std::endl;
     FTx_ = Eigen::MatrixXcd(lattice_.Lx_, lattice_.Lx_);
     for (int i = 0; i < lattice_.Lx_; i++)
     {
@@ -272,7 +267,7 @@ public:
       {
         std::complex<double> phase(0., -2. * i * j * pi / lattice_.Lx_);
 
-        FTx_(i, j) = std::exp(phase);///std::sqrt(lattice_.Lx_);
+        FTx_(i, j) = std::exp(phase);
       }
     }
     FTy_ = Eigen::MatrixXcd(lattice_.Ly_, lattice_.Ly_);
@@ -282,25 +277,15 @@ public:
       {
         std::complex<double> phase(0., -2. * i * j * pi / lattice_.Ly_);
 
-        FTy_(i, j) = std::exp(phase);///std::sqrt(lattice_.Ly_);
+        FTy_(i, j) = std::exp(phase);
       }
     }
-    std::cout << "start initializeing blocks" << std::endl;
     for (auto it = lattice_.states_.begin(); it != lattice_.states_.end(); ++it)
     {
-
       auto Block = momentum_block_double(lattice_, it->first, FTy_, FTx_);
       sectors_.insert({it->first, Block});
     }
-    std::cout << "start initializeing maps" << std::endl;
     initialize_all_maps(rdms);
-
-    std::cout << "size TI map " << lattice_.TI_map_.size() << std::endl;
-    // for (auto a : lattice_.TI_map_)
-    // {
-    //   std::cout << a.first << "-> " << a.second.first << "   " << a.second.second << std::endl;
-    // }
-    std::cout << "size total refs " << lattice.variable_map_.size() << std::endl;
 
     for (auto it = lattice.variable_map_.begin(); it != lattice.variable_map_.end(); it++)
     {
@@ -319,24 +304,12 @@ public:
         }
       }
     }
-     
-    std::cout << "initialze blocks " << std::endl;
-    for (auto &sector : sectors_)
-    {
-    
-      sector.second.initialize_blocks(As_);
-      std::cout << "initialze blocks done" << std::endl;
-    
-    }
-    std::cout << "initialze blocks done" << std::endl;
-    std::cout << "finished initializeing blocks" << std::endl;
-    for (auto it_2 = sectors_.begin(); it_2 != sectors_.end(); ++it_2)
-    {
 
-     it_2->second.generate_block(As_);
-    
-  }
-    std::cout << "finished making the As matrices" << std::endl;
+    for (auto &sector : sectors_)
+      sector.second.initialize_blocks(As_);
+
+    for (auto it_2 = sectors_.begin(); it_2 != sectors_.end(); ++it_2)
+      it_2->second.generate_block(As_);
 
     return;
   };
@@ -371,13 +344,8 @@ public:
 
     auto a = monty::new_array_ptr<double>(energy_vec);
     energy_vec_->setValue(a);
-
-    std::cout << "bounding " << bounding_observable_ << std::endl;
     energy_bounds_["E_upper"]->setValue(E_upper);
     energy_bounds_["E_lower"]->setValue(E_lower);
-    std::cout << "bounds up " << *(energy_bounds_["E_upper"]->getValue()) << std::endl;
-    std::cout << "bounds low " << *(energy_bounds_["E_lower"]->getValue()) << std::endl;
-    std::cout << "diff " << (*(energy_bounds_["E_upper"]->getValue()))[0] - (*(energy_bounds_["E_lower"]->getValue()))[0] << std::endl;
 
     return;
   }
@@ -413,14 +381,10 @@ public:
   void generate_rdms(rdms_struct rdms)
   {
 
-    auto offset = lattice_.states_[1][0][0][0].offset_; // change this to be derived from baso
+    auto offset = lattice_.states_[1][0][0][0].offset_;
 
-    int i = 0;
-    std::cout << "rdms size " << rdms.rdms.size() << std::endl;
     for (auto site : rdms.rdms)
     {
-
-      i++;
       auto sigmas_temp = lattice_.generate_rdms_primal_cp(site, offset);
       sigmas_.insert({site, sigmas_temp});
     }
@@ -434,16 +398,16 @@ public:
   Variable::t y_;
   momentum_symmetry_solver_dual_double(Lattice &lattice, Model::t M, rdms_struct rdms) : momentum_basis_double<Lattice>(lattice, M, rdms)
   {
-    std::cout << "start " << std::endl;
     y_ = this->M_->variable("T", this->lattice_.variable_map_.size());
-    // fix 1
+    this->M_->constraint(y_, Domain::lessThan(1.0));
+    this->M_->constraint(y_, Domain::greaterThan(-1.0));
+
     auto el = this->lattice_.variable_map_.at("1");
     this->M_->constraint(y_->index(el), Domain::equalsTo(1.0));
-    std::cout << "start " << std::endl;
-    // fix zero
-    el = this->lattice_.variable_map_.at("0");
-    this->M_->constraint(y_->index(el), Domain::equalsTo(0.0));
-    std::cout << "start " << std::endl;
+
+    auto it = this->lattice_.variable_map_.find("0");
+    if (it != this->lattice_.variable_map_.end())
+      this->M_->constraint(y_->index(it->second), Domain::equalsTo(0.0));
   }
   void fix_constrains()
   {
@@ -486,7 +450,6 @@ public:
         }
       }
     }
-    std::cout << "Finished generating the PSD constraints" << std::endl;
     for (auto state : this->sigmas_)
     {
       Expression::t ee = Expr::constTerm(state.second["1"]);
@@ -500,15 +463,12 @@ public:
       }
       this->M_->constraint(ee, Domain::inPSDCone());
     }
-    std::cout << "Finished density matrices " << std::endl;
-
     if (this->nr_of_linear_constraints > 0)
     {
       auto vals = this->Psp->getValue();
       auto shape = this->Psp->getShape();
       const int m = (*shape)[0];
       const int n = (*shape)[1];
-      std::cout << "adding linear constrains " << n << std::endl;
 
       for (int i = 0; i < n; ++i)
       {
@@ -537,7 +497,6 @@ public:
 
   std::vector<Variable::t> energy_bouding_variables_;
   bool maximize_{true};
-  Variable::t eta;
   Variable::t epsilon;
   Variable::t linear_constraints_variable2_;
   std::vector<std::vector<Variable::t>> linear_constraints_for_block_equality_variable_;
@@ -569,16 +528,7 @@ public:
   momentum_symmetry_solver_sos_double(Lattice &lattice, Model::t M, rdms_struct rdms, bool maximize = true)
       : maximize_(maximize), momentum_basis_double<Lattice>(lattice, M, rdms)
   {
-    if (maximize_)
-    {
-      eta = this->M_->variable("eta", Domain::greaterThan(0.));
-      epsilon = this->M_->variable("epsilon", Domain::greaterThan(0.));
-    }
-    else
-    {
-      eta = this->M_->variable("eta", Domain::lessThan(0.));
-      epsilon = this->M_->variable("epsilon", Domain::lessThan(0.));
-    }
+    epsilon = this->M_->variable("epsilon");
     for(int i=0; i<int(this->lattice_.Ly_/2); i++)
     {
       linear_constraints_for_block_equality_variable_.push_back({});
@@ -649,7 +599,6 @@ public:
   {
     if (this->bounding_observable_)
     {
-      std::cout << "true bounding observable " << std::endl;
       if (maximize_)
       {
         energy_bouding_variables_.push_back(this->M_->variable("upper energy", Domain::greaterThan(0.)));
@@ -770,8 +719,6 @@ public:
       }
     }
 
-    std::cout << "start generating constarins for rdms " << std::endl;
-
     for (auto &[key, lambda_expr] : Lambdas_)
     {
       int block_size = static_cast<int>(std::round(std::sqrt(lambda_expr->getSize())));
@@ -824,10 +771,6 @@ public:
     auto epsilon_vec = Expr::mul(e_vec, epsilon);
     epsilon_vec_flat = Expr::reshape(epsilon_vec, n_constraints);
 
-    const std::size_t vm_total = this->lattice_.variable_map_.size();
-    std::cout << "equality constraints: " << vm_total << " variables" << std::endl;
-    auto start = std::chrono::high_resolution_clock::now();
-
     auto totalvec = Expr::add(A_vector, Lamba_vector);
     if (this->nr_of_linear_constraints > 0)
     {
@@ -844,12 +787,6 @@ public:
     final_constraint_ = this->M_->constraint(
         Expr::add(Expr::add(totalvec, epsilon_vec_flat), this->b_), Domain::equalsTo(0.));
 
-    if (vm_total > 0)
-      std::cout << std::endl;
-    std::cout << "Finished generating the PSD constraints ones " << std::endl;
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    std::cout << "Time: " << duration.count() << " ms" << std::endl;
     return;
   }
   Expression::t get_costfunction()
