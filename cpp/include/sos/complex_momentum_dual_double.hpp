@@ -67,7 +67,6 @@ public:
     for (auto it = lattice_.states_[sign_sector_][0].begin(); it != lattice_.states_[sign_sector_][0].end(); ++it)
     {
       auto op = *it;
-      //std::cout<< "r 1 "<<print_op(op)<<std::endl;
       // get normal form
       auto [coeff, nf] = get_normal_form(op);
       // get translation invariant representation
@@ -88,19 +87,16 @@ public:
 
       i++;
     }
-  //  std::cout<< "r x "<<lattice_.states_[sign_sector_][1].size()<<std::endl;
-  i = 0;
+    i = 0;
     int shift=lattice_.states_[sign_sector_][0].size();
     for (auto it = lattice_.states_[sign_sector_][1].begin(); it != lattice_.states_[sign_sector_][1].end(); ++it)
     {
-      std::cout<< "XXXXX"<<std::endl;
       auto op = *it;
       // get normal form
       auto [coeff, nf] = get_normal_form(op);
       // get translation invariant representation
 
       auto ti_key = op_key_label(lattice_.TI_map_.at(key_dir_pos(nf)).first);
-      std::cout<< "key "<<ti_key <<std::endl;
       //auto el = this->lattice_.variable_map_.at(ti_key);
 
       if (std::abs(coeff.real()) > 1e-9)
