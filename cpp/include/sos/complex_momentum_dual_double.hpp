@@ -9,6 +9,7 @@
 #include <cassert>
 #include "reduced_dms.hpp"
 #include "operator_operations.hpp"
+#include <chrono>
 using namespace mosek::fusion;
 using namespace monty;
 
@@ -260,8 +261,6 @@ public:
   std::map<rdm_operator, std::map<std::string, Matrix::t>> sigmas_;
   Matrix::t Psp;
   int nr_of_linear_constraints{0};
-  // Legacy: used by SOS solver until optimization step 5
-  std::vector<Parameter::t> linear_constraints_coefficients_;
 
   momentum_basis_double(Lattice &lattice, Model::t M, rdms_struct rdms) : lattice_(lattice), M_(M)
   {
@@ -409,19 +408,6 @@ public:
     Psp = Matrix::t(Matrix::sparse(
         m, n, monty::new_array_ptr<int>(rows), monty::new_array_ptr<int>(cols),
         monty::new_array_ptr<double>(vals)));
-
-    // SOS path (step 5 will switch to Psp)
-    if (linear_constraints_coefficients_.size() < 1)
-    {
-      for (int i = 0; i < static_cast<int>(linear_constraints.size()); i++)
-        linear_constraints_coefficients_.push_back(
-            M_->parameter("linear_constraint_" + std::to_string(i), lattice_.variable_map_.size()));
-    }
-    for (int i = 0; i < static_cast<int>(linear_constraints.size()); i++)
-    {
-      auto a = monty::new_array_ptr<double>(linear_constraints[i]);
-      linear_constraints_coefficients_[i]->setValue(a);
-    }
     return;
   }
   void generate_rdms(rdms_struct rdms)
@@ -542,39 +528,46 @@ public:
     return Expr::dot(this->b_, y_);
   }
 };
-// struct linear_constraint{
-// std::string key;
-// double value;
-// linear_constraint(std::string key, double value):key_(key), value_(value){};
-
-// };
 template <typename Lattice>
 class momentum_symmetry_solver_sos_double : public momentum_basis_double<Lattice>
 {
 public:
   std::map<int, std::vector<std::vector<Expression::t>>> Xs_;
-  // Lambdas are the Lagrangian stemmeing from psd density matrices
   std::map<rdm_operator, Expression::t> Lambdas_;
 
-  // here we store the C matrices (the constants)
-  // std::map<int, std::vector<std::vector<Matrix::t>>> Cs_;
-  std::map<int, std::vector<std::vector<Matrix::t>>> zeros_;
-  // variables introduced to bound the energy
   std::vector<Variable::t> energy_bouding_variables_;
-  bool maximize_{true}; // if cost function is a maximization problem
-  // to enforce 0=0 and 1=1
+  bool maximize_{true};
   Variable::t eta;
   Variable::t epsilon;
+  Variable::t linear_constraints_variable2_;
+  std::vector<std::vector<Variable::t>> linear_constraints_for_block_equality_variable_;
+  Constraint::t final_constraint_;
+  Expression::t A_vector = nullptr;
+  Expression::t Lamba_vector = nullptr;
+  Expression::t LC_vector = nullptr;
+  Expression::t epsilon_vec_flat = nullptr;
 
-  // dummy variable used to constrain magnetization
-  // todo add parameter that you can set and make a certain constraint fulfilled
+  static int nrblocks_y_for(const Lattice &lattice)
+  {
+    return (lattice.Ly_ % 2 == 0) ? (2 + lattice.Ly_ / 2 - 1) : (1 + lattice.Ly_ / 2);
+  }
 
-  Variable::t delta;
-  // a vector where each element is a constraint 
-  std::vector<Variable::t> linear_constraints_variable_; 
-  // forces blocks to be equal
-  std::vector<std::vector<Variable::t>> linear_constraints_for_block_equality_variable_; 
-  momentum_symmetry_solver_sos_double(Lattice &lattice, Model::t M, rdms_struct rdms, bool maximize = true) : maximize_(maximize), momentum_basis_double<Lattice>(lattice, M, rdms)
+  static int nrblocks_x_for(const Lattice &lattice)
+  {
+    return (lattice.Lx_ % 2 == 0) ? (2 + lattice.Lx_ / 2 - 1) : (1 + lattice.Lx_ / 2);
+  }
+
+  static double matrix_trace(const Matrix::t &mat, int block_size)
+  {
+    auto data = mat->getDataAsArray();
+    double tr = 0.0;
+    for (int r = 0; r < block_size; ++r)
+      tr += (*data)[r * block_size + r];
+    return tr;
+  }
+
+  momentum_symmetry_solver_sos_double(Lattice &lattice, Model::t M, rdms_struct rdms, bool maximize = true)
+      : maximize_(maximize), momentum_basis_double<Lattice>(lattice, M, rdms)
   {
     if (maximize_)
     {
@@ -594,35 +587,24 @@ public:
         linear_constraints_for_block_equality_variable_[i].push_back(this->M_->variable("block_equality_variable_"+std::to_string(i)+"_"+std::to_string(j)));
       }
     }
+    const int nrblocks_y = nrblocks_y_for(this->lattice_);
+    const int nrblocks_x = nrblocks_x_for(this->lattice_);
     for (auto sign_symm_sector : this->sectors_)
     {
       Xs_[sign_symm_sector.first] = {};
-      // Cs_[sign_symm_sector.first] = {};
-      zeros_[sign_symm_sector.first] = {};
-      int nrblocks_y = (this->lattice_.Ly_ % 2 == 0) ? (2 + this->lattice_.Ly_/2 - 1) : (1 + this->lattice_.Ly_/2);
-      int nrblocks_x = (this->lattice_.Lx_ % 2 == 0) ? (2 + this->lattice_.Lx_/2 - 1) : (1 + this->lattice_.Lx_/2);
       for (int i = 0; i < nrblocks_y; i++)
       {
         Xs_[sign_symm_sector.first].push_back({});
-        // Cs_[sign_symm_sector.first].push_back({});
-        zeros_[sign_symm_sector.first].push_back({});
-
         for (int j = 0; j < nrblocks_x; j++)
         {
-
           int matrix_dimension = 2 * sign_symm_sector.second.block_shifts[i][j];
-
-          auto X = this->M_->variable("X_" + std::to_string(sign_symm_sector.first) + "_" + std::to_string(i) + std::to_string(j), Domain::inPSDCone(matrix_dimension));
-
-          // This is "minus" x, thus, we must replace all x with neg(x)
+          auto X = this->M_->variable("X_" + std::to_string(sign_symm_sector.first) + "_" +
+                                           std::to_string(i) + std::to_string(j),
+                                       Domain::inPSDCone(matrix_dimension));
           if (maximize_)
-          {
             Xs_[sign_symm_sector.first][i].push_back(Expr::neg(X));
-          }
           else
-          {
-            Xs_[sign_symm_sector.first][i].push_back((X));
-          }
+            Xs_[sign_symm_sector.first][i].push_back(X);
         }
       }
     }
@@ -646,10 +628,25 @@ public:
     }
   }
 
+  void update_constrains()
+  {
+    auto totalvec = Expr::add(A_vector, Lamba_vector);
+    if (this->nr_of_linear_constraints > 0)
+    {
+      LC_vector = Expr::mul(this->Psp, linear_constraints_variable2_);
+      totalvec = Expr::add(totalvec, LC_vector);
+    }
+    if (this->bounding_observable_)
+    {
+      auto exp_temporary =
+          Expr::mul(Expr::add(energy_bouding_variables_[0], energy_bouding_variables_[1]), this->energy_vec_);
+      totalvec = Expr::add(totalvec, exp_temporary);
+    }
+    final_constraint_->update(Expr::add(Expr::add(totalvec, epsilon_vec_flat), this->b_));
+  }
+
   void fix_constrains()
   {
-    // wanting to solve the sdp
-    // Tr<X,C>, s.t. for all i, Tr<X,A_i>=b_i
     if (this->bounding_observable_)
     {
       std::cout << "true bounding observable " << std::endl;
@@ -664,195 +661,195 @@ public:
         energy_bouding_variables_.push_back(this->M_->variable("lower energy", Domain::greaterThan(0.)));
       }
     }
-    
-      for(int i=0; i<this->linear_constraints_coefficients_.size(); i++)
-      {
-        linear_constraints_variable_.push_back(this->M_->variable("LC"+std::to_string(i)));
-      }
-    
 
-    std::vector<Expression::t> expressions_(this->lattice_.variable_map_.size(), Expr::constTerm(0));
-    // for (auto sign_symm_sector : this->sectors_)
-    // {
+    if (this->nr_of_linear_constraints > 0)
+      linear_constraints_variable2_ = this->M_->variable(this->nr_of_linear_constraints);
 
-    //   for (int i = 1; i < int(this->lattice_.Ly_/2); i++)
-    //   {
-    //     for (int j = 1; j < int(this->lattice_.Lx_/2); j++)
-    //     {
-    // //      // this->M_->constraint(x, Domain::equalsTo(y));
-    //        this->M_->constraint(Expr::sub(Xs_[sign_symm_sector.first][i][j],Xs_[sign_symm_sector.first][this->lattice_.Ly_-i][this->lattice_.Lx_-j]), Domain::equalsTo(0.0));
-    //     }}}
-    int nrblocks_y = (this->lattice_.Ly_ % 2 == 0) ? (2 + this->lattice_.Ly_/2 - 1) : (1 + this->lattice_.Ly_/2);
-    int nrblocks_x = (this->lattice_.Lx_ % 2 == 0) ? (2 + this->lattice_.Lx_/2 - 1) : (1 + this->lattice_.Lx_/2);
-    // TODO ADD equality conditions for subblocks
-    for (auto sign_symm_sector : this->sectors_)
+    const int n_constraints = static_cast<int>(this->lattice_.variable_map_.size());
+    const int nrblocks_y = nrblocks_y_for(this->lattice_);
+    const int nrblocks_x = nrblocks_x_for(this->lattice_);
+
+    for (auto &sign_symm_sector : this->sectors_)
     {
-
       for (int i = 0; i < nrblocks_y; i++)
       {
         for (int j = 0; j < nrblocks_x; j++)
         {
+          int block_size = 2 * sign_symm_sector.second.block_shifts[i][j];
+          if (block_size == 0)
+            continue;
 
-          for (auto op : this->lattice_.variable_map_)
+          int n_vars_block = block_size * block_size;
+          auto x_block = Expr::reshape(Xs_[sign_symm_sector.first][i][j], n_vars_block);
+
+          std::vector<int> rows_b, cols_b;
+          std::vector<double> vals_b;
+
+          for (auto &op : this->lattice_.variable_map_)
           {
-            int matrix_dimension = 2 * sign_symm_sector.second.block_shifts[i][j];
             if (op.first == "0")
-            {
               continue;
-            }
-            else
-            {
-            
-              if (op.first == "1")
-              {
-                if (this->As_[op.first][sign_symm_sector.first][i][j].has_elements_)
-                {
-                  int el = this->lattice_.variable_map_.at(op.first);
-                  // generatin the C matrix blocks (the one that will be used om the cost function min(C,X))
-                  // auto C = this->As_[op.first][sign_symm_sector.first][i][j].make_matrix(matrix_dimension, matrix_dimension);
-                  // Cs_[sign_symm_sector.first][i].push_back(C);
-                  expressions_[el] = Expr::add(expressions_[el], Expr::dot(this->As_[op.first][sign_symm_sector.first][i][j].make_matrix(matrix_dimension, matrix_dimension), (Xs_[sign_symm_sector.first][i%this->lattice_.Ly_][j%this->lattice_.Lx_])));
-                }
-              }
-              else
-              {
-                if (this->As_[op.first][sign_symm_sector.first][i][j].has_elements_)
-                {
+            auto &A_block = this->As_[op.first][sign_symm_sector.first][i][j];
+            if (!A_block.has_elements_)
+              continue;
 
-                  int el = this->lattice_.variable_map_.at(op.first);
-                  // making the constrains Tr<A_,X> which we will assign to b_i later
-                  expressions_[el] = Expr::add(expressions_[el], Expr::dot(this->As_[op.first][sign_symm_sector.first][i][j].make_matrix(matrix_dimension, matrix_dimension), (Xs_[sign_symm_sector.first][i%this->lattice_.Ly_][j%this->lattice_.Ly_])));
+            int el = op.second;
+            auto mat = A_block.make_matrix(block_size, block_size);
+            auto data = mat->getDataAsArray();
+
+            for (int r = 0; r < block_size; r++)
+              for (int c = 0; c < block_size; c++)
+              {
+                double v = (*data)[r * block_size + c];
+                if (std::abs(v) > 1e-15)
+                {
+                  rows_b.push_back(el);
+                  cols_b.push_back(r * block_size + c);
+                  vals_b.push_back(v);
                 }
               }
-            }
           }
+
+          if (vals_b.empty())
+            continue;
+
+          auto A_block_sparse = Matrix::sparse(
+              n_constraints, n_vars_block, monty::new_array_ptr(rows_b),
+              monty::new_array_ptr(cols_b), monty::new_array_ptr(vals_b));
+
+          auto contribution = Expr::mul(A_block_sparse, x_block);
+          if (A_vector == nullptr)
+            A_vector = contribution;
+          else
+            A_vector = Expr::add(A_vector, contribution);
         }
       }
     }
 
-    for (auto sign_symm_sector : this->sectors_)
+    for (auto &sign_symm_sector : this->sectors_)
     {
-
-      for (int i = 1; i < int(this->lattice_.Ly_ /2); i++)
+      for (int i = 1; i < int(this->lattice_.Ly_ / 2); i++)
       {
-        for (int j = 1; j < int(this->lattice_.Lx_ /2); j++)
+        for (int j = 1; j < int(this->lattice_.Lx_ / 2); j++)
         {
+          int block_size = 2 * sign_symm_sector.second.block_shifts[i][j];
+          if (block_size == 0)
+            continue;
 
-          for (auto op : this->lattice_.variable_map_)
+          const int mir_y = this->lattice_.Ly_ - i;
+          const int mir_x = this->lattice_.Lx_ - j;
+          auto &eta_ij = linear_constraints_for_block_equality_variable_[i][j];
+
+          for (auto &op : this->lattice_.variable_map_)
           {
-            int matrix_dimension = 2 * sign_symm_sector.second.block_shifts[i][j];
             if (op.first == "0")
-            {
               continue;
-            }
-            else
-            {
-            
-              if (op.first == "1")
-              {
-                if (this->As_[op.first][sign_symm_sector.first][i][j].has_elements_)
-                {
-                  int el = this->lattice_.variable_map_.at(op.first);
-                  // generatin the C matrix blocks (the one that will be used om the cost function min(C,X))
-                  // auto C = this->As_[op.first][sign_symm_sector.first][i][j].make_matrix(matrix_dimension, matrix_dimension);
-                  // Cs_[sign_symm_sector.first][i].push_back(C);
-                 auto exp_1=Expr::mul(linear_constraints_for_block_equality_variable_[i][j], this->As_[op.first][sign_symm_sector.first][i][j].make_matrix(matrix_dimension, matrix_dimension));
-                 auto exp_2=Expr::neg(Expr::mul(linear_constraints_for_block_equality_variable_[i][j], this->As_[op.first][sign_symm_sector.first][this->lattice_.Ly_-i][this->lattice_.Lx_-j].make_matrix(matrix_dimension, matrix_dimension)));
-                 auto exp=Expr::add(exp_1, exp_2);
-                 //Expr::add(this->As_[op.first][sign_symm_sector.first][i][j].make_matrix(matrix_dimension, matrix_dimension), this->As_[op.first][sign_symm_sector.first][this->lattice_.Ly_-i][this->lattice_.Lx_-j].make_matrix(matrix_dimension, matrix_dimension));
-                  expressions_[el] = Expr::add(expressions_[el], Expr::dot(Matrix::eye(matrix_dimension), exp));
-                }
-              }
-              else
-              {
-                if (this->As_[op.first][sign_symm_sector.first][i][j].has_elements_)
-                {
-                  int el = this->lattice_.variable_map_.at(op.first);
-                  auto exp_1=Expr::mul(linear_constraints_for_block_equality_variable_[i][j], this->As_[op.first][sign_symm_sector.first][i][j].make_matrix(matrix_dimension, matrix_dimension));
-                  auto exp_2=Expr::neg(Expr::mul(linear_constraints_for_block_equality_variable_[i][j], this->As_[op.first][sign_symm_sector.first][this->lattice_.Ly_-i][this->lattice_.Lx_-j].make_matrix(matrix_dimension, matrix_dimension)));
-                  auto exp=Expr::add(exp_1, exp_2);
-                  //Expr::add(this->As_[op.first][sign_symm_sector.first][i][j].make_matrix(matrix_dimension, matrix_dimension), this->As_[op.first][sign_symm_sector.first][this->lattice_.Ly_-i][this->lattice_.Lx_-j].make_matrix(matrix_dimension, matrix_dimension));
-                   expressions_[el] = Expr::add(expressions_[el], Expr::dot(Matrix::eye(matrix_dimension), exp));
+            auto &A_ij = this->As_[op.first][sign_symm_sector.first][i][j];
+            if (!A_ij.has_elements_)
+              continue;
 
-                }
-              }
-            }
+            int el = op.second;
+            auto mat_ij = A_ij.make_matrix(block_size, block_size);
+            auto mat_mir = this->As_[op.first][sign_symm_sector.first][mir_y][mir_x].make_matrix(
+                block_size, block_size);
+            double tr = matrix_trace(mat_ij, block_size) - matrix_trace(mat_mir, block_size);
+            if (std::abs(tr) < 1e-15)
+              continue;
+
+            auto e_vec = Matrix::sparse(
+                n_constraints, 1, monty::new_array_ptr(std::vector<int>{el}),
+                monty::new_array_ptr(std::vector<int>{0}),
+                monty::new_array_ptr(std::vector<double>{tr}));
+            auto term = Expr::mul(e_vec, eta_ij);
+            if (A_vector == nullptr)
+              A_vector = term;
+            else
+              A_vector = Expr::add(A_vector, term);
           }
         }
       }
     }
 
-    // Enforcing reduced density matrices. Todo, see if this also can be simplified by removing moving "1" into this loop
     std::cout << "start generating constarins for rdms " << std::endl;
-    for (auto lambda_ : Lambdas_)
+
+    for (auto &[key, lambda_expr] : Lambdas_)
     {
-      for (auto string_and_matrix : this->sigmas_[lambda_.first])
+      int block_size = static_cast<int>(std::round(std::sqrt(lambda_expr->getSize())));
+      int n_vars_block = block_size * block_size;
+      auto l_block = Expr::reshape(lambda_expr, n_vars_block);
+
+      std::vector<int> rows_b, cols_b;
+      std::vector<double> vals_b;
+
+      for (auto &[op_string, mat] : this->sigmas_[key])
       {
-        if (string_and_matrix.first != "1")
-        {
+        if (op_string == "1")
+          continue;
 
-          int el = this->lattice_.variable_map_.at(string_and_matrix.first);
-          auto a = lambda_.second;
+        int el = this->lattice_.variable_map_.at(op_string);
+        auto data = mat->getDataAsArray();
 
-          expressions_[el] = Expr::add(expressions_[el], (Expr::dot(lambda_.second, string_and_matrix.second)));
-        }
+        for (int r = 0; r < block_size; r++)
+          for (int c = 0; c < block_size; c++)
+          {
+            double v_entry = (*data)[r * block_size + c];
+            if (std::abs(v_entry) > 1e-15)
+            {
+              rows_b.push_back(el);
+              cols_b.push_back(r * block_size + c);
+              vals_b.push_back(v_entry);
+            }
+          }
       }
+
+      if (vals_b.empty())
+        continue;
+
+      auto S_block_sparse = Matrix::sparse(
+          n_constraints, n_vars_block, monty::new_array_ptr(rows_b),
+          monty::new_array_ptr(cols_b), monty::new_array_ptr(vals_b));
+
+      auto contribution = Expr::mul(S_block_sparse, l_block);
+      if (Lamba_vector == nullptr)
+        Lamba_vector = contribution;
+      else
+        Lamba_vector = Expr::add(Lamba_vector, contribution);
     }
-    // adding the constrains enforcing energy </> to lower/upper bound
+
+    int el = this->lattice_.variable_map_.at("1");
+    auto e_vec = Matrix::sparse(
+        n_constraints, 1, monty::new_array_ptr(std::vector<int>{el}),
+        monty::new_array_ptr(std::vector<int>{0}),
+        monty::new_array_ptr(std::vector<double>{1.0}));
+    auto epsilon_vec = Expr::mul(e_vec, epsilon);
+    epsilon_vec_flat = Expr::reshape(epsilon_vec, n_constraints);
+
+    const std::size_t vm_total = this->lattice_.variable_map_.size();
+    std::cout << "equality constraints: " << vm_total << " variables" << std::endl;
+    auto start = std::chrono::high_resolution_clock::now();
+
+    auto totalvec = Expr::add(A_vector, Lamba_vector);
+    if (this->nr_of_linear_constraints > 0)
+    {
+      LC_vector = Expr::mul(this->Psp, linear_constraints_variable2_);
+      totalvec = Expr::add(totalvec, LC_vector);
+    }
     if (this->bounding_observable_)
     {
-      auto exp_temporary = Expr::mul(Expr::add(energy_bouding_variables_[0], energy_bouding_variables_[1]), this->energy_vec_);
-      for (int i = 0; i < this->energy_vec_->getSize(); i++)
-      {
-        // energy_vec_->index(i)
-
-        expressions_[i] = Expr::add(expressions_[i], (exp_temporary->index(i)));
-      }
-    }
-    // adding lunear constarins
-    if(linear_constraints_variable_.size()>0)
-    {
-      auto exp_temporary = Expr::mul(linear_constraints_variable_[0], this->linear_constraints_coefficients_[0]);
-     
-    
-    for(int j=1; j<linear_constraints_variable_.size(); j++)
-    {
-      exp_temporary =Expr::add(exp_temporary,Expr::mul(linear_constraints_variable_[j], this->linear_constraints_coefficients_[j]));
-      for (int i = 0; i < linear_constraints_variable_[0]->getSize(); i++)
-      {
-        // energy_vec_->index(i)
-
-        expressions_[i] = Expr::add(expressions_[i], (exp_temporary->index(i)));
-      }
-      
-    }
-  }
-
-
-
-    // adding a constant term for the 1:
-    int el = this->lattice_.variable_map_.at("1");
-    expressions_[el] = Expr::add(expressions_[el], epsilon);
-
-    for (auto a : this->lattice_.variable_map_)
-    {
-      if (a.first != "0")
-      {
-
-        int el = this->lattice_.variable_map_.at(a.first);
-        //=-1*b[el]
-        this->M_->constraint(Expr::add(expressions_[el], this->b_->index(el)), Domain::equalsTo(0.));
-      }
-      // fixing that zero is zero
-      // normally \eta=0 but we just eliminate eta
-      if (a.first == "0")
-      {
-        int el = this->lattice_.variable_map_.at(a.first);
-        this->M_->constraint(expressions_[el], Domain::equalsTo(0.));
-      }
+      auto exp_temporary =
+          Expr::mul(Expr::add(energy_bouding_variables_[0], energy_bouding_variables_[1]), this->energy_vec_);
+      totalvec = Expr::add(totalvec, exp_temporary);
     }
 
+    final_constraint_ = this->M_->constraint(
+        Expr::add(Expr::add(totalvec, epsilon_vec_flat), this->b_), Domain::equalsTo(0.));
+
+    if (vm_total > 0)
+      std::cout << std::endl;
     std::cout << "Finished generating the PSD constraints ones " << std::endl;
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    std::cout << "Time: " << duration.count() << " ms" << std::endl;
     return;
   }
   Expression::t get_costfunction()
