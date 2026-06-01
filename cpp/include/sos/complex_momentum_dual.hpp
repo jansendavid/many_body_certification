@@ -648,7 +648,26 @@ public:
   
 //   }
 
+if(this->nr_of_linear_constraints > 0)
+{
+    auto vals = this->P->getValue();
+    auto shape = this->P->getShape();
+    const int m = (*shape)[0];
+    const int n = (*shape)[1];
+    std::cout << "adding linear constrains " << n << std::endl;
 
+    for (int i = 0; i < n; ++i)
+    {
+        // extract column i as a std::vector
+        std::vector<double> col(m);
+        for (int j = 0; j < m; ++j)
+            col[j] = (*vals)[j * n + i];
+
+        this->M_->constraint(
+            Expr::dot(monty::new_array_ptr<double>(col), y_),
+            Domain::equalsTo(0.0));
+    }
+}
 
     if (this->bounding_observable_)
     {
@@ -705,16 +724,17 @@ public:
 
   momentum_symmetry_solver_sos(Lattice &lattice, Model::t M, rdms_struct rdms, bool maximize = true) : maximize_(maximize), momentum_basis<Lattice>(lattice, M, rdms)
   {
-    if (maximize_)
-    {
-      eta = this->M_->variable("eta", Domain::greaterThan(0.));
-      epsilon = this->M_->variable("epsilon", Domain::greaterThan(0.));
-    }
-    else
-    {
-      eta = this->M_->variable("eta", Domain::lessThan(0.));
-      epsilon = this->M_->variable("epsilon", Domain::lessThan(0.));
-    }
+    // if (maximize_)
+    // {
+    //   eta = this->M_->variable("eta", Domain::greaterThan(0.));
+    //   epsilon = this->M_->variable("epsilon", Domain::greaterThan(0.));
+    // }
+    // else
+    // {
+    //   eta = this->M_->variable("eta", Domain::lessThan(0.));
+    //   epsilon = this->M_->variable("epsilon", Domain::lessThan(0.));
+    // }
+    epsilon = this->M_->variable("epsilon");
     for (auto sign_symm_sector : this->sectors_)
     {
       Xs_[sign_symm_sector.first] = {};
@@ -769,7 +789,7 @@ public:
   auto totalvec=Expr::add(A_vector,Lamba_vector);
   if(this->nr_of_linear_constraints > 0)
   {
-    LC_vector=Expr::mul(this->P, linear_constraints_variable2_);
+    LC_vector=Expr::mul(this->Psp, linear_constraints_variable2_);
     totalvec=Expr::add(totalvec, LC_vector);
   }
   final_constraint_->update(Expr::add(Expr::add(totalvec, epsilon_vec_flat), this->b_));
@@ -933,7 +953,7 @@ for (auto& [key, lambda_expr] : Lambdas_)
 {
    
    
-        LC_vector=Expr::mul(this->P, linear_constraints_variable2_);
+        LC_vector=Expr::mul(this->Psp, linear_constraints_variable2_);
   
 }
  
