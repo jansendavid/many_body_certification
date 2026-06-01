@@ -258,8 +258,11 @@ public:
   std::map<std::string, symmetry_sector> As_;
   // for the reduced density matrix
   std::map<rdm_operator, std::map<std::string, Matrix::t>> sigmas_;
-  std::vector<Parameter::t>  linear_constraints_coefficients_;
-   
+  Matrix::t Psp;
+  int nr_of_linear_constraints{0};
+  // Legacy: used by SOS solver until optimization step 5
+  std::vector<Parameter::t> linear_constraints_coefficients_;
+
   momentum_basis_double(Lattice &lattice, Model::t M, rdms_struct rdms) : lattice_(lattice), M_(M)
   {
     std::cout << "start" << std::endl;
@@ -379,18 +382,43 @@ public:
 
     return;
   }
-  void set_linear_constraints_vec(std::vector<std::vector<double>>  linear_constraints)
+  void set_linear_constraints_vec(std::vector<std::vector<double>> linear_constraints)
   {
-    if(linear_constraints_coefficients_.size()<1)
+    if (nr_of_linear_constraints < 1)
+      nr_of_linear_constraints = static_cast<int>(linear_constraints.size());
+
+    const int m = static_cast<int>(lattice_.variable_map_.size());
+    const int n = nr_of_linear_constraints;
+
+    std::vector<int> rows;
+    std::vector<int> cols;
+    std::vector<double> vals;
+    for (int i = 0; i < n; ++i)
     {
-      for(int i=0; i<linear_constraints.size(); i++)
+      for (int j = 0; j < m; ++j)
       {
-        linear_constraints_coefficients_.push_back(M_->parameter("linear_constraint_"+std::to_string(i), lattice_.variable_map_.size()));
+        double v = linear_constraints[i][j];
+        if (std::abs(v) > 1e-15)
+        {
+          rows.push_back(j);
+          cols.push_back(i);
+          vals.push_back(v);
+        }
       }
     }
-    for(int i=0; i< linear_constraints.size(); i++)
+    Psp = Matrix::t(Matrix::sparse(
+        m, n, monty::new_array_ptr<int>(rows), monty::new_array_ptr<int>(cols),
+        monty::new_array_ptr<double>(vals)));
+
+    // SOS path (step 5 will switch to Psp)
+    if (linear_constraints_coefficients_.size() < 1)
     {
-     
+      for (int i = 0; i < static_cast<int>(linear_constraints.size()); i++)
+        linear_constraints_coefficients_.push_back(
+            M_->parameter("linear_constraint_" + std::to_string(i), lattice_.variable_map_.size()));
+    }
+    for (int i = 0; i < static_cast<int>(linear_constraints.size()); i++)
+    {
       auto a = monty::new_array_ptr<double>(linear_constraints[i]);
       linear_constraints_coefficients_[i]->setValue(a);
     }
@@ -487,15 +515,25 @@ public:
       this->M_->constraint(ee, Domain::inPSDCone());
     }
     std::cout << "Finished density matrices " << std::endl;
-    // bounding energy
-    if (this->bounding_observable_)
+
+    if (this->nr_of_linear_constraints > 0)
     {
-      // std::cout << "introduing bounds" << std::endl;
-      // std::cout << " upper " << this->energy_bounds_["E_upper"]->index(0) << std::endl;
-      // std::cout << " lower " << this->energy_bounds_["E_lower"]->index(0) << std::endl;
-      // this->M_->constraint(Expr::dot(this->energy_vec_, y_), Domain::lessThan(this->energy_bounds_["E_upper"]->index(0)));
-      // this->M_->constraint(Expr::dot(this->energy_vec_, y_), Domain::greaterThan(this->energy_bounds_["E_lower"]->index(0)));
+      auto vals = this->Psp->getValue();
+      auto shape = this->Psp->getShape();
+      const int m = (*shape)[0];
+      const int n = (*shape)[1];
+      std::cout << "adding linear constrains " << n << std::endl;
+
+      for (int i = 0; i < n; ++i)
+      {
+        std::vector<double> col(m);
+        for (int j = 0; j < m; ++j)
+          col[j] = (*vals)[j * n + i];
+
+        this->M_->constraint(Expr::dot(monty::new_array_ptr<double>(col), y_), Domain::equalsTo(0.0));
+      }
     }
+
     return;
   }
   Expression::t get_costfunction()
