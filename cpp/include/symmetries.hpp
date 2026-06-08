@@ -97,20 +97,20 @@ rdms_struct get_rdms(int Lx, int dim)
     // rdm_operator newstate_5({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {1, 1}, {1, 2}, {1, 3}, {2, 2}});
     // data.add_operator(newstate_5);
 
-    // // rdm_operator newstate_55({{0, 0}, {2, 1}, {0, 2}, {2, 3}, {1, 1}, {1, 2}, {1, 3}, {2, 2}});
-    // // data.add_operator(newstate_55);
+    rdm_operator newstate_55({{0, 0}, {2, 1}, {0, 2}, {2, 3}, {1, 1}, {1, 2}, {1, 3}, {2, 2}});
+    data.add_operator(newstate_55);
     // //  rdm_operator newstate_6({{0,0}, {0,1}, {0,2},{0,3},{1,1},{1,2},{1,3},{2,2},{3,3}});
     // // data.add_operator(newstate_6);
     // //  rdm_operator newstate_7({{0,0}, {0,1}, {0,2},{0,3},{1,1},{1,2},{1,3},{2,2},{3,3}});
     // // data.add_operator(newstate_7);
   }
-  if (dim >= 6)
-  {
-    rdm_operator newstate({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}});
-    data.add_operator(newstate);
-    rdm_operator newstate_1({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}});
-    data.add_operator(newstate_1);
-  }
+  // if (dim >= 6)
+  // {
+  //   rdm_operator newstate({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}});
+  //   data.add_operator(newstate);
+  //   rdm_operator newstate_1({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}});
+  //   data.add_operator(newstate_1);
+  // }
 
   return data;
 }
@@ -1392,6 +1392,52 @@ void get_order_three_monomials(basis_structure &states, std::map<std::pair<int, 
             else
             {
               add_state(states, v0, map_sec);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+void get_order_four_monomials_double(basis_structure_with_sub &states, std::map<std::pair<int, int>, int> &map_sec, int Ly, int Lx, bool use_symm)
+{
+  std::vector<std::string> dirs = {"x", "y", "z"};
+  for (auto s1 : dirs)
+  {
+    for (auto s2 : dirs)
+    {
+      for (auto s3 : dirs)
+      {
+
+        {
+          for (auto s4 : dirs)
+          {
+
+            {
+              op_vec v0 = {spin_op(s1, {0, 0}, {Ly, Lx}), spin_op(s2, {1, 0}, {Ly, Lx}), spin_op(s3, {0, 1}, {Ly, Lx}), spin_op(s4, {1, 1}, {Ly, Lx})};
+              auto [fac, vec] = get_normal_form(v0);
+
+              if (use_symm)
+              {
+                add_state_with_symmetries_double(states, v0, map_sec, Ly, Lx);
+              }
+              else
+              {
+                add_state_double(states, v0, map_sec);
+              }
+            }
+            {
+              op_vec v0 = {spin_op(s1, {0, 0}, {Ly, Lx}), spin_op(s2, {1, 0}, {Ly, Lx}), spin_op(s3, {2, 0}, {Ly, Lx}), spin_op(s4, {3, 0}, {Ly, Lx})};
+              auto [fac, vec] = get_normal_form(v0);
+
+              if (use_symm)
+              {
+                add_state_with_symmetries_double(states, v0, map_sec, Ly, Lx);
+              }
+              else
+              {
+                add_state_double(states, v0, map_sec);
+              }
             }
           }
         }

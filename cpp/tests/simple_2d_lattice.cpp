@@ -35,9 +35,9 @@ int main()
     get_order_one_monomials(states, map_sec, Ly, Lx, true);
    int r = 3;
   get_order_two_monomials(states, map_sec, Ly, Lx, r, r, -r, -r, true);
-// get_order_three_monomials(states, map_sec, Ly, Lx, true);
+ get_order_three_monomials(states, map_sec, Ly, Lx, true);
  
-//   get_order_four_monomials(states, map_sec, Ly, Lx, true);
+  get_order_four_monomials(states, map_sec, Ly, Lx, true);
 std::cout<<states.size()<<std::endl;
 for(auto b: states)
 {
@@ -58,15 +58,18 @@ for(auto b: states)
  std::cout<< "end sector analysis"<<std::endl;
   //lattice.states_ = states_2;
    auto lattice = SquareLattice(states,Ly, Lx, true, false, "xyz", "xyz");
-   auto data = get_rdms(7, Lx);
- 
+   auto data = get_rdms(Lx ,7);
+   std::cout<< "data size "<<data.size()<<std::endl;
    rdms_struct rdms(data); //{}; // data);
+  
    std::cout << "rdm size "<<rdms.size() << std::endl;
  
    Model::t M = new Model("sdo1");
    auto _M = finally([&]()
                      { M->dispose(); });
-   auto basis = momentum_symmetry_solver_sos(lattice, M, rdms);
+                     bool U1=true;
+                     bool maximize=true;
+   auto basis = momentum_symmetry_solver_sos_double(lattice, M, rdms, maximize, U1);
 
 
    double J = 1;
@@ -92,11 +95,15 @@ for(auto b: states)
    std::cout << "Solution : " << std::endl;
    std::cout << std::setprecision(9) << M->primalObjValue() << std::endl;
    int i = 0;
+   auto con = M->getConstraint(0);
+
+    auto dual = con->dual();
    for (auto val : lattice.variable_map_)
    {
-     if (val.first == "1" or val.first == "0")
+    if (val.first == "1" || val.first == "0")
      {
-       std::cout << val.first << " " << -1. * (*(M->getConstraint(i)->dual()))[0] << std::endl;
+      std::cout <<val.first << " " << -1*(*dual)[i] << std::endl;
+       //std::cout << val.first << " " << -1. * (*(M->getConstraint(i)->dual()))[0] << std::endl;
        // np_vec(i, 0) = -1. * (*(M->getConstraint(i)->dual()))[0];
  
        i++;

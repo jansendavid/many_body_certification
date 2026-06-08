@@ -5,10 +5,26 @@
 #include <memory>
 #include "symmetries.hpp"
 #include "reduced_dms.hpp"
+#include <cstdlib>
 using namespace mosek::fusion;
 using namespace monty;
 using int_pair = std::pair<int, int>;
-using TI_map_type = std::unordered_map<std::string, std::pair<std::string, std::complex<double>>>;
+
+struct op_key_hash
+{
+	std::size_t operator()(const op_key &k) const noexcept
+	{
+		// 64-bit-ish mix; deterministic, fast, good enough for small vectors.
+		std::size_t h = 1469598103934665603ull;
+		for (std::uint32_t x : k)
+		{
+			h ^= static_cast<std::size_t>(x) + 0x9e3779b97f4a7c15ull + (h << 6) + (h >> 2);
+		}
+		return h;
+	}
+};
+
+using TI_map_type = std::unordered_map<op_key, std::pair<op_key, std::complex<double>>, op_key_hash>;
 
 class LatticeBase
 {
@@ -18,7 +34,7 @@ public:
 	int Lx_;
 	TI_map_type TI_map_;
 	std::map<std::string, int> variable_map_;
-	std::unordered_map<std::string, std::pair<std::complex<double>, op_vec>> nf_cache;
+	std::unordered_map<op_key, std::pair<std::complex<double>, op_vec>, op_key_hash> nf_cache;
 	void generate_TI_map(std::map<std::string, op_vec> &mat_terms, std::vector<op_vec> &operators_, int sign_sector_) {};
 	struct G_el
 	{
@@ -31,11 +47,11 @@ public:
 	{
 		std::complex<double> prefac_;
 		std::string op_;
-		G_op(std::complex<double> prefac, std::string op) : prefac_(prefac), op_(op) {};
+		G_op(std::complex<double> prefac, std::string op) : prefac_(prefac), op_(std::move(op)) {};
 	};
 	auto get_nf_cached(const op_vec &op)
     {
-        std::string key = print_op(op);
+        op_key key = key_dir_pos(op);
 
         auto it = nf_cache.find(key);
         if (it != nf_cache.end())
@@ -84,12 +100,12 @@ public:
 			
 		}
 
-		auto [ti_key, ti_val] = TI_map_.at(print_op(nf));
+		auto [ti_key, ti_val] = TI_map_.at(key_dir_pos(nf));
 		// std::cout << "end" << std::endl;
 		//  assert(fac == ti_val);std::cout<<"start"<<std::endl;
 
 		cpx total_fac = fac * ti_val;
-		return G_op(total_fac, ti_key);
+		return G_op(total_fac, op_key_label(ti_key));
 	}
 	G_op generate_G_element_sos(op_vec op1, op_vec op2, int j, int i)
 	{
@@ -123,12 +139,12 @@ public:
 
 		v_x.insert(v_x.end(), new_op.begin(), new_op.end());
 
-		auto [fac, nf] = get_normal_form(v_x);
+		auto [fac, nf] = get_nf_cached(v_x);
 
-		auto [ti_key, ti_val] = TI_map_.at(print_op(nf));
+		auto [ti_key, ti_val] = TI_map_.at(key_dir_pos(nf));
 		
 		cpx total_fac = fac * ti_val;
-		return G_op(total_fac, ti_key);
+		return G_op(total_fac, op_key_label(ti_key));
 	}
 };
 template<typename Basis>
@@ -144,6 +160,7 @@ public:
 
 	bool bilayer_;
 	bool square_;
+	std::set<op_vec> extra_states_;
 
 	std::vector<int> get_offset_vec()
 	{
@@ -157,7 +174,7 @@ public:
 		}
 	}
 
-	SquareLattice(Basis& states, int Ly, int Lx, bool square, bool bilayer, std::string permuts = "xyz", std::string signsym = "xyz") : LatticeBase(Ly, Lx), states_(states),bilayer_(bilayer), square_(square), permuts_(permuts), signsym_(signsym)
+	SquareLattice(Basis& states, int Ly, int Lx, bool square, bool bilayer, std::string permuts = "xyz", std::string signsym = "xyz", std::set<op_vec> extra_states={}) : LatticeBase(Ly, Lx), states_(states),bilayer_(bilayer), square_(square), permuts_(permuts), signsym_(signsym), extra_states_(extra_states)
 	{
 		// assert(Lx == Ly);
 		if (permuts != "xyz" and permuts != "yxz" and permuts != "zxy" and permuts != "xy" and permuts != "None")
@@ -170,18 +187,19 @@ public:
 		}
 	};
 	
-	void flush(op_vec op_key)
+	void flush(op_vec op_in)
 	{
 
-		auto [fac_key, nf_key] = get_nf_cached(op_key);
+		auto [fac_key, nf_key] = get_nf_cached(op_in);
+		const op_key nf_key_k = key_dir_pos(nf_key);
 
 		for (auto &op : flush_vector)
 		{
 			// std::cout << print_op(op) << std::endl;
 			auto [fac, nf] = get_nf_cached(op);
 
-			TI_map_.insert({print_op(nf),
-							{print_op(nf_key), std::conj(fac) * fac_key}});
+			TI_map_.insert({key_dir_pos(nf),
+							{nf_key_k, std::conj(fac) * fac_key}});
 		}
 
 		flush_vector.clear();
@@ -190,12 +208,12 @@ public:
 	{
 		if(op.size()<1)
 		{
-			auto it = TI_map_.find(print_op(op));
+			auto it = TI_map_.find(key_dir_pos(op));
 		
 			if (it != TI_map_.end())
 			{
 
-				TI_map_.insert({print_op(op),
+				TI_map_.insert({key_dir_pos(op),
 								{it->second.first, 1. * it->second.second}});
 				// flush(it->second.first, fac);
 
@@ -215,12 +233,12 @@ public:
 		{
 
 			auto [fac, nf] = get_nf_cached(op_t);
-			auto it = TI_map_.find(print_op(nf));
+			auto it = TI_map_.find(key_dir_pos(nf));
 			flush_vector.push_back(op_t);
 			if (it != TI_map_.end())
 			{
 
-				TI_map_.insert({print_op(nf_op),
+				TI_map_.insert({key_dir_pos(nf_op),
 								{it->second.first, std::conj(fac_op) * fac * it->second.second}});
 				// flush(it->second.first, fac);
 
@@ -258,12 +276,12 @@ public:
 		for (auto op_p : all_p)
 		{
 			//auto [fac, nf] = get_normal_form(op_p);
-			auto it = TI_map_.find(print_op(op_p));
+			auto it = TI_map_.find(key_dir_pos(op_p));
 
 			if (it != TI_map_.end())
 			{
 
-				TI_map_.insert({print_op(nf_org),
+				TI_map_.insert({key_dir_pos(nf_org),
 								{it->second.first, std::conj(fac_org) * fac * it->second.second}});
 				// flush(it->second.first, fac);
 				return true;
@@ -285,7 +303,7 @@ public:
 			for (auto &d8s : dsvec)
 			{
 				auto [fac, nf] = get_nf_cached(d8s);
-				auto it = TI_map_.find(print_op(nf));
+				auto it = TI_map_.find(key_dir_pos(nf));
 
 				auto mirrored_ds8 = mirror(d8s);
 
@@ -294,7 +312,7 @@ public:
 				if (it != TI_map_.end())
 				{
 
-					TI_map_.insert({print_op(nf_org),
+					TI_map_.insert({key_dir_pos(nf_org),
 									{it->second.first, std::conj(fac_org) * fac * it->second.second}});
 
 					return true;
@@ -303,11 +321,11 @@ public:
 				{
 					flush_vector.push_back(d8s);
 				}
-				auto it_mirrored = TI_map_.find(print_op(nf_mir));
+				auto it_mirrored = TI_map_.find(key_dir_pos(nf_mir));
 				if (it_mirrored != TI_map_.end())
 				{
 
-					TI_map_.insert({print_op(nf_org),
+					TI_map_.insert({key_dir_pos(nf_org),
 									{it_mirrored->second.first, std::conj(fac_org) * fac_mir * it_mirrored->second.second}});
 
 					return true;
@@ -335,11 +353,11 @@ public:
 				{
 					auto op_flip_layer = flip_layer((d8s));
 					auto [fac_flip, nf_flip] = get_nf_cached(op_flip_layer);
-					auto it_flip = TI_map_.find(print_op(nf_flip));
+					auto it_flip = TI_map_.find(key_dir_pos(nf_flip));
 					if (it_flip != TI_map_.end())
 					{
 
-						TI_map_.insert({print_op(nf_org),
+						TI_map_.insert({key_dir_pos(nf_org),
 										{it->second.first, std::conj(fac_org) * fac_flip * it->second.second}});
 
 						return true;
@@ -357,11 +375,11 @@ public:
 
 					auto op_flip_layer_mirr = flip_layer(mirrored_ds8);
 					auto [fac_flip_mirr, nf_flip_mirr] = get_nf_cached(op_flip_layer_mirr);
-					auto it_flip_mirr = TI_map_.find(print_op(nf_flip_mirr));
+					auto it_flip_mirr = TI_map_.find(key_dir_pos(nf_flip_mirr));
 					if (it_flip_mirr != TI_map_.end())
 					{
 
-						TI_map_.insert({print_op(nf_org),
+						TI_map_.insert({key_dir_pos(nf_org),
 										{it->second.first, std::conj(fac_org) * fac_flip_mirr * it->second.second}});
 
 						return true;
@@ -396,38 +414,38 @@ public:
 		return false;
 	}
 
-	std::pair<std::string, std::complex<double>> get_key(op_vec spin_op)
+	std::pair<op_key, std::complex<double>> get_key(op_vec spin_op)
 	{
 
 		auto [fac, nf] = get_nf_cached(spin_op);
 
-		std::string key = print_op(nf);
+		op_key key = key_dir_pos(nf);
 
 		if (signsym_ == "xyz")
 		{
 			if (is_zero_signsym_xyz(nf))
 			{
-				key = "0";
+				key = op_key_zero();
 			}
 		}
 		else if (signsym_ == "xy")
 		{
 			if (is_zero_signsym_xy(nf))
 			{
-				key = "0";
+				key = op_key_zero();
 			}
 		}
 		else if (signsym_ == "y")
 		{
 			if (is_zero_signsym_y(nf))
 			{
-				key = "0";
+				key = op_key_zero();
 			}
 		}
 		else
 		{
 		}
-		return std::pair<std::string, std::complex<double>>(key, fac);
+		return std::pair<op_key, std::complex<double>>(key, fac);
 	}
 	void clear_caches() {
         nf_cache.clear();
@@ -473,7 +491,7 @@ public:
 
 						auto [fac_, nf] = get_nf_cached(v_x);
 						bool found = false;
-						if (key == "0")
+						if (is_zero_key(key))
 						{
 						}
 						else
@@ -483,7 +501,7 @@ public:
 						if (found == false)
 						{
 
-							TI_map_.insert({print_op(nf),
+							TI_map_.insert({key_dir_pos(nf),
 											{key, 1}});
 
 							flush(v_x);
@@ -493,8 +511,29 @@ public:
 			}
 			clear_caches();
 		}
-	
+		std::cout<< "start generating initial states"<<std::endl;
+		for(auto &state: extra_states_)
+		{
+			bool found = false;
+			auto [key, fac] = get_key(state);
+			auto [fac_, nf] = get_nf_cached(state);
+			if (is_zero_key(key))
+			{
+			}
+			else
+			{
+				found = check_operator_translation(state);
+			}
+			if (found == false)
+			{
 
+				TI_map_.insert({key_dir_pos(nf),
+								{key, 1}});
+
+				//flush(state);
+			}
+		}
+		std::cout<<"finished geneating initial state"<<std::endl;
 		return;
 	}
 	void operator_run(std::vector<op_vec>& operators_1, std::vector<op_vec>& operators_2)
@@ -523,9 +562,9 @@ public:
 
 						auto [fac_, nf] = get_nf_cached(v_x);
 						if(nf.size()%2!=0)
-						{key="0";}
+						{key = op_key_zero();}
 						bool found = false;
-						if (key == "0")
+						if (is_zero_key(key))
 						{
 						}
 						else
@@ -535,7 +574,7 @@ public:
 						if (found == false)
 						{
 
-							TI_map_.insert({print_op(nf),
+							TI_map_.insert({key_dir_pos(nf),
 											{key, 1}});
 
 							flush(v_x);
@@ -572,7 +611,7 @@ public:
 		for (const auto &[k, v] : TI_map_)
 		{
 
-			unique_values.insert(v.first);
+			unique_values.insert(op_key_label(v.first));
 		}
 
 		int i = 0;
@@ -586,10 +625,10 @@ public:
 		return;
 	}
 
-	std::map<std::string, Matrix::t> generate_rdms_primal_cp(rdm_operator sites, std::vector<int> offset)
+	std::vector<std::map<std::string, Matrix::t>> generate_rdms_primal_cp(rdm_operator sites, std::vector<int> offset)
 	{
 
-		std::map<std::string, Matrix::t> sigmas_temp_;
+		std::vector<std::map<std::string, Matrix::t>> sigmas_temp_;
 		std::map<std::string, mat_type> rdms_eigen_;
 		mat_type pauliI = mat_type::Zero(2, 2);
 		pauliI(0, 0) = 1;
@@ -736,7 +775,7 @@ public:
 			{
 
 				auto [key, fac] = get_key(state);
-				if (key == "0")
+				if (is_zero_key(key))
 				{
 				}
 				else
@@ -746,37 +785,261 @@ public:
 
 					if (!found)
 					{
-						std::cout << "adding rdm operator" << std::endl;
-						TI_map_.insert({print_op(nf),
+						//std::cout << "adding rdm operator" << std::endl;
+						TI_map_.insert({key_dir_pos(nf),
 										{key, 1}});
 					}
-					auto it = TI_map_.find(print_op(nf));
+					auto it = TI_map_.find(key_dir_pos(nf));
 
-					auto key = it->second.first;
+					const std::string rep_label = op_key_label(it->second.first);
 
 					assert(std::abs((fac * it->second.second).imag()) < 1e-9);
 					mat = mat * (fac * it->second.second).real() / std::pow(2, degree);
 
-					if (rdms_eigen_.find(key) != rdms_eigen_.end())
+					if (rdms_eigen_.find(rep_label) != rdms_eigen_.end())
 					{
 
-						rdms_eigen_[key] += mat;
+						rdms_eigen_[rep_label] += mat;
 					}
 					else
 					{
 
-						rdms_eigen_.insert({key, mat});
+						rdms_eigen_.insert({rep_label, mat});
 					}
 				}
 			}
 		}
 		// convert to mosek format
+		std::map<std::string, Matrix::t> sigmas_temp_el;
+		for (auto eigen_matrix : rdms_eigen_)
+		{
+			auto Alpha = get_sparse_from_eigen(eigen_matrix.second);
+
+			sigmas_temp_el.insert({eigen_matrix.first, Alpha});
+		}
+		sigmas_temp_.push_back(sigmas_temp_el);
+		return sigmas_temp_;
+	}
+	std::vector<std::vector<int>> generate_binary_vectors(int L, int N) {
+		std::vector<std::vector<int>> result;
+	
+		// initial vector: N ones, L-N zeros
+		std::vector<int> v(L, 0);
+		for (int i = 0; i < N; ++i)
+			v[i] = 1;
+	
+		// generate all permutations
+		do {
+			result.push_back(v);
+		} while (std::prev_permutation(v.begin(), v.end()));
+	
+		return result;
+	}
+	struct U1rdm_element
+	{
+		std::vector<std::string> operators;
+		std::pair<int,int> indices;
+		int dim{0};
+	};
+	std::vector<U1rdm_element> make_terms(
+		std::vector<std::vector<int>> vecs)
+	{
+		std::map<std::pair<int,int>, std::string> stringmap;
+		stringmap[{0,0}]="(n-1)";
+		stringmap[{1,1}]="n";
+		stringmap[{0,1}]="c";
+		stringmap[{1,0}]="cdag";
+		std::map<std::string, mat_type> rdms_eigen_;
+		auto M=mat_type::Zero(vecs.size(), vecs.size());
+		std::vector<U1rdm_element> results;
+		
+		for(int i=0; i<vecs.size(); i++)
+		{
+			for(int j=0; j<vecs.size(); j++)
+			{
+				// std::string s="";
+				U1rdm_element result;
+				result.dim=vecs.size();
+				for(int l=0; l<vecs[0].size(); l++)
+				{
+					result.operators.push_back(stringmap[{vecs[i][l],vecs[j][l] }]);
+						// s+=stringmap[{vecs[i][l],vecs[j][l] }]+"_"+std::to_string(l);
+				}
+				// int site1=1;
+				// int site2=2;
+				// int layers=0;
+				// std::vector<int> offset={2,3,3};
+				// std::cout<< "endtry ("<<i<<","<<j<< ") = "<<s<<std::endl;
+				result.indices={i,j};
+	results.push_back(result);
+			}
+	
+		}
+	
+	 return results;}
+	 std::vector<std::pair<std::complex<double>, op_vec>>get_res(std::string s, std::vector<int> indices, std::vector<int> offset)
+{
+    std::vector<std::pair<std::complex<double>, op_vec>> res;
+    if(s=="n")
+    {
+        res.push_back({1./2, {}});
+        res.push_back({-1./2, {spin_op("z", indices, offset)}});
+    }
+    else if(s=="c")
+    {
+        res.push_back({1./2, {spin_op("x", indices, offset)}});
+        res.push_back({std::complex<double>(0,-1.)*1./2., {spin_op("y", indices, offset)}});
+    }
+    else if(s=="cdag")
+    {
+        res.push_back({1./2, {spin_op("x", indices, offset)}});
+        res.push_back({std::complex<double>(0,1.)*1./2., {spin_op("y", indices, offset)}});
+    }
+    else if(s=="(n-1)")
+    {
+        res.push_back({1./2, {}});
+        res.push_back({1./2, {spin_op("z", indices, offset)}});
+    }
+    else{
+        std::cout<< "error: "<<s<<std::endl;
+    }
+    return res;
+}
+template<typename T>
+std::map<std::string, Matrix::t>  get_temp_sig(T& rdms_eigen_){
+	//  returns one matrix with U(1) symm
+	std::map<std::string, Matrix::t> sigmas_temp_;
+
 		for (auto eigen_matrix : rdms_eigen_)
 		{
 			auto Alpha = get_sparse_from_eigen(eigen_matrix.second);
 
 			sigmas_temp_.insert({eigen_matrix.first, Alpha});
+			//std::cout<< eigen_matrix.first <<" inserting "<< eigen_matrix.second.rows()<<std::endl;
 		}
+		
+		//sigmas_temp_.push_back(sigmas_temp_el);
+	
+	return sigmas_temp_;
+}
+	std::vector<std::map<std::string, Matrix::t>> generate_rdms_primal_U1(rdm_operator sites, std::vector<int> offset)
+	{
+		
+		std::vector<std::map<std::string, Matrix::t>> sigmas_temp_;
+		std::vector<std::map<std::string, mat_type>> rdms_eigen_;
+		std::map<std::string, mat_type> sigma_map;
+		std::map<std::pair<int,int>, std::string> stringmap;
+		// double check convention
+		stringmap[{0,0}]="(n-1)";
+		stringmap[{1,1}]="n";
+		stringmap[{0,1}]="c";
+		stringmap[{1,0}]="cdag";
+		std::vector<std::vector<U1rdm_element>>  matrices;
+		for(int i=0; i<=sites.size(); i++)
+		{
+			auto res=generate_binary_vectors(sites.size(), i);
+			auto obj=make_terms(res);
+			// for(auto a:obj)
+			// {std::cout<<a.indices.first<< ";"<<a.indices.second<<std::endl;}
+			matrices.push_back(obj);
+			// std::cout<<"start"<<std::endl;
+			// auto res= generate_binary_vectors(L,  i);
+	
+			// std::cout<< binom(L, i) << " and "<<res.size()<<std::endl;
+			// make_terms(res);
+
+	//		std::cout<<std::endl;
+
+		}
+	//	std::cout<<"mats "<<matrices.size()<<std::endl;
+		for(auto& vect_of_op: matrices)
+		{
+			
+			//std::cout<< "mat runcs "<<std::endl;
+			std::map<std::string, mat_type> rdms_eigen_temp_;
+			for(auto op: vect_of_op)
+			{
+			
+		
+				int n=0;
+				//std::pair<std::complex<double>, op_vec> initial_pair={{1.0, {}}};
+				std::vector<std::pair<std::complex<double>, op_vec>> total_ops={{1.0, {}}};
+				for(auto op_string: op.operators)
+				{
+					std::vector<std::pair<std::complex<double>, op_vec>> next;
+					//std::cout<< "string op "<<op_string<<std::endl;
+					std::vector<std::pair<std::complex<double>, op_vec>> conv=get_res(op_string, sites.at(n), offset);
+					//std::cout<<"conv "<<conv.size()<<std::endl;
+					
+					for(auto& obj: total_ops)
+					{
+								for(auto& final_op:conv )
+				{
+					auto new_state=obj;
+					new_state.first*=final_op.first;
+					new_state.second.insert(new_state.second.end(),final_op.second.begin(),final_op.second.end());
+				//	append(final_op.second);
+					next.push_back(std::move(new_state));
+					
+					}
+
+					}
+					total_ops=std::move(next);
+					n++;
+				}
+
+				
+			 
+				for(auto final_op:total_ops)
+				{
+					
+			 		auto [key, fac] = get_key(final_op.second);
+				if (is_zero_key(key))
+				{
+				}
+				else{
+
+				auto [fac, nf] = get_nf_cached(final_op.second);
+					bool found = see_if_state_exists(nf);
+					mat_type mat=mat_type::Zero(op.dim, op.dim);
+					mat(op.indices.first, op.indices.second)=1.;
+					if (!found)
+					{
+						//std::cout << "adding rdm operator" << std::endl;
+						TI_map_.insert({key_dir_pos(nf),
+										{key, 1}});
+					}
+					auto it = TI_map_.find(key_dir_pos(nf));
+
+					const std::string rep_label = op_key_label(it->second.first);
+					if (rdms_eigen_temp_.find(rep_label) != rdms_eigen_temp_.end())
+			{
+				
+				
+				rdms_eigen_temp_[rep_label] += mat*final_op.first;
+			}
+			else
+			{
+
+				rdms_eigen_temp_.insert({rep_label, mat*final_op.first});
+			}
+			 	}
+			// 	rdms_eigen_.push_back(rdms_eigen_temp_);
+				} // end of iteratying over total obs
+				
+			 }
+			 auto sig_output=  get_temp_sig(rdms_eigen_temp_);
+				sigmas_temp_.push_back(sig_output);
+			}
+			
+			
+		
+		
+		//exit(1);
+		// auto M=mat_type::Zero(vecs.size(), vecs.size());
+		// sites.at(i)
+
+		std::cout<< "sig size "<<sigmas_temp_.size()<<std::endl;
 		return sigmas_temp_;
 	}
 	std::pair<std::complex<double>, op_vec> get_form_of_TI_map(const op_vec &op)

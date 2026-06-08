@@ -4,4 +4,4 @@
 #include <string>
 #include <complex>
 using int_pair = std::pair<int, int>;
-using TI_map_type = std::unordered_map<std::string, std::pair<std::string, std::complex<double>>>;
+// TI_map_type is defined in `lattices.hpp` (key type depends on operator encoding).

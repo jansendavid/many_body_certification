@@ -92,8 +92,8 @@ std::vector<std::vector<double>> convert_linear_constraints(LattceType& lattice,
         for(auto& term :elements[i].get_terms() )
         {
             
-            auto [key, coeff_map] = lattice.TI_map_.at(term.first);
-            auto el = lattice.variable_map_.at(key);
+            auto [key, coeff_map] = lattice.TI_map_.at(key_dir_pos(term.second.get_op()));
+            auto el = lattice.variable_map_.at(op_key_label(key));
             std::complex<double> total_coeff=coeff_map*term.second.get_coeff();
             if(std::abs(total_coeff.real())>1e-9)
             {
