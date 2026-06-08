@@ -213,7 +213,7 @@ public:
   Matrix::t Psp;
   int nr_of_linear_constraints{0};
   bool U1;
-  momentum_basis(Lattice &lattice, Model::t M, rdms_struct rdms, U1=false) : lattice_(lattice), M_(M), U1(U1)
+  momentum_basis(Lattice &lattice, Model::t M, rdms_struct rdms, bool U1=false) : lattice_(lattice), M_(M), U1(U1)
   {
     std::cout << "start" << std::endl;
     FTx_ = Eigen::MatrixXcd(lattice_.Lx_, lattice_.Lx_);
