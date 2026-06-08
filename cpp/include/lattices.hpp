@@ -5,6 +5,7 @@
 #include <memory>
 #include "symmetries.hpp"
 #include "reduced_dms.hpp"
+#include <cstdlib>
 using namespace mosek::fusion;
 using namespace monty;
 using int_pair = std::pair<int, int>;
@@ -624,10 +625,10 @@ public:
 		return;
 	}
 
-	std::map<std::string, Matrix::t> generate_rdms_primal_cp(rdm_operator sites, std::vector<int> offset)
+	std::vector<std::map<std::string, Matrix::t>> generate_rdms_primal_cp(rdm_operator sites, std::vector<int> offset)
 	{
 
-		std::map<std::string, Matrix::t> sigmas_temp_;
+		std::vector<std::map<std::string, Matrix::t>> sigmas_temp_;
 		std::map<std::string, mat_type> rdms_eigen_;
 		mat_type pauliI = mat_type::Zero(2, 2);
 		pauliI(0, 0) = 1;
@@ -809,12 +810,236 @@ public:
 			}
 		}
 		// convert to mosek format
+		std::map<std::string, Matrix::t> sigmas_temp_el;
+		for (auto eigen_matrix : rdms_eigen_)
+		{
+			auto Alpha = get_sparse_from_eigen(eigen_matrix.second);
+
+			sigmas_temp_el.insert({eigen_matrix.first, Alpha});
+		}
+		sigmas_temp_.push_back(sigmas_temp_el);
+		return sigmas_temp_;
+	}
+	std::vector<std::vector<int>> generate_binary_vectors(int L, int N) {
+		std::vector<std::vector<int>> result;
+	
+		// initial vector: N ones, L-N zeros
+		std::vector<int> v(L, 0);
+		for (int i = 0; i < N; ++i)
+			v[i] = 1;
+	
+		// generate all permutations
+		do {
+			result.push_back(v);
+		} while (std::prev_permutation(v.begin(), v.end()));
+	
+		return result;
+	}
+	struct U1rdm_element
+	{
+		std::vector<std::string> operators;
+		std::pair<int,int> indices;
+		int dim{0};
+	};
+	std::vector<U1rdm_element> make_terms(
+		std::vector<std::vector<int>> vecs)
+	{
+		std::map<std::pair<int,int>, std::string> stringmap;
+		stringmap[{0,0}]="(n-1)";
+		stringmap[{1,1}]="n";
+		stringmap[{0,1}]="c";
+		stringmap[{1,0}]="cdag";
+		std::map<std::string, mat_type> rdms_eigen_;
+		auto M=mat_type::Zero(vecs.size(), vecs.size());
+		std::vector<U1rdm_element> results;
+		
+		for(int i=0; i<vecs.size(); i++)
+		{
+			for(int j=0; j<vecs.size(); j++)
+			{
+				// std::string s="";
+				U1rdm_element result;
+				result.dim=vecs.size();
+				for(int l=0; l<vecs[0].size(); l++)
+				{
+					result.operators.push_back(stringmap[{vecs[i][l],vecs[j][l] }]);
+						// s+=stringmap[{vecs[i][l],vecs[j][l] }]+"_"+std::to_string(l);
+				}
+				// int site1=1;
+				// int site2=2;
+				// int layers=0;
+				// std::vector<int> offset={2,3,3};
+				// std::cout<< "endtry ("<<i<<","<<j<< ") = "<<s<<std::endl;
+				result.indices={i,j};
+	results.push_back(result);
+			}
+	
+		}
+	
+	 return results;}
+	 std::vector<std::pair<std::complex<double>, op_vec>>get_res(std::string s, std::vector<int> indices, std::vector<int> offset)
+{
+    std::vector<std::pair<std::complex<double>, op_vec>> res;
+    if(s=="n")
+    {
+        res.push_back({1./2, {}});
+        res.push_back({-1./2, {spin_op("z", indices, offset)}});
+    }
+    else if(s=="c")
+    {
+        res.push_back({1./2, {spin_op("x", indices, offset)}});
+        res.push_back({std::complex<double>(0,-1.)*1./2., {spin_op("y", indices, offset)}});
+    }
+    else if(s=="cdag")
+    {
+        res.push_back({1./2, {spin_op("x", indices, offset)}});
+        res.push_back({std::complex<double>(0,1.)*1./2., {spin_op("y", indices, offset)}});
+    }
+    else if(s=="(n-1)")
+    {
+        res.push_back({1./2, {}});
+        res.push_back({1./2, {spin_op("z", indices, offset)}});
+    }
+    else{
+        std::cout<< "error: "<<s<<std::endl;
+    }
+    return res;
+}
+template<typename T>
+std::map<std::string, Matrix::t>  get_temp_sig(T& rdms_eigen_){
+	//  returns one matrix with U(1) symm
+	std::map<std::string, Matrix::t> sigmas_temp_;
+
 		for (auto eigen_matrix : rdms_eigen_)
 		{
 			auto Alpha = get_sparse_from_eigen(eigen_matrix.second);
 
 			sigmas_temp_.insert({eigen_matrix.first, Alpha});
+			//std::cout<< eigen_matrix.first <<" inserting "<< eigen_matrix.second.rows()<<std::endl;
 		}
+		
+		//sigmas_temp_.push_back(sigmas_temp_el);
+	
+	return sigmas_temp_;
+}
+	std::vector<std::map<std::string, Matrix::t>> generate_rdms_primal_U1(rdm_operator sites, std::vector<int> offset)
+	{
+		
+		std::vector<std::map<std::string, Matrix::t>> sigmas_temp_;
+		std::vector<std::map<std::string, mat_type>> rdms_eigen_;
+		std::map<std::string, mat_type> sigma_map;
+		std::map<std::pair<int,int>, std::string> stringmap;
+		// double check convention
+		stringmap[{0,0}]="(n-1)";
+		stringmap[{1,1}]="n";
+		stringmap[{0,1}]="c";
+		stringmap[{1,0}]="cdag";
+		std::vector<std::vector<U1rdm_element>>  matrices;
+		for(int i=0; i<=sites.size(); i++)
+		{
+			auto res=generate_binary_vectors(sites.size(), i);
+			auto obj=make_terms(res);
+			// for(auto a:obj)
+			// {std::cout<<a.indices.first<< ";"<<a.indices.second<<std::endl;}
+			matrices.push_back(obj);
+			// std::cout<<"start"<<std::endl;
+			// auto res= generate_binary_vectors(L,  i);
+	
+			// std::cout<< binom(L, i) << " and "<<res.size()<<std::endl;
+			// make_terms(res);
+
+	//		std::cout<<std::endl;
+
+		}
+	//	std::cout<<"mats "<<matrices.size()<<std::endl;
+		for(auto& vect_of_op: matrices)
+		{
+			
+			//std::cout<< "mat runcs "<<std::endl;
+			std::map<std::string, mat_type> rdms_eigen_temp_;
+			for(auto op: vect_of_op)
+			{
+			
+		
+				int n=0;
+				//std::pair<std::complex<double>, op_vec> initial_pair={{1.0, {}}};
+				std::vector<std::pair<std::complex<double>, op_vec>> total_ops={{1.0, {}}};
+				for(auto op_string: op.operators)
+				{
+					std::vector<std::pair<std::complex<double>, op_vec>> next;
+					//std::cout<< "string op "<<op_string<<std::endl;
+					std::vector<std::pair<std::complex<double>, op_vec>> conv=get_res(op_string, sites.at(n), offset);
+					//std::cout<<"conv "<<conv.size()<<std::endl;
+					
+					for(auto& obj: total_ops)
+					{
+								for(auto& final_op:conv )
+				{
+					auto new_state=obj;
+					new_state.first*=final_op.first;
+					new_state.second.insert(new_state.second.end(),final_op.second.begin(),final_op.second.end());
+				//	append(final_op.second);
+					next.push_back(std::move(new_state));
+					
+					}
+
+					}
+					total_ops=std::move(next);
+					n++;
+				}
+
+				
+			 
+				for(auto final_op:total_ops)
+				{
+					
+			 		auto [key, fac] = get_key(final_op.second);
+				if (is_zero_key(key))
+				{
+				}
+				else{
+
+				auto [fac, nf] = get_nf_cached(final_op.second);
+					bool found = see_if_state_exists(nf);
+					mat_type mat=mat_type::Zero(op.dim, op.dim);
+					mat(op.indices.first, op.indices.second)=1.;
+					if (!found)
+					{
+						//std::cout << "adding rdm operator" << std::endl;
+						TI_map_.insert({key_dir_pos(nf),
+										{key, 1}});
+					}
+					auto it = TI_map_.find(key_dir_pos(nf));
+
+					const std::string rep_label = op_key_label(it->second.first);
+					if (rdms_eigen_temp_.find(rep_label) != rdms_eigen_temp_.end())
+			{
+				
+				
+				rdms_eigen_temp_[rep_label] += mat*final_op.first;
+			}
+			else
+			{
+
+				rdms_eigen_temp_.insert({rep_label, mat*final_op.first});
+			}
+			 	}
+			// 	rdms_eigen_.push_back(rdms_eigen_temp_);
+				} // end of iteratying over total obs
+				
+			 }
+			 auto sig_output=  get_temp_sig(rdms_eigen_temp_);
+				sigmas_temp_.push_back(sig_output);
+			}
+			
+			
+		
+		
+		//exit(1);
+		// auto M=mat_type::Zero(vecs.size(), vecs.size());
+		// sites.at(i)
+
+		std::cout<< "sig size "<<sigmas_temp_.size()<<std::endl;
 		return sigmas_temp_;
 	}
 	std::pair<std::complex<double>, op_vec> get_form_of_TI_map(const op_vec &op)

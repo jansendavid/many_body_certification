@@ -207,11 +207,13 @@ public:
   // contains the matrices As, for each sign symmetrye we have LxL blocks
   std::map<std::string, symmetry_sector> As_;
   // for the reduced density matrix
-  std::map<rdm_operator, std::map<std::string, Matrix::t>> sigmas_;
+  std::map<rdm_operator, std::vector<std::map<std::string, Matrix::t>>> sigmas_;
+ 
   //Parameter::t P;
   Matrix::t Psp;
   int nr_of_linear_constraints{0};
-  momentum_basis(Lattice &lattice, Model::t M, rdms_struct rdms) : lattice_(lattice), M_(M)
+  bool U1;
+  momentum_basis(Lattice &lattice, Model::t M, rdms_struct rdms, U1=false) : lattice_(lattice), M_(M), U1(U1)
   {
     std::cout << "start" << std::endl;
     FTx_ = Eigen::MatrixXcd(lattice_.Lx_, lattice_.Lx_);
@@ -379,8 +381,17 @@ Psp=Matrix::t(Matrix::sparse(
     std::cout << "rdms size " << rdms.rdms.size() << std::endl;
     for (auto site : rdms.rdms)
     {
-      auto sigmas_temp = lattice_.generate_rdms_primal_cp(site, offset);
-      sigmas_.insert({site, sigmas_temp});
+      if(U1)
+      {
+        auto sigmas_temp = lattice_.generate_rdms_primal_U1(site, offset); 
+        sigmas_.insert({site, sigmas_temp});
+      }
+      else{
+        auto sigmas_temp = lattice_.generate_rdms_primal_cp(site, offset); 
+      
+        sigmas_.insert({site, sigmas_temp});
+      }
+    
     }
     return;
   }
@@ -453,8 +464,14 @@ public:
       }
     }
     std::cout << "Finished generating the PSD constraints" << std::endl;
-    for (auto state : this->sigmas_)
+    for(auto& psd_mat:this->sigmas_ )
     {
+      for(auto& elements: psd_mat.second)
+      {
+    for (auto& state : elements)
+    {
+  
+
       Expression::t ee = Expr::constTerm(state.second["1"]);
       // matrices[0]
       for (auto op_string : state.second)
@@ -464,8 +481,11 @@ public:
           ee = Expr::add(ee, Expr::mul(y_->index(this->lattice_.variable_map_[op_string.first]), op_string.second));
         }
       }
+    
       this->M_->constraint(ee, Domain::inPSDCone());
     }
+  }
+}
     std::cout << "Finished density matrices " << std::endl;
 
     if (this->nr_of_linear_constraints > 0)
@@ -510,7 +530,7 @@ class momentum_symmetry_solver_sos : public momentum_basis<Lattice>
 public:
   std::map<int, std::vector<std::vector<Expression::t>>> Xs_;
   // Lambdas are the Lagrangian stemmeing from psd density matrices
-  std::map<rdm_operator, Expression::t> Lambdas_;
+  std::map<rdm_operator, std::vector<Expression::t>> Lambdas_;
 
   // variables introduced to bound the energy
   std::vector<Variable::t> energy_bouding_variables_;
@@ -523,7 +543,7 @@ public:
   Expression::t LC_vector=nullptr;
   Expression::t epsilon_vec_flat=nullptr;
 
-  momentum_symmetry_solver_sos(Lattice &lattice, Model::t M, rdms_struct rdms, bool maximize = true) : maximize_(maximize), momentum_basis<Lattice>(lattice, M, rdms)
+  momentum_symmetry_solver_sos(Lattice &lattice, Model::t M, rdms_struct rdms, bool maximize = true, bool U1=false) : maximize_(maximize), momentum_basis<Lattice>(lattice, M, rdms, U1)
   {
     epsilon = this->M_->variable("epsilon");
     for (auto sign_symm_sector : this->sectors_)
@@ -554,22 +574,44 @@ public:
     }
 
     int i = 0;
-    for (auto op : rdms.rdms)
+    for (auto  psd_mat : this->sigmas_ )
     {
-      auto dm_dim = std::pow(2, op.size());
+      std::cout<< "psd sites "<<psd_mat.first.op_.size()<<std::endl;
+      Lambdas_.insert({psd_mat.first, {}});
+      std::cout<<"first "<<std::endl;
+      for(auto& elements: psd_mat.second)
+      {
+//     // for (auto& state : elements)
+//     // {
+     auto it=elements.begin();
+      auto rows=it->second->numRows();
+      std::cout<<"rows "<< rows<<std::endl;
 
-      auto beta = this->M_->variable("betas_" + std::to_string(i), Domain::inPSDCone(2 * dm_dim));
+
+     
+// {
+      auto beta = this->M_->variable("betas_" + std::to_string(i), Domain::inPSDCone(rows));
       i++;
       if (maximize_)
       {
-        Lambdas_[op] = Expr::neg(beta);
+        Lambdas_[psd_mat.first].push_back(Expr::neg(beta));
       }
       else
       {
-        Lambdas_[op] = (beta);
+        Lambdas_[psd_mat.first].push_back(beta);
       }
-    }
+     
+//     //}
+  
+
+
+//   }
+ }
   }
+  std::cout<< "lambda "<<Lambdas_.size()<<std::endl;
+  for(auto g: Lambdas_)
+  { std::cout<< "lambda x "<<g.second.size()<<std::endl; }
+}
  void update_constrains()
  {
   auto totalvec=Expr::add(A_vector,Lamba_vector);
@@ -662,17 +704,23 @@ public:
 }
 
     std::cout << "start generating constarins for rdms " << std::endl;
+int i=0;
 
-    for (auto &[key, lambda_expr] : Lambdas_)
+    for (auto &[key, lambda_vec] : Lambdas_)
+{
+  int ll=0;
+for(auto& lambda_expr: lambda_vec)
 {
     int block_size = (int)std::round(std::sqrt(lambda_expr->getSize()));
     int n_vars_block = block_size * block_size;
     auto l_block = Expr::reshape(lambda_expr, n_vars_block);
-
+  std::cout<< "matrix size "<<block_size <<std::endl;
     std::vector<int>    rows_b, cols_b;
     std::vector<double> vals_b;
+//for(auto& elements: this->sigmas_[key])
+auto elements= this->sigmas_[key][ll];
 
-    for (auto& [op_string, mat] : this->sigmas_[key])
+    for (auto& [op_string, mat] : elements)
     {
         if (op_string == "1") continue;
 
@@ -691,7 +739,8 @@ public:
                 }
             }
     }
-
+  
+i++;
     if (vals_b.empty()) continue;
 
     auto S_block_sparse = Matrix::sparse(
@@ -707,7 +756,8 @@ public:
     else
       Lamba_vector = Expr::add(Lamba_vector, contribution);
 
-
+ll++;
+    }
 }
 
     int el = this->lattice_.variable_map_.at("1");
@@ -758,9 +808,12 @@ std::cout << "Time: "
     // Adding matrices for the positive definite constrain of the RDMs
     for (auto lambda_ : Lambdas_)
     {
-
-      ee = Expr::add(ee, Expr::dot(lambda_.second, this->sigmas_[lambda_.first]["1"]));
+      for (int i=0; i<lambda_.second.size(); i++)
+      {
+  
+      ee = Expr::add(ee, Expr::dot(lambda_.second[i], this->sigmas_[lambda_.first][i]["1"]));
     }
+  }
     if (this->bounding_observable_)
     {
 
