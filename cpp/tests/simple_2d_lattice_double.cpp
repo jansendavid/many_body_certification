@@ -29,9 +29,9 @@ int main()
     get_order_one_monomials_double(states, map_sec, Ly, Lx, true);
    int r = 3;
    get_order_two_monomials_double(states, map_sec, Ly, Lx, r, r, -r, -r, true);
-  //   get_order_three_monomials_double(states, map_sec, Ly, Lx, true);
+    get_order_three_monomials_double(states, map_sec, Ly, Lx, true);
  
-// get_order_four_monomials(states, map_sec, Ly, Lx, true);
+get_order_four_monomials_double(states, map_sec, Ly, Lx, true);
 std::cout<<states.size()<<std::endl;
 for(auto b: states)
 {
@@ -61,7 +61,9 @@ basis_structure_with_sub states_2;
    Model::t M = new Model("sdo1");
    auto _M = finally([&]()
                      { M->dispose(); });
-   auto basis = momentum_symmetry_solver_sos_double(lattice, M, rdms);
+                     bool U1=true;
+                     bool maximize=true;
+   auto basis = momentum_symmetry_solver_sos_double(lattice, M, rdms, maximize, U1);
 
 
    double J = 1;

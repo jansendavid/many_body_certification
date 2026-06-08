@@ -254,11 +254,12 @@ public:
   // contains the matrices As, for each sign symmetrye we have LxL blocks
   std::map<std::string, symmetry_sector> As_;
   // for the reduced density matrix
-  std::map<rdm_operator, std::map<std::string, Matrix::t>> sigmas_;
+  std::map<rdm_operator, std::vector<std::map<std::string, Matrix::t>>> sigmas_;
   Matrix::t Psp;
   int nr_of_linear_constraints{0};
+  bool U1=false;
 
-  momentum_basis_double(Lattice &lattice, Model::t M, rdms_struct rdms) : lattice_(lattice), M_(M)
+  momentum_basis_double(Lattice &lattice, Model::t M, rdms_struct rdms, bool U1) : lattice_(lattice), M_(M), U1(U1)
   {
     FTx_ = Eigen::MatrixXcd(lattice_.Lx_, lattice_.Lx_);
     for (int i = 0; i < lattice_.Lx_; i++)
@@ -382,11 +383,20 @@ public:
   {
 
     auto offset = lattice_.states_[1][0][0][0].offset_;
-
+    std::cout << "rdms size " << rdms.rdms.size() << std::endl;
     for (auto site : rdms.rdms)
     {
-      auto sigmas_temp = lattice_.generate_rdms_primal_cp(site, offset);
-      sigmas_.insert({site, sigmas_temp});
+      if(U1)
+      {
+        auto sigmas_temp = lattice_.generate_rdms_primal_U1(site, offset); 
+        sigmas_.insert({site, sigmas_temp});
+      }
+      else{
+        auto sigmas_temp = lattice_.generate_rdms_primal_cp(site, offset); 
+      
+        sigmas_.insert({site, sigmas_temp});
+      }
+    
     }
     return;
   }
@@ -396,7 +406,7 @@ class momentum_symmetry_solver_dual_double : public momentum_basis_double<Lattic
 {
 public:
   Variable::t y_;
-  momentum_symmetry_solver_dual_double(Lattice &lattice, Model::t M, rdms_struct rdms) : momentum_basis_double<Lattice>(lattice, M, rdms)
+  momentum_symmetry_solver_dual_double(Lattice &lattice, Model::t M, rdms_struct rdms, bool U1=false) : momentum_basis_double<Lattice>(lattice, M, rdms, U1)
   {
     y_ = this->M_->variable("T", this->lattice_.variable_map_.size());
     this->M_->constraint(y_, Domain::lessThan(1.0));
@@ -450,8 +460,15 @@ public:
         }
       }
     }
-    for (auto state : this->sigmas_)
+    std::cout << "Finished generating the PSD constraints" << std::endl;
+    for(auto& psd_mat:this->sigmas_ )
     {
+      for(auto& elements: psd_mat.second)
+      {
+    for (auto& state : elements)
+    {
+  
+
       Expression::t ee = Expr::constTerm(state.second["1"]);
       // matrices[0]
       for (auto op_string : state.second)
@@ -461,23 +478,32 @@ public:
           ee = Expr::add(ee, Expr::mul(y_->index(this->lattice_.variable_map_[op_string.first]), op_string.second));
         }
       }
+    
       this->M_->constraint(ee, Domain::inPSDCone());
     }
-    if (this->nr_of_linear_constraints > 0)
-    {
-      auto vals = this->Psp->getValue();
-      auto shape = this->Psp->getShape();
-      const int m = (*shape)[0];
-      const int n = (*shape)[1];
+  }
+}
+    std::cout << "Finished density matrices " << std::endl;
 
-      for (int i = 0; i < n; ++i)
-      {
+    if (this->nr_of_linear_constraints > 0)
+{
+    auto vals = this->Psp->getValue();
+    auto shape = this->Psp->getShape();
+    const int m = (*shape)[0];
+    const int n = (*shape)[1];
+    std::cout << "adding linear constrains " << n << std::endl;
+
+    for (int i = 0; i < n; ++i)
+    {
+        // extract column i as a std::vector
         std::vector<double> col(m);
         for (int j = 0; j < m; ++j)
-          col[j] = (*vals)[j * n + i];
+            col[j] = (*vals)[j * n + i];
 
-        this->M_->constraint(Expr::dot(monty::new_array_ptr<double>(col), y_), Domain::equalsTo(0.0));
-      }
+        this->M_->constraint(
+            Expr::dot(monty::new_array_ptr<double>(col), y_),
+            Domain::equalsTo(0.0));
+    }
     }
 
     return;
@@ -493,7 +519,7 @@ class momentum_symmetry_solver_sos_double : public momentum_basis_double<Lattice
 {
 public:
   std::map<int, std::vector<std::vector<Expression::t>>> Xs_;
-  std::map<rdm_operator, Expression::t> Lambdas_;
+  std::map<rdm_operator, std::vector<Expression::t>> Lambdas_;
 
   std::vector<Variable::t> energy_bouding_variables_;
   bool maximize_{true};
@@ -525,8 +551,8 @@ public:
     return tr;
   }
 
-  momentum_symmetry_solver_sos_double(Lattice &lattice, Model::t M, rdms_struct rdms, bool maximize = true)
-      : maximize_(maximize), momentum_basis_double<Lattice>(lattice, M, rdms)
+  momentum_symmetry_solver_sos_double(Lattice &lattice, Model::t M, rdms_struct rdms, bool maximize = true, bool U1=false)
+      : maximize_(maximize), momentum_basis_double<Lattice>(lattice, M, rdms, U1)
   {
     epsilon = this->M_->variable("epsilon");
     for(int i=0; i<int(this->lattice_.Ly_/2); i++)
@@ -561,21 +587,40 @@ public:
 
 
     int i = 0;
-    for (auto op : rdms.rdms)
+    for (auto  psd_mat : this->sigmas_ )
     {
-      auto dm_dim = std::pow(2, op.size());
+      std::cout<< "psd sites "<<psd_mat.first.op_.size()<<std::endl;
+      Lambdas_.insert({psd_mat.first, {}});
+      std::cout<<"first "<<std::endl;
+      for(auto& elements: psd_mat.second)
+      {
+//     // for (auto& state : elements)
+//     // {
+     auto it=elements.begin();
+      auto rows=it->second->numRows();
+      std::cout<<"rows "<< rows<<std::endl;
 
-      auto beta = this->M_->variable("betas_" + std::to_string(i), Domain::inPSDCone(2 * dm_dim));
+
+     
+// {
+      auto beta = this->M_->variable("betas_" + std::to_string(i), Domain::inPSDCone(rows));
       i++;
       if (maximize_)
       {
-        Lambdas_[op] = Expr::neg(beta);
+        Lambdas_[psd_mat.first].push_back(Expr::neg(beta));
       }
       else
       {
-        Lambdas_[op] = (beta);
+        Lambdas_[psd_mat.first].push_back(beta);
       }
-    }
+     
+//     //}
+  
+
+
+//   }
+ }
+  }
   }
 
   void update_constrains()
@@ -719,50 +764,61 @@ public:
       }
     }
 
-    for (auto &[key, lambda_expr] : Lambdas_)
+    int i=0;
+
+    for (auto &[key, lambda_vec] : Lambdas_)
+{
+  int ll=0;
+for(auto& lambda_expr: lambda_vec)
+{
+    int block_size = (int)std::round(std::sqrt(lambda_expr->getSize()));
+    int n_vars_block = block_size * block_size;
+    auto l_block = Expr::reshape(lambda_expr, n_vars_block);
+  std::cout<< "matrix size "<<block_size <<std::endl;
+    std::vector<int>    rows_b, cols_b;
+    std::vector<double> vals_b;
+//for(auto& elements: this->sigmas_[key])
+auto elements= this->sigmas_[key][ll];
+
+    for (auto& [op_string, mat] : elements)
     {
-      int block_size = static_cast<int>(std::round(std::sqrt(lambda_expr->getSize())));
-      int n_vars_block = block_size * block_size;
-      auto l_block = Expr::reshape(lambda_expr, n_vars_block);
+        if (op_string == "1") continue;
 
-      std::vector<int> rows_b, cols_b;
-      std::vector<double> vals_b;
-
-      for (auto &[op_string, mat] : this->sigmas_[key])
-      {
-        if (op_string == "1")
-          continue;
-
-        int el = this->lattice_.variable_map_.at(op_string);
+        int el    = this->lattice_.variable_map_.at(op_string);
         auto data = mat->getDataAsArray();
 
         for (int r = 0; r < block_size; r++)
-          for (int c = 0; c < block_size; c++)
-          {
-            double v_entry = (*data)[r * block_size + c];
-            if (std::abs(v_entry) > 1e-15)
+            for (int c = 0; c < block_size; c++)
             {
-              rows_b.push_back(el);
-              cols_b.push_back(r * block_size + c);
-              vals_b.push_back(v_entry);
+                double v_entry = (*data)[r * block_size + c];
+                if (std::abs(v_entry) > 1e-15)
+                {
+                    rows_b.push_back(el);
+                    cols_b.push_back(r * block_size + c);
+                    vals_b.push_back(v_entry);
+                }
             }
-          }
-      }
-
-      if (vals_b.empty())
-        continue;
-
-      auto S_block_sparse = Matrix::sparse(
-          n_constraints, n_vars_block, monty::new_array_ptr(rows_b),
-          monty::new_array_ptr(cols_b), monty::new_array_ptr(vals_b));
-
-      auto contribution = Expr::mul(S_block_sparse, l_block);
-      if (Lamba_vector == nullptr)
-        Lamba_vector = contribution;
-      else
-        Lamba_vector = Expr::add(Lamba_vector, contribution);
     }
+  
+i++;
+    if (vals_b.empty()) continue;
 
+    auto S_block_sparse = Matrix::sparse(
+        n_constraints, n_vars_block,
+        monty::new_array_ptr(rows_b),
+        monty::new_array_ptr(cols_b),
+        monty::new_array_ptr(vals_b)
+    );
+
+    auto contribution = Expr::mul(S_block_sparse, l_block);
+    if (Lamba_vector == nullptr)
+      Lamba_vector = contribution;
+    else
+      Lamba_vector = Expr::add(Lamba_vector, contribution);
+
+ll++;
+    }
+}
     int el = this->lattice_.variable_map_.at("1");
     auto e_vec = Matrix::sparse(
         n_constraints, 1, monty::new_array_ptr(std::vector<int>{el}),
@@ -797,9 +853,12 @@ public:
     // Adding matrices for the positive definite constrain of the RDMs
     for (auto lambda_ : Lambdas_)
     {
-
-      ee = Expr::add(ee, Expr::dot(lambda_.second, this->sigmas_[lambda_.first]["1"]));
+      for (int i=0; i<lambda_.second.size(); i++)
+      {
+  
+      ee = Expr::add(ee, Expr::dot(lambda_.second[i], this->sigmas_[lambda_.first][i]["1"]));
     }
+  }
     if (this->bounding_observable_)
     {
 
