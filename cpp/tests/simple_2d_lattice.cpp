@@ -69,7 +69,7 @@ for(auto b: states)
                      { M->dispose(); });
                      bool U1=true;
                      bool maximize=true;
-   auto basis = momentum_symmetry_solver_sos_double(lattice, M, rdms, maximize, U1);
+   auto basis = momentum_symmetry_solver_sos(lattice, M, rdms, maximize, U1);
 
 
    double J = 1;

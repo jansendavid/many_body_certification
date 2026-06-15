@@ -29,7 +29,7 @@ using TI_map_type = std::unordered_map<op_key, std::pair<op_key, std::complex<do
 class LatticeBase
 {
 public:
-	LatticeBase(int Ly, int Lx) : Ly_(Ly), Lx_(Lx) {};
+	LatticeBase(int Lx, int Ly) : Ly_(Ly), Lx_(Lx) {};
 	int Ly_;
 	int Lx_;
 	TI_map_type TI_map_;
@@ -72,9 +72,10 @@ public:
 		// assert(std::abs(fac_dagg.imag()) < 1e-9);
 		op_vec new_op_y;
 		op_vec new_op;
+		auto number_of_indices=op1[0].get_site().size();
 		if (j > 0)
 		{
-			new_op_y = translation_y(op2, j, Ly_);
+			new_op_y = translation(op2, j, Ly_, number_of_indices-1);
 		}
 		else
 		{
@@ -83,7 +84,7 @@ public:
 		}
 		if (i > 0)
 		{
-			new_op = translation(new_op_y, i, Lx_);
+			new_op = translation(new_op_y, i, Lx_, number_of_indices-2);
 		}
 		else
 		{
@@ -118,9 +119,10 @@ public:
 		// assert(std::abs(fac_dagg.imag()) < 1e-9);
 		op_vec new_op_y;
 		op_vec new_op;
+		auto number_of_indices=op1[0].get_site().size();
 		if (j > 0)
 		{
-			new_op_y = translation_y(op2, j, Ly_);
+			new_op_y = translation(op2, j, Ly_,number_of_indices-1);
 		}
 		else
 		{
@@ -129,7 +131,7 @@ public:
 		}
 		if (i > 0)
 		{
-			new_op = translation(new_op_y, i, Lx_);
+			new_op = translation(new_op_y, i, Lx_,number_of_indices-2);
 		}
 		else
 		{
@@ -166,15 +168,15 @@ public:
 	{
 		if (bilayer_)
 		{
-			return {2, Ly_, Lx_};
+			return {2, Lx_, Ly_};
 		}
 		else
 		{
-			return {Ly_, Lx_};
+			return {Lx_, Ly_};
 		}
 	}
 
-	SquareLattice(Basis& states, int Ly, int Lx, bool square, bool bilayer, std::string permuts = "xyz", std::string signsym = "xyz", std::set<op_vec> extra_states={}) : LatticeBase(Ly, Lx), states_(states),bilayer_(bilayer), square_(square), permuts_(permuts), signsym_(signsym), extra_states_(extra_states)
+	SquareLattice(Basis& states, int Lx, int Ly, bool square, bool bilayer, std::string permuts = "xyz", std::string signsym = "xyz", std::set<op_vec> extra_states={}) : LatticeBase(Lx, Ly), states_(states),bilayer_(bilayer), square_(square), permuts_(permuts), signsym_(signsym), extra_states_(extra_states)
 	{
 		// assert(Lx == Ly);
 		if (permuts != "xyz" and permuts != "yxz" and permuts != "zxy" and permuts != "xy" and permuts != "None")
@@ -185,6 +187,8 @@ public:
 		{
 			std::cout << "sign symmetrie error" << std::endl;
 		}
+		std::cout << "square "<<square_ << std::endl;
+
 	};
 	
 	void flush(op_vec op_in)
@@ -757,7 +761,9 @@ public:
 			}
 
 			// if matrix element exists I only
-			if (print_op(state) == "1")
+			auto [key, fac_i] = get_key(state);
+			auto [fac, nf] = get_nf_cached(state);
+			if (print_op(nf) == "1")
 			{
 
 				mat = mat / std::
@@ -774,13 +780,13 @@ public:
 			else
 			{
 
-				auto [key, fac] = get_key(state);
+			
 				if (is_zero_key(key))
 				{
 				}
 				else
 				{
-					auto [fac, nf] = get_nf_cached(state);
+				 
 					bool found = see_if_state_exists(nf);
 
 					if (!found)
@@ -1050,3 +1056,47 @@ std::map<std::string, Matrix::t>  get_temp_sig(T& rdms_eigen_){
 		return std::pair<std::complex<double>, op_vec>(coeff_, nf);
 	}
 };
+spin_op unpack_word(uint32_t word,
+	const std::vector<int>& offset)
+{
+uint32_t dir_code = word & 0x3;
+uint32_t pos      = word >> 2;
+
+std::string dir;
+switch (dir_code)
+{
+case 1: dir = "x"; break;
+case 2: dir = "y"; break;
+case 3: dir = "z"; break;
+default:
+throw std::runtime_error("invalid dir code");
+}
+
+std::vector<int> shifts(offset.size());
+shifts[0] = 1;
+
+for (size_t i = 1; i < offset.size(); ++i)
+shifts[i] = shifts[i - 1] * offset[i - 1];
+
+std::vector<int> site(offset.size());
+
+for (int i = static_cast<int>(offset.size()) - 1; i >= 0; --i)
+{
+site[i] = pos / shifts[i];
+pos %= shifts[i];
+}
+
+return spin_op(dir, site, offset);
+}
+
+op_vec unpack_key(const op_key& key,
+	const std::vector<int>& offset)
+{
+op_vec result;
+result.reserve(key.size());
+
+for (auto word : key)
+result.push_back(unpack_word(word, offset));
+
+return result;
+}

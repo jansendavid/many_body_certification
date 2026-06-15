@@ -26,7 +26,7 @@ public:
   Eigen::MatrixXcd &FTx_;
   Eigen::MatrixXcd &FTy_;
 
-  momentum_block(Lattice &lattice, int sign_sector, Eigen::MatrixXcd &FTy, Eigen::MatrixXcd &FTx)
+  momentum_block(Lattice &lattice, int sign_sector, Eigen::MatrixXcd &FTx, Eigen::MatrixXcd &FTy)
       : lattice_(lattice), sign_sector_(sign_sector), FTy_(FTy), FTx_(FTx)
   {
   }
@@ -39,26 +39,26 @@ public:
 
     // initializing block shifts
     block_shifts[0].push_back(dim_0);
-    for (int i = 1; i < lattice_.Lx_; i++)
+    for (int i = 1; i < lattice_.Ly_; i++)
     {
 
       block_shifts[0].push_back(dim_x);
     }
-
-    for (int i = 1; i < lattice_.Ly_; i++)
+   
+    for (int i = 1; i < lattice_.Lx_; i++)
     {
       block_shifts.push_back({});
-      for (int j = 0; j < lattice_.Lx_; j++)
+      for (int j = 0; j < lattice_.Ly_; j++)
       {
         block_shifts[i].push_back(dim_x);
       }
     }
-
+ 
     As["1"][sign_sector_][0][0].add_values({0, 0}, 1. / 2);
     As["1"][sign_sector_][0][0].add_values({dim_0, dim_0}, 1. / 2);
 
     int i = 0;
-
+   
     for (auto it = lattice_.states_[sign_sector_].begin(); it != lattice_.states_[sign_sector_].end(); ++it)
     {
       auto op = *it;
@@ -80,7 +80,7 @@ public:
 
       i++;
     }
-
+ 
     return;
   }
   void initialize_blocks_general()
@@ -88,11 +88,11 @@ public:
 
     int dim_x = lattice_.states_[sign_sector_].size();
 
-    for (int j = 0; j < lattice_.Ly_; j++)
+    for (int j = 0; j < lattice_.Lx_; j++)
     {
       block_shifts.push_back({});
 
-      for (int i = 0; i < lattice_.Lx_; i++)
+      for (int i = 0; i < lattice_.Ly_; i++)
       {
         block_shifts[j].push_back(dim_x);
       }
@@ -117,6 +117,7 @@ public:
   {
     const int Ly = lattice_.Ly_;
     const int Lx = lattice_.Lx_;
+    std::cout<<"start generate block"<<std::endl;
     const int n_states = static_cast<int>(lattice_.states_[sign_sector_].size());
     int i = 0;
     for (auto it1 = lattice_.states_[sign_sector_].begin(); it1 != lattice_.states_[sign_sector_].end(); ++it1)
@@ -129,7 +130,7 @@ public:
         {
           for (int pos_x = 0; pos_x < Lx; ++pos_x)
           {
-            const auto construct = lattice_.generate_G_element_sos(*it1, *it2, pos_y, pos_x);
+            const auto construct = lattice_.generate_G_element_sos(*it1, *it2, pos_x, pos_y);
             if (construct.op_ == "0")
               continue;
 
@@ -139,8 +140,8 @@ public:
 
               for (int mat_pos_x = 0; mat_pos_x < Lx; ++mat_pos_x)
               {
-                const int shift = block_shifts[mat_pos_y][mat_pos_x] % n_states;
-                const int dim = block_shifts[mat_pos_y][mat_pos_x];
+                const int shift = block_shifts[mat_pos_x][mat_pos_y] % n_states;
+                const int dim = block_shifts[mat_pos_x][mat_pos_y];
                 const int ii = i + shift;
                 const int jj = j + shift;
                 const int ii_dim = ii + dim;
@@ -149,7 +150,7 @@ public:
                 const std::complex<double> total_prefactor =
                     construct.prefac_ * FTx_(pos_x, mat_pos_x) * ft_y;
 
-                auto &cell = As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x];
+                auto &cell = As[construct.op_][sign_sector_][mat_pos_x][mat_pos_y];
 
                 const double re = 0.5 * total_prefactor.real();
                 if (std::abs(re) > 1e-9)
@@ -183,7 +184,7 @@ public:
       }
       i += 1;
     }
-
+std::cout<< "out generating block "<<std::endl;
     return;
   }
 };
@@ -240,7 +241,7 @@ public:
     for (auto it = lattice_.states_.begin(); it != lattice_.states_.end(); ++it)
     {
 
-      auto Block = momentum_block(lattice_, it->first, FTy_, FTx_);
+      auto Block = momentum_block(lattice_, it->first, FTx_, FTy_);
       sectors_.insert({it->first, Block});
     }
     std::cout << "start initializeing maps" << std::endl;
@@ -256,10 +257,10 @@ public:
       {
         As_[it->first][it_sign_sector->first] = {};
 
-        for (int i = 0; i < lattice_.Ly_; i++)
+        for (int i = 0; i < lattice_.Lx_; i++)
         {
           As_[it->first][it_sign_sector->first].push_back({});
-          for (int j = 0; j < lattice_.Lx_; j++)
+          for (int j = 0; j < lattice_.Ly_; j++)
           {
             As_[it->first][it_sign_sector->first][i].push_back(matrix_organizer());
           }
@@ -429,9 +430,9 @@ public:
     for (auto sign_symm_sector : this->sectors_)
     {
 
-      for (int i = 0; i < this->lattice_.Ly_; i++)
+      for (int i = 0; i < this->lattice_.Lx_; i++)
       {
-        for (int j = 0; j < this->lattice_.Lx_; j++)
+        for (int j = 0; j < this->lattice_.Ly_; j++)
         {
           std::vector<Expression::t> matrices;
 
@@ -550,11 +551,11 @@ public:
     {
       Xs_[sign_symm_sector.first] = {};
 
-      for (int i = 0; i < this->lattice_.Ly_; i++)
+      for (int i = 0; i < this->lattice_.Lx_; i++)
       {
         Xs_[sign_symm_sector.first].push_back({});
 
-        for (int j = 0; j < this->lattice_.Lx_; j++)
+        for (int j = 0; j < this->lattice_.Ly_; j++)
         {
 
           int matrix_dimension = 2 * sign_symm_sector.second.block_shifts[i][j];
@@ -576,7 +577,7 @@ public:
     int i = 0;
     for (auto  psd_mat : this->sigmas_ )
     {
-      std::cout<< "psd sites "<<psd_mat.first.op_.size()<<std::endl;
+    //  std::cout<< "psd sites "<<psd_mat.first.op_.size()<<std::endl;
       Lambdas_.insert({psd_mat.first, {}});
       std::cout<<"first "<<std::endl;
       for(auto& elements: psd_mat.second)
@@ -647,9 +648,9 @@ public:
 
     for (auto &sign_symm_sector : this->sectors_)
 {
-    for (int i = 0; i < this->lattice_.Ly_; i++)
+    for (int i = 0; i < this->lattice_.Lx_; i++)
     {
-        for (int j = 0; j < this->lattice_.Lx_; j++)
+        for (int j = 0; j < this->lattice_.Ly_; j++)
         {
             int block_size = 2 * sign_symm_sector.second.block_shifts[i][j];
             if (block_size == 0) continue;
@@ -712,7 +713,7 @@ for(auto& lambda_expr: lambda_vec)
     int block_size = (int)std::round(std::sqrt(lambda_expr->getSize()));
     int n_vars_block = block_size * block_size;
     auto l_block = Expr::reshape(lambda_expr, n_vars_block);
-  std::cout<< "matrix size "<<block_size <<std::endl;
+  //std::cout<< "matrix size "<<block_size <<std::endl;
     std::vector<int>    rows_b, cols_b;
     std::vector<double> vals_b;
 //for(auto& elements: this->sigmas_[key])
@@ -772,9 +773,13 @@ auto epsilon_vec = Expr::mul(e_vec, epsilon);  // shape [n_constraints, 1]
 epsilon_vec_flat = Expr::reshape(epsilon_vec, n_constraints);  // shape [n_constraints]
 
   const std::size_t vm_total = this->lattice_.variable_map_.size();
+  std::cout << "A_vector     = " << (A_vector != nullptr) << std::endl;
+std::cout << "Lamba_vector = " << (Lamba_vector != nullptr) << std::endl;
   std::cout << "equality constraints: " << vm_total << " variables" << std::endl;
   auto start = std::chrono::high_resolution_clock::now();
-  auto totalvec = Expr::add(A_vector, Lamba_vector);
+  auto totalvec=A_vector;
+  if(Lamba_vector!=nullptr)
+  { totalvec = Expr::add(A_vector, Lamba_vector);}
   if (this->nr_of_linear_constraints > 0)
   {
     LC_vector = Expr::mul(this->Psp, linear_constraints_variable2_);
@@ -782,7 +787,7 @@ epsilon_vec_flat = Expr::reshape(epsilon_vec, n_constraints);  // shape [n_const
   }
   final_constraint_=this->M_->constraint(Expr::add(Expr::add(totalvec, epsilon_vec_flat), this->b_),
            Domain::equalsTo(0.));
-           
+        
   if (vm_total > 0)
     std::cout << std::endl;
     std::cout << "Finished generating the PSD constraints ones " << std::endl;

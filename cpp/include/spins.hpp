@@ -130,10 +130,10 @@ public:
 
     return spin_op_parent(dir_, new_sites, offset_, symbol_);
   }
-  spin_op_parent get_translated_parent(int j, int L)
+  spin_op_parent get_translated_parent(int j, int L, int index)
   {
     auto new_sites = site_;
-    new_sites[new_sites.size() - 1] = (new_sites[new_sites.size() - 1] + j) % L;
+    new_sites[index] = (new_sites[index] + j) % L;
 
     return spin_op_parent(dir_, new_sites, offset_, symbol_);
   }
@@ -194,9 +194,9 @@ public:
     auto base = get_translated_y_parent(j, L);
     return spin_op(base.get_dir(), base.get_site(), base.offset_);
   }
-  spin_op get_translated(int j, int L)
+  spin_op get_translated(int j, int L, int index)
   {
-    auto base = get_translated_parent(j, L);
+    auto base = get_translated_parent(j, L, index);
     return spin_op(base.get_dir(), base.get_site(), base.offset_);
   }
   spin_op get_flipped_layer()

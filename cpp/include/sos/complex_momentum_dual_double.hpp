@@ -589,7 +589,7 @@ public:
     int i = 0;
     for (auto  psd_mat : this->sigmas_ )
     {
-      std::cout<< "psd sites "<<psd_mat.first.op_.size()<<std::endl;
+    //  std::cout<< "psd sites "<<psd_mat.first.op_.size()<<std::endl;
       Lambdas_.insert({psd_mat.first, {}});
       std::cout<<"first "<<std::endl;
       for(auto& elements: psd_mat.second)
@@ -774,7 +774,7 @@ for(auto& lambda_expr: lambda_vec)
     int block_size = (int)std::round(std::sqrt(lambda_expr->getSize()));
     int n_vars_block = block_size * block_size;
     auto l_block = Expr::reshape(lambda_expr, n_vars_block);
-  std::cout<< "matrix size "<<block_size <<std::endl;
+  //std::cout<< "matrix size "<<block_size <<std::endl;
     std::vector<int>    rows_b, cols_b;
     std::vector<double> vals_b;
 //for(auto& elements: this->sigmas_[key])

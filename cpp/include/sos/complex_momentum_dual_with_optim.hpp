@@ -139,10 +139,10 @@ public:
           {
 
             // 			      // determines if first block of zeroth moment blocks
-            int shift = block_shifts[mat_pos_y][mat_pos_x] % lattice_.states_[sign_sector_].size();
+            int shift = block_shifts[mat_pos_x][mat_pos_y] % lattice_.states_[sign_sector_].size();
 
             // 			      // gives the shift between real and complex components
-            int dim = block_shifts[mat_pos_y][mat_pos_x];
+            int dim = block_shifts[mat_pos_x][mat_pos_y];
 
             for (int pos_y = 0; pos_y < lattice_.Ly_; pos_y++)
             {
@@ -153,8 +153,8 @@ public:
                 std::complex<double> FT_factor_x = FTx_(pos_x, mat_pos_x);
 
                 //              // to do, correct so that all terms appearing here appear in map
-
-                auto construct = lattice_.generate_G_element_sos(*it1, *it2, pos_y, pos_x);
+                std
+                auto construct = lattice_.generate_G_element_sos(*it1, *it2, pos_x, pos_y);
                 // if (i == j)
                 // {
 
@@ -168,12 +168,12 @@ public:
                 if (std::abs(total_prefactor.real()) > 1e-9)
                 {
 
-                  As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({i + shift, j + shift}, 1. / 2 * total_prefactor.real());
-                  As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({i + shift + dim, j + shift + dim}, 1. / 2 * total_prefactor.real());
+                  As[construct.op_][sign_sector_][mat_pos_x][mat_pos_y].add_values({i + shift, j + shift}, 1. / 2 * total_prefactor.real());
+                  As[construct.op_][sign_sector_][mat_pos_x][mat_pos_y].add_values({i + shift + dim, j + shift + dim}, 1. / 2 * total_prefactor.real());
                   if (i != j)
                   {
-                    As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({j + shift, i + shift}, 1. / 2 * total_prefactor.real());
-                    As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({j + shift + dim, i + shift + dim}, 1. / 2 * total_prefactor.real());
+                    As[construct.op_][sign_sector_][mat_pos_x][mat_pos_y].add_values({j + shift, i + shift}, 1. / 2 * total_prefactor.real());
+                    As[construct.op_][sign_sector_][mat_pos_x][mat_pos_y].add_values({j + shift + dim, i + shift + dim}, 1. / 2 * total_prefactor.real());
                   }
                 }
                 if (std::abs(total_prefactor.imag()) > 1e-9)
@@ -182,12 +182,12 @@ public:
                   // assert(i != j);
                   //  X^T[0,1]-X[0,1]=-H[0,1]
 
-                  As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({i + shift, j + shift + dim}, -1. / 2 * total_prefactor.imag());
-                  As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({j + shift, i + shift + dim}, 1. / 2 * total_prefactor.imag());
+                  As[construct.op_][sign_sector_][mat_pos_x][mat_pos_y].add_values({i + shift, j + shift + dim}, -1. / 2 * total_prefactor.imag());
+                  As[construct.op_][sign_sector_][mat_pos_x][mat_pos_y].add_values({j + shift, i + shift + dim}, 1. / 2 * total_prefactor.imag());
                   if (i != j)
                   {
-                    As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({i + shift + dim, j + shift}, 1. / 2 * total_prefactor.imag());
-                    As[construct.op_][sign_sector_][mat_pos_y][mat_pos_x].add_values({j + shift + dim, i + shift}, -1. / 2 * total_prefactor.imag());
+                    As[construct.op_][sign_sector_][mat_pos_x][mat_pos_y].add_values({i + shift + dim, j + shift}, 1. / 2 * total_prefactor.imag());
+                    As[construct.op_][sign_sector_][mat_pos_x][mat_pos_y].add_values({j + shift + dim, i + shift}, -1. / 2 * total_prefactor.imag());
                   }
                 }
               }
