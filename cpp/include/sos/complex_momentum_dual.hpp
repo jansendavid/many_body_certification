@@ -10,6 +10,8 @@
 #include "reduced_dms.hpp"
 #include "operator_operations.hpp"
 #include <chrono>
+#include <Eigen/Sparse>
+#include <Eigen/SparseQR>
 using namespace mosek::fusion;
 using namespace monty;
 
@@ -329,9 +331,9 @@ public:
     return;
   }
 
-  void set_linear_constraints_vec(std::vector<std::vector<double>> linear_constraints)
+  void set_linear_constraints_vec(std::set<std::vector<double>> linear_constraints)
   {
-    
+    std::cout<< "start "<<nr_of_linear_constraints<<std::endl;
     if(nr_of_linear_constraints<1)
     {
       nr_of_linear_constraints=linear_constraints.size();
@@ -343,18 +345,20 @@ public:
    // P = M_->parameter(shape);
     }
 {
+  
   const int m = static_cast<int>(lattice_.variable_map_.size());
 const int n = nr_of_linear_constraints;
-
-std::vector<double> flat(m * n, 0.0);
+std::cout<< "m,n="<<m<<","<<n<<std::endl;
+// std::vector<double> flat(m * n, 0.0);
   std::vector<int> rows;
   std::vector<int> cols;
   std::vector<double> vals;
-for (int i = 0; i < n; ++i)
+int i=0;
+for(auto it=linear_constraints.begin(); it!=linear_constraints.end(); ++it)
   {  for (int j = 0; j < m; ++j)
   {
-        flat[j * n + i] = linear_constraints[i][j];
-        double v = linear_constraints[i][j];
+        // flat[j * n + i] =(*it)[j];
+        double v =(*it)[j];
 
         if (std::abs(v) > 1e-15)
           {
@@ -363,15 +367,47 @@ for (int i = 0; i < n; ++i)
               vals.push_back(v);
           }
   }
+  i++;
 }
+std::cout<<"end "<<std::endl;
 Psp=Matrix::t(Matrix::sparse(
         m,
         n,
         monty::new_array_ptr<int>(rows),
         monty::new_array_ptr<int>(cols),
         monty::new_array_ptr<double>(vals)));
+        std::cout<<"mape P "<<std::endl;
 //P->setValue(monty::new_array_ptr<double>(flat));
+// Eigen::SparseMatrix<double> A(m, n);
 
+// std::vector<Eigen::Triplet<double>> triplets;
+// for (size_t k = 0; k < vals.size(); ++k)
+// {
+//     triplets.emplace_back(rows[k], cols[k], vals[k]);
+// }
+
+// A.setFromTriplets(triplets.begin(), triplets.end());
+
+// Eigen::SparseQR<
+//     Eigen::SparseMatrix<double>,
+//     Eigen::COLAMDOrdering<int>
+// > qr;
+
+// qr.compute(A);
+
+// if (qr.info() != Eigen::Success)
+// {
+//     std::cerr << "Factorization failed\n";
+// }
+
+// int r = qr.rank();
+// int full = std::min(m, n);
+// std::cout<< "size "<<m << " and "<<n <<std::endl;
+// std::cout << "rank = " << r << "\n";
+// std::cout << "full rank = " << full << "\n";
+// std::cout << "is full rank = "
+//           << (r == full ? "true" : "false")
+//           << std::endl;
   }
     return;
   }
@@ -750,6 +786,7 @@ i++;
     );
 
     auto contribution = Expr::mul(S_block_sparse, l_block);
+  
     if (Lamba_vector == nullptr)
       Lamba_vector = contribution;
     else
@@ -782,6 +819,7 @@ std::cout << "Lamba_vector = " << (Lamba_vector != nullptr) << std::endl;
   { totalvec = Expr::add(A_vector, Lamba_vector);}
   if (this->nr_of_linear_constraints > 0)
   {
+    std::cout<< "apply linear constarints "<<std::endl;
     LC_vector = Expr::mul(this->Psp, linear_constraints_variable2_);
     totalvec = Expr::add(totalvec, LC_vector);
   }

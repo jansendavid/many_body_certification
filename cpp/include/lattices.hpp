@@ -63,48 +63,37 @@ public:
     }
 	G_op generate_G_element_sos_double(op_vec op1, op_vec op2, int j, int i)
 	{
-		// Generate all elements of the first row with translation in y direction. j go in y direction
+		// j is x translation (pos_x), i is y translation (pos_y)
 
 		auto op_dagg_first = dagger_operator(op1);
 
-		// auto [fac_dagg, op_dagger] = get_normal_form(op_dagg_first);
-
-		// assert(std::abs(fac_dagg.imag()) < 1e-9);
-		op_vec new_op_y;
+		op_vec new_op_x;
 		op_vec new_op;
 		auto number_of_indices=op1[0].get_site().size();
 		if (j > 0)
 		{
-			new_op_y = translation(op2, j, Ly_, number_of_indices-1);
+			new_op_x = translation(op2, j, Lx_, number_of_indices-2);
 		}
 		else
 		{
-
-			new_op_y = op2;
+			new_op_x = op2;
 		}
 		if (i > 0)
 		{
-			new_op = translation(new_op_y, i, Lx_, number_of_indices-2);
+			new_op = translation(new_op_x, i, Ly_, number_of_indices-1);
 		}
 		else
 		{
-			new_op = new_op_y;
+			new_op = new_op_x;
 		}
 		auto v_x = op_dagg_first;
 
 		v_x.insert(v_x.end(), new_op.begin(), new_op.end());
-		// auto [fac, vec] = get_normal_form(v_x);
-		// std::cout << print_op(v_x) << std::endl;
+
 		auto [fac, nf] = get_nf_cached(v_x);
-		if(nf.size()%2==0)
-		{
-			
-		}
 
 		auto [ti_key, ti_val] = TI_map_.at(key_dir_pos(nf));
-		// std::cout << "end" << std::endl;
-		//  assert(fac == ti_val);std::cout<<"start"<<std::endl;
-
+		
 		cpx total_fac = fac * ti_val;
 		return G_op(total_fac, op_key_label(ti_key));
 	}
@@ -122,7 +111,7 @@ public:
 		auto number_of_indices=op1[0].get_site().size();
 		if (j > 0)
 		{
-			new_op_y = translation(op2, j, Ly_,number_of_indices-1);
+			new_op_y = translation(op2, j, Lx_,number_of_indices-2);
 		}
 		else
 		{
@@ -131,7 +120,7 @@ public:
 		}
 		if (i > 0)
 		{
-			new_op = translation(new_op_y, i, Lx_,number_of_indices-2);
+			new_op = translation(new_op_y, i, Ly_,number_of_indices-1);
 		}
 		else
 		{
@@ -473,7 +462,7 @@ public:
 			{
 				auto op = *it1;
 			
-				for (auto it2 = it1; it2 != operators.end(); ++it2)
+				for (auto it2 = operators.begin(); it2 != operators.end(); ++it2)
 				{
 					//std::cout << " op 2: " << print_op(*it1) << std::endl;
 					auto op_dagg_first = dagger_operator(op);
@@ -602,8 +591,29 @@ public:
 			operator_run(sector.second.at(1), sector.second.at(0));
 
 		}
-	
-	
+		std::cout<< "start generating initial states"<<std::endl;
+		for(auto &state: extra_states_)
+		{
+			bool found = false;
+			auto [key, fac] = get_key(state);
+			auto [fac_, nf] = get_nf_cached(state);
+			if (is_zero_key(key))
+			{
+			}
+			else
+			{
+				found = check_operator_translation(state);
+			}
+			if (found == false)
+			{
+
+				TI_map_.insert({key_dir_pos(nf),
+								{key, 1}});
+
+				//flush(state);
+			}
+		}
+		std::cout<<"finished geneating initial state"<<std::endl;
 
 		return;
 	}
@@ -798,7 +808,7 @@ public:
 					auto it = TI_map_.find(key_dir_pos(nf));
 
 					const std::string rep_label = op_key_label(it->second.first);
-
+					
 					assert(std::abs((fac * it->second.second).imag()) < 1e-9);
 					mat = mat * (fac * it->second.second).real() / std::pow(2, degree);
 

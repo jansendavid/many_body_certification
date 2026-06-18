@@ -16,8 +16,8 @@
 using namespace mosek::fusion;
 using namespace monty;
 int main()
-{ int Lx = 4;
-    int Ly = 4;
+{ int Lx = 6;
+    int Ly = 6;
 
    
  

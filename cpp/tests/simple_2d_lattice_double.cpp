@@ -16,8 +16,8 @@
 using namespace mosek::fusion;
 using namespace monty;
 int main()
-{ int Lx = 4;
-    int Ly = 4;
+{ int Lx = 6;
+    int Ly = 6;
 
     
  
@@ -53,7 +53,7 @@ basis_structure_with_sub states_2;
  std::cout<< "end sector analysis"<<std::endl;
    //lattice.states_ = states_2;
    auto lattice = SquareLattice(states, Ly, Lx, true, false, "xyz", "xyz");
-   auto data = get_rdms(7, Lx);
+   auto data = get_rdms(Lx ,7);
 
    rdms_struct rdms(data); //{}; // data);
    std::cout << rdms.size() << std::endl;

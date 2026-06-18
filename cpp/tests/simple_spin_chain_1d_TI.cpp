@@ -17,7 +17,7 @@ using namespace mosek::fusion;
 using namespace monty;
 int main()
 { int Lx = 1;
-    int Ly = 6;
+    int Ly = 14;
 
    
  
@@ -33,7 +33,7 @@ int main()
 // adding one
 
     get_order_one_monomials(states, map_sec, Lx, Ly, true);
-   int r = 4;
+   int r = int(Ly/2);
     get_order_two_monomials_1d(states, map_sec, Lx, Ly, r,true);
  get_order_three_monomials_1d(states, map_sec,Lx,  Ly,true);
 get_order_four_monomials_1d(states, map_sec,Lx,  Ly,true);
@@ -58,8 +58,8 @@ get_order_four_monomials_1d(states, map_sec,Lx,  Ly,true);
 
 //  std::cout<< "end sector analysis"<<std::endl;
   //lattice.states_ = states_2;
-   auto lattice = SquareLattice(states,Lx, Ly, false, false, "None", "None");
-    auto data = get_rdms_1d(Lx ,7);
+   auto lattice = SquareLattice(states,Lx, Ly, false, false, "xyz", "xyz");
+    auto data = get_rdms_1d(Ly ,7);
 //    std::cout<< "data size "<<data.size()<<std::endl;
    rdms_struct rdms(data);  // data);
   

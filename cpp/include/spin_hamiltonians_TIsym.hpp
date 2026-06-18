@@ -17,19 +17,26 @@ using string_pair = std::pair<std::string, std::string>;
 // HAMILTONIANS WHEN USING TRANSLATION SYMMETRY
 // NOTE: all are of the form vec{S_i}vec{S_j}
 template<typename Lattice>
-std::vector<double> define_correlation_function_sos(std::map<std::string, int> refs, Lattice lattice, std::pair<std::string, std::string> dirs, std::pair<std::vector<int>, std::vector<int>> pos)
+std::vector<double> define_correlation_function_sos( Lattice lattice, std::pair<std::string, std::string> dirs, std::pair<std::vector<int>, std::vector<int>> pos)
 {
 
-      std::vector<double> vals(refs.size(), 0);
+      std::vector<double> vals(lattice.variable_map_.size(), 0);
       auto offset_vector = lattice.get_offset_vec();
-      op_vec v_p = {spin_op(dirs.first, pos.second, offset_vector), spin_op(dirs.first, pos.first, offset_vector)};
-      auto [fac_p, nf_p] = get_normal_form(v_p);
-      assert(abs(fac_p.imag()) < 1e-9);
-      auto [key_p, coeff_map_p] = lattice.TI_map_.at(key_dir_pos(nf_p));
-      assert(abs(coeff_map_p.imag()) < 1e-9);
-      auto el_p = refs.at(op_key_label(key_p));
 
-      vals[el_p] += fac_p.real() * coeff_map_p.real() / 4.;
+            op_vec v_p = {spin_op(dirs.first, pos.first, offset_vector),spin_op(dirs.second, pos.second, offset_vector)};
+            // auto [fac_p, nf_p] = get_normal_form(v_p);
+
+            auto [key_p, coeff_map_p] = lattice.TI_map_.at(key_dir_pos(v_p));
+
+            assert(abs(coeff_map_p.imag()) < 1e-8);
+
+            auto el_p = lattice.variable_map_.at(op_key_label(key_p));
+
+  
+
+                  vals[el_p] += coeff_map_p.real();
+          
+   
 
       return vals;
 }
@@ -328,7 +335,7 @@ std::vector<double> define_TFI_1d_sos(std::map<std::string, int> refs, Lattice l
 template<typename Lattice>
 std::vector<double> define_magnetization_sos(Lattice lattice, std::string term)
 {
-      std::vector<string_pair> dirs{string_pair("x", "x"), string_pair("z", "z"), string_pair("y", "y")};
+     
       std::vector<double> vals(lattice.variable_map_.size(), 0);
       auto offset_vector = lattice.get_offset_vec();
 
@@ -345,26 +352,7 @@ std::vector<double> define_magnetization_sos(Lattice lattice, std::string term)
 
                   vals[el_p] += coeff_map_p.real();
           
-      //       op_vec v_t = {spin_op(term.first, {0, 0}, offset_vector), spin_op(term.second, {0, 1}, offset_vector)};
-      //       // auto [fac_t, nf_t] = get_normal_form(v_t);
-      //       auto [key_t, coeff_map_t] = lattice.TI_map_.at(key_dir_pos(v_t));
-      //       auto el_t = lattice.variable_map_.at(op_key_label(key_t));
-      //       coeff = J;
-      //       if (term == string_pair("z", "z"))
-      //       {
-      //             coeff = Delta;
-      //       }
-
-      //       // if (std::abs(fac_t.imag()) > 1e-9 or std::abs(coeff_map_t.imag()) > 1e-9)
-      //       // {
-      //       //       std::cout << "error: Hamiltonian contains complex elements " << std::endl;
-      //       // }
-
-      //       {
-
-      //             vals[el_t] += coeff * coeff_map_t.real() / 4.;
-      //       }
-      // }
+   
 
       return vals;
 }
