@@ -124,31 +124,39 @@ for(int i=1; i<int(Ly/2); i++)
   data.add_operator(newstate);
 }
 
-  if (dim >= 4)
+  if (dim >= 3)
   {
     {rdm_operator newstate({{0, 0}, {0, 1}, {0, 2}});
     data.add_operator(newstate);
   }
-    
+}
+if (dim >= 4)
+{
      {
        rdm_operator newstate({{0, 0}, {0, 1}, {0, 2}, {0, 3}});
      data.add_operator(newstate);
    }
+  }
+  if (dim >= 5)
+  {
    { rdm_operator newstate({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}});
    data.add_operator(newstate);
  }
+}
+if (dim >= 6)
+{
  { rdm_operator newstate({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}});
  data.add_operator(newstate);
 }
+}
 
-  }
-   if (dim > 6 and Ly > 6)
+   if (dim >= 7 and Ly >=7 )
    {
     { rdm_operator newstate({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}, {0, 6}});
     data.add_operator(newstate);
     }
    }
-   if (dim > 7 and Ly > 7)
+   if (dim >= 8 and Ly >= 8)
    {
     { rdm_operator newstate({{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}, {0, 6}, {0, 7}});
     data.add_operator(newstate);

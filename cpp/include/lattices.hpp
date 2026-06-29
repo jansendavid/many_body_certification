@@ -3,12 +3,24 @@
 #include "spins.hpp"
 #include <unordered_map>
 #include <memory>
+#include <stdexcept>
+#include <type_traits>
 #include "symmetries.hpp"
 #include "reduced_dms.hpp"
 #include <cstdlib>
 using namespace mosek::fusion;
 using namespace monty;
 using int_pair = std::pair<int, int>;
+
+template <typename T>
+struct is_std_pair : std::false_type
+{
+};
+
+template <typename First, typename Second>
+struct is_std_pair<std::pair<First, Second>> : std::true_type
+{
+};
 
 struct op_key_hash
 {
@@ -152,20 +164,60 @@ public:
 	bool bilayer_;
 	bool square_;
 	std::set<op_vec> extra_states_;
+	std::vector<int> offset_vec_;
 
-	std::vector<int> get_offset_vec()
+	static std::vector<int> extract_offset_vec(const Basis &states)
 	{
-		if (bilayer_)
+		std::vector<int> offset_vec;
+		auto visit = [&offset_vec](auto &&self, const auto &node) -> void
 		{
-			return {2, Lx_, Ly_};
-		}
-		else
+			using Node = std::decay_t<decltype(node)>;
+			if constexpr (std::is_same_v<Node, spin_op>)
+			{
+				if (offset_vec.empty())
+				{
+					offset_vec = node.offset_;
+				}
+				else if (offset_vec != node.offset_)
+				{
+					throw std::invalid_argument(
+						"SquareLattice states contain inconsistent offset vectors");
+				}
+			}
+			else if constexpr (is_std_pair<Node>::value)
+			{
+				self(self, node.second);
+			}
+			else
+			{
+				for (const auto &child : node)
+				{
+					self(self, child);
+				}
+			}
+		};
+
+		visit(visit, states);
+		if (offset_vec.empty())
 		{
-			return {Lx_, Ly_};
+			throw std::logic_error(
+				"SquareLattice cannot infer an offset vector from empty states");
 		}
+
+		return offset_vec;
 	}
 
-	SquareLattice(Basis& states, int Lx, int Ly, bool square, bool bilayer, std::string permuts = "xyz", std::string signsym = "xyz", std::set<op_vec> extra_states={}) : LatticeBase(Lx, Ly), states_(states),bilayer_(bilayer), square_(square), permuts_(permuts), signsym_(signsym), extra_states_(extra_states)
+	std::vector<int> get_offset_vec() const
+	{
+		return offset_vec_;
+	}
+
+	SquareLattice(Basis &states, int Lx, int Ly, bool square, bool bilayer,
+			  std::string permuts = "xyz", std::string signsym = "xyz",
+			  std::set<op_vec> extra_states = {})
+		: LatticeBase(Lx, Ly), permuts_(permuts), signsym_(signsym),
+		  states_(states), bilayer_(bilayer), square_(square),
+		  extra_states_(extra_states), offset_vec_(extract_offset_vec(states))
 	{
 		// assert(Lx == Ly);
 		if (permuts != "xyz" and permuts != "yxz" and permuts != "zxy" and permuts != "xy" and permuts != "None")
@@ -199,6 +251,7 @@ public:
 	};
 	bool check_operator_translation(op_vec op)
 	{
+		flush_vector.clear();
 		if(op.size()<1)
 		{
 			auto it = TI_map_.find(key_dir_pos(op));
@@ -241,6 +294,10 @@ public:
 			{
 
 				found = check_additional_symmetries(op, op_t);
+				if (found)
+				{
+					return true;
+				}
 			}
 		}
 
@@ -349,9 +406,9 @@ public:
 					auto it_flip = TI_map_.find(key_dir_pos(nf_flip));
 					if (it_flip != TI_map_.end())
 					{
-
+						const auto mapped = it_flip->second;
 						TI_map_.insert({key_dir_pos(nf_org),
-										{it->second.first, std::conj(fac_org) * fac_flip * it->second.second}});
+										{mapped.first, std::conj(fac_org) * fac_flip * mapped.second}});
 
 						return true;
 					}
@@ -371,9 +428,9 @@ public:
 					auto it_flip_mirr = TI_map_.find(key_dir_pos(nf_flip_mirr));
 					if (it_flip_mirr != TI_map_.end())
 					{
-
+						const auto mapped = it_flip_mirr->second;
 						TI_map_.insert({key_dir_pos(nf_org),
-										{it->second.first, std::conj(fac_org) * fac_flip_mirr * it->second.second}});
+										{mapped.first, std::conj(fac_org) * fac_flip_mirr * mapped.second}});
 
 						return true;
 					}
@@ -483,21 +540,21 @@ public:
 						auto [key, fac] = get_key(v_x);
 
 						auto [fac_, nf] = get_nf_cached(v_x);
-						bool found = false;
 						if (is_zero_key(key))
 						{
+							TI_map_.insert(
+								{key_dir_pos(nf), {op_key_zero(), 1.0}});
+							flush_vector.clear();
 						}
 						else
 						{
-							found = check_operator_translation(v_x);
-						}
-						if (found == false)
-						{
-
-							TI_map_.insert({key_dir_pos(nf),
-											{key, 1}});
-
-							flush(v_x);
+							const bool found = check_operator_translation(v_x);
+							if (!found)
+							{
+								TI_map_.insert(
+									{key_dir_pos(nf), {key, 1}});
+								flush(v_x);
+							}
 						}
 					}
 				}
@@ -507,23 +564,20 @@ public:
 		std::cout<< "start generating initial states"<<std::endl;
 		for(auto &state: extra_states_)
 		{
-			bool found = false;
 			auto [key, fac] = get_key(state);
 			auto [fac_, nf] = get_nf_cached(state);
 			if (is_zero_key(key))
 			{
+				TI_map_.insert({key_dir_pos(nf), {op_key_zero(), 1.0}});
+				flush_vector.clear();
 			}
 			else
 			{
-				found = check_operator_translation(state);
-			}
-			if (found == false)
-			{
-
-				TI_map_.insert({key_dir_pos(nf),
-								{key, 1}});
-
-				//flush(state);
+				const bool found = check_operator_translation(state);
+				if (!found)
+				{
+					TI_map_.insert({key_dir_pos(nf), {key, 1}});
+				}
 			}
 		}
 		std::cout<<"finished geneating initial state"<<std::endl;
@@ -556,21 +610,21 @@ public:
 						auto [fac_, nf] = get_nf_cached(v_x);
 						if(nf.size()%2!=0)
 						{key = op_key_zero();}
-						bool found = false;
 						if (is_zero_key(key))
 						{
+							TI_map_.insert(
+								{key_dir_pos(nf), {op_key_zero(), 1.0}});
+							flush_vector.clear();
 						}
 						else
 						{
-							found = check_operator_translation(v_x);
-						}
-						if (found == false)
-						{
-
-							TI_map_.insert({key_dir_pos(nf),
-											{key, 1}});
-
-							flush(v_x);
+							const bool found = check_operator_translation(v_x);
+							if (!found)
+							{
+								TI_map_.insert(
+									{key_dir_pos(nf), {key, 1}});
+								flush(v_x);
+							}
 						}
 					}
 				}
@@ -594,23 +648,20 @@ public:
 		std::cout<< "start generating initial states"<<std::endl;
 		for(auto &state: extra_states_)
 		{
-			bool found = false;
 			auto [key, fac] = get_key(state);
 			auto [fac_, nf] = get_nf_cached(state);
 			if (is_zero_key(key))
 			{
+				TI_map_.insert({key_dir_pos(nf), {op_key_zero(), 1.0}});
+				flush_vector.clear();
 			}
 			else
 			{
-				found = check_operator_translation(state);
-			}
-			if (found == false)
-			{
-
-				TI_map_.insert({key_dir_pos(nf),
-								{key, 1}});
-
-				//flush(state);
+				const bool found = check_operator_translation(state);
+				if (!found)
+				{
+					TI_map_.insert({key_dir_pos(nf), {key, 1}});
+				}
 			}
 		}
 		std::cout<<"finished geneating initial state"<<std::endl;
