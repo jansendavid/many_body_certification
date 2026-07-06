@@ -545,14 +545,16 @@ public:
             Domain::equalsTo(0.0));
     }
     }
-    // if (this->bounding_observable_)
-    // {
-    //   // std::cout << "introduing bounds" << std::endl;
-    //   // std::cout << " upper " << this->energy_bounds_["E_upper"]->index(0) << std::endl;
-    //   // std::cout << " lower " << this->energy_bounds_["E_lower"]->index(0) << std::endl;
-    //   // this->M_->constraint(Expr::dot(this->energy_vec_, y_), Domain::lessThan(this->energy_bounds_["E_upper"]->index(0)));
-    //   // this->M_->constraint(Expr::dot(this->energy_vec_, y_), Domain::greaterThan(this->energy_bounds_["E_lower"]->index(0)));
-    // }
+    if (this->bounding_observable_)
+    {
+      auto energy = Expr::dot(this->energy_vec_, y_);
+      this->M_->constraint(
+          Expr::sub(energy, this->energy_bounds_["E_upper"]->index(0)),
+          Domain::lessThan(0.0));
+      this->M_->constraint(
+          Expr::sub(energy, this->energy_bounds_["E_lower"]->index(0)),
+          Domain::greaterThan(0.0));
+    }
     return;
   }
   Expression::t get_costfunction()
@@ -573,6 +575,11 @@ public:
   std::vector<Variable::t> energy_bouding_variables_;
   bool maximize_{true}; // if cost function is a maximization problem
   Variable::t epsilon;
+  Variable::t upper_box_multiplier_;
+  Variable::t lower_box_multiplier_;
+  // Free multiplier for the primal equality y["0"] = 0.  Its right-hand
+  // side is zero, so it contributes to stationarity but not the objective.
+  Variable::t zero_moment_multiplier_ = nullptr;
   Variable::t linear_constraints_variable2_;
   Constraint::t final_constraint_;
   Expression::t A_vector=nullptr;
@@ -583,6 +590,14 @@ public:
   momentum_symmetry_solver_sos(Lattice &lattice, Model::t M, rdms_struct rdms, bool maximize = true, bool U1=false) : maximize_(maximize), momentum_basis<Lattice>(lattice, M, rdms, U1)
   {
     epsilon = this->M_->variable("epsilon");
+    const int number_of_moments =
+        static_cast<int>(this->lattice_.variable_map_.size());
+    upper_box_multiplier_ = this->M_->variable(
+        "upper box multipliers", number_of_moments,
+        Domain::greaterThan(0.0));
+    lower_box_multiplier_ = this->M_->variable(
+        "lower box multipliers", number_of_moments,
+        Domain::greaterThan(0.0));
     for (auto sign_symm_sector : this->sectors_)
     {
       Xs_[sign_symm_sector.first] = {};
@@ -655,11 +670,43 @@ public:
     LC_vector=Expr::mul(this->Psp, linear_constraints_variable2_);
     totalvec=Expr::add(totalvec, LC_vector);
   }
+  if (this->bounding_observable_)
+  {
+    auto energy_contribution = Expr::mul(
+        Expr::add(energy_bouding_variables_[0],
+                  energy_bouding_variables_[1]),
+        this->energy_vec_);
+    totalvec = Expr::add(totalvec, energy_contribution);
+  }
+  // Adjoint contributions of y <= 1 and y >= -1.  For the lower
+  // certificate (maximize_ == true) they enter as +u-v; for the upper
+  // certificate they enter with the opposite sign.
+  auto box_contribution = maximize_
+      ? Expr::sub(upper_box_multiplier_, lower_box_multiplier_)
+      : Expr::sub(lower_box_multiplier_, upper_box_multiplier_);
+  totalvec = Expr::add(totalvec, box_contribution);
+  if (zero_moment_multiplier_.get() != nullptr)
+  {
+    const int zero_index = this->lattice_.variable_map_.at("0");
+    auto zero_selector = Matrix::sparse(
+        static_cast<int>(this->lattice_.variable_map_.size()), 1,
+        monty::new_array_ptr(std::vector<int>{zero_index}),
+        monty::new_array_ptr(std::vector<int>{0}),
+        monty::new_array_ptr(std::vector<double>{1.0}));
+    totalvec = Expr::add(
+        totalvec, Expr::mul(zero_selector, zero_moment_multiplier_));
+  }
   final_constraint_->update(Expr::add(Expr::add(totalvec, epsilon_vec_flat), this->b_));
  
  }
   void fix_constrains()
   {
+    if (this->lattice_.variable_map_.find("0") !=
+        this->lattice_.variable_map_.end())
+    {
+      zero_moment_multiplier_ = this->M_->variable("zero moment multiplier");
+    }
+
     if (this->bounding_observable_)
     {
       std::cout << "true bounding observable " << std::endl;
@@ -823,6 +870,29 @@ std::cout << "Lamba_vector = " << (Lamba_vector != nullptr) << std::endl;
     LC_vector = Expr::mul(this->Psp, linear_constraints_variable2_);
     totalvec = Expr::add(totalvec, LC_vector);
   }
+  if (this->bounding_observable_)
+  {
+    auto energy_contribution = Expr::mul(
+        Expr::add(energy_bouding_variables_[0],
+                  energy_bouding_variables_[1]),
+        this->energy_vec_);
+    totalvec = Expr::add(totalvec, energy_contribution);
+  }
+  auto box_contribution = maximize_
+      ? Expr::sub(upper_box_multiplier_, lower_box_multiplier_)
+      : Expr::sub(lower_box_multiplier_, upper_box_multiplier_);
+  totalvec = Expr::add(totalvec, box_contribution);
+  if (zero_moment_multiplier_.get() != nullptr)
+  {
+    const int zero_index = this->lattice_.variable_map_.at("0");
+    auto zero_selector = Matrix::sparse(
+        n_constraints, 1,
+        monty::new_array_ptr(std::vector<int>{zero_index}),
+        monty::new_array_ptr(std::vector<int>{0}),
+        monty::new_array_ptr(std::vector<double>{1.0}));
+    totalvec = Expr::add(
+        totalvec, Expr::mul(zero_selector, zero_moment_multiplier_));
+  }
   final_constraint_=this->M_->constraint(Expr::add(Expr::add(totalvec, epsilon_vec_flat), this->b_),
            Domain::equalsTo(0.));
         
@@ -845,6 +915,17 @@ std::cout << "Time: "
   {
     Expression::t ee = Expr::constTerm(0.);
     ee = Expr::add(ee, Expr::neg(epsilon));
+
+    auto box_constant = Expr::sum(
+        Expr::add(upper_box_multiplier_, lower_box_multiplier_));
+    if (maximize_)
+    {
+      ee = Expr::sub(ee, box_constant);
+    }
+    else
+    {
+      ee = Expr::add(ee, box_constant);
+    }
 
     // Adding matrices for the positive definite constrain of the RDMs
     for (auto lambda_ : Lambdas_)

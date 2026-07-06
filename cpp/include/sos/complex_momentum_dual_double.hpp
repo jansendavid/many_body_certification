@@ -562,6 +562,17 @@ public:
     }
     }
 
+    if (this->bounding_observable_)
+    {
+      auto energy = Expr::dot(this->energy_vec_, y_);
+      this->M_->constraint(
+          Expr::sub(energy, this->energy_bounds_["E_upper"]->index(0)),
+          Domain::lessThan(0.0));
+      this->M_->constraint(
+          Expr::sub(energy, this->energy_bounds_["E_lower"]->index(0)),
+          Domain::greaterThan(0.0));
+    }
+
     return;
   }
   Expression::t get_costfunction()
@@ -580,6 +591,9 @@ public:
   std::vector<Variable::t> energy_bouding_variables_;
   bool maximize_{true};
   Variable::t epsilon;
+  Variable::t upper_box_multiplier_;
+  Variable::t lower_box_multiplier_;
+  Variable::t zero_moment_multiplier_ = nullptr;
   Variable::t linear_constraints_variable2_;
   std::vector<std::vector<Variable::t>> linear_constraints_for_block_equality_variable_;
   Constraint::t final_constraint_;
@@ -611,6 +625,14 @@ public:
       : maximize_(maximize), momentum_basis_double<Lattice>(lattice, M, rdms, U1)
   {
     epsilon = this->M_->variable("epsilon");
+    const int number_of_moments =
+        static_cast<int>(this->lattice_.variable_map_.size());
+    upper_box_multiplier_ = this->M_->variable(
+        "upper box multipliers", number_of_moments,
+        Domain::greaterThan(0.0));
+    lower_box_multiplier_ = this->M_->variable(
+        "lower box multipliers", number_of_moments,
+        Domain::greaterThan(0.0));
     for(int i=0; i<int(this->lattice_.Lx_/2); i++)
     {
       linear_constraints_for_block_equality_variable_.push_back({});
@@ -693,11 +715,32 @@ public:
           Expr::mul(Expr::add(energy_bouding_variables_[0], energy_bouding_variables_[1]), this->energy_vec_);
       totalvec = Expr::add(totalvec, exp_temporary);
     }
+    auto box_contribution = maximize_
+        ? Expr::sub(upper_box_multiplier_, lower_box_multiplier_)
+        : Expr::sub(lower_box_multiplier_, upper_box_multiplier_);
+    totalvec = Expr::add(totalvec, box_contribution);
+    if (zero_moment_multiplier_.get() != nullptr)
+    {
+      const int zero_index = this->lattice_.variable_map_.at("0");
+      auto zero_selector = Matrix::sparse(
+          static_cast<int>(this->lattice_.variable_map_.size()), 1,
+          monty::new_array_ptr(std::vector<int>{zero_index}),
+          monty::new_array_ptr(std::vector<int>{0}),
+          monty::new_array_ptr(std::vector<double>{1.0}));
+      totalvec = Expr::add(
+          totalvec, Expr::mul(zero_selector, zero_moment_multiplier_));
+    }
     final_constraint_->update(Expr::add(Expr::add(totalvec, epsilon_vec_flat), this->b_));
   }
 
   void fix_constrains()
   {
+    if (this->lattice_.variable_map_.find("0") !=
+        this->lattice_.variable_map_.end())
+    {
+      zero_moment_multiplier_ = this->M_->variable("zero moment multiplier");
+    }
+
     if (this->bounding_observable_)
     {
       if (maximize_)
@@ -885,7 +928,7 @@ ll++;
     epsilon_vec_flat = Expr::reshape(epsilon_vec, n_constraints);
 
     auto totalvec=A_vector;
-    if(Lamba_vector!=nullptr)
+    if (Lamba_vector.get() != nullptr)
     { totalvec = Expr::add(A_vector, Lamba_vector);}
     if (this->nr_of_linear_constraints > 0)
     {
@@ -899,6 +942,21 @@ ll++;
           Expr::mul(Expr::add(energy_bouding_variables_[0], energy_bouding_variables_[1]), this->energy_vec_);
       totalvec = Expr::add(totalvec, exp_temporary);
     }
+    auto box_contribution = maximize_
+        ? Expr::sub(upper_box_multiplier_, lower_box_multiplier_)
+        : Expr::sub(lower_box_multiplier_, upper_box_multiplier_);
+    totalvec = Expr::add(totalvec, box_contribution);
+    if (zero_moment_multiplier_.get() != nullptr)
+    {
+      const int zero_index = this->lattice_.variable_map_.at("0");
+      auto zero_selector = Matrix::sparse(
+          n_constraints, 1,
+          monty::new_array_ptr(std::vector<int>{zero_index}),
+          monty::new_array_ptr(std::vector<int>{0}),
+          monty::new_array_ptr(std::vector<double>{1.0}));
+      totalvec = Expr::add(
+          totalvec, Expr::mul(zero_selector, zero_moment_multiplier_));
+    }
 
     final_constraint_ = this->M_->constraint(
         Expr::add(Expr::add(totalvec, epsilon_vec_flat), this->b_), Domain::equalsTo(0.));
@@ -909,6 +967,13 @@ ll++;
   {
     Expression::t ee = Expr::constTerm(0.);
     ee = Expr::add(ee, Expr::neg(epsilon));
+
+    auto box_constant = Expr::sum(
+        Expr::add(upper_box_multiplier_, lower_box_multiplier_));
+    if (maximize_)
+      ee = Expr::sub(ee, box_constant);
+    else
+      ee = Expr::add(ee, box_constant);
 
     // Adding matrices for the positive definite constrain of the RDMs
     for (auto lambda_ : Lambdas_)
