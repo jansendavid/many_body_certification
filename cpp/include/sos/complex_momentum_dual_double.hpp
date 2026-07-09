@@ -61,6 +61,31 @@ public:
     As["1"][sign_sector_][0][0].add_values({0, 0}, 1. / 2);
     As["1"][sign_sector_][0][0].add_values({dim_0, dim_0}, 1. / 2);
 
+    const double zero_block_scale =
+        0.5 * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_);
+    const auto add_zero_block_state =
+        [&](const std::string &ti_key, int state_index,
+            std::complex<double> coeff) {
+          auto &cell = As[ti_key][sign_sector_][0][0];
+          const double re = coeff.real() * zero_block_scale;
+          if (std::abs(re) > 1e-9)
+          {
+            cell.add_values({0, state_index}, re);
+            cell.add_values({state_index, 0}, re);
+            cell.add_values({dim_0, state_index + dim_0}, re);
+            cell.add_values({state_index + dim_0, dim_0}, re);
+          }
+
+          const double im = coeff.imag() * zero_block_scale;
+          if (std::abs(im) > 1e-9)
+          {
+            cell.add_values({0, state_index + dim_0}, -im);
+            cell.add_values({state_index + dim_0, 0}, -im);
+            cell.add_values({dim_0, state_index}, im);
+            cell.add_values({state_index, dim_0}, im);
+          }
+        };
+
     //   //     // The "c" terms first row and column in block 0
     int i = 0;
 
@@ -68,22 +93,14 @@ public:
     {
       auto op = *it;
       // get normal form
-      auto [coeff, nf] = get_normal_form(op);
+      auto [coeff, nf] = lattice_.get_form_of_TI_map(op);
       // get translation invariant representation
 
       auto ti_key = op_key_label(lattice_.TI_map_.at(key_dir_pos(nf)).first);
 
       //auto el = this->lattice_.variable_map_.at(ti_key);
 
-      if (std::abs(coeff.real()) > 1e-9)
-      {
-
-        As[ti_key][sign_sector_][0][0].add_values({0, i + 1}, 1. / 2 * coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
-        As[ti_key][sign_sector_][0][0].add_values({i + 1, 0}, 1. / 2 * coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
-        As[ti_key][sign_sector_][0][0].add_values({dim_0, i + 1 + dim_0}, 1. / 2 * coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
-        As[ti_key][sign_sector_][0][0].add_values({i + 1 + dim_0, dim_0}, 1. / 2 * coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
-      }
-      assert(std::abs(coeff.imag()) < 1e-9);
+      add_zero_block_state(ti_key, i + 1, coeff);
 
       i++;
     }
@@ -93,21 +110,13 @@ public:
     {
       auto op = *it;
       // get normal form
-      auto [coeff, nf] = get_normal_form(op);
+      auto [coeff, nf] = lattice_.get_form_of_TI_map(op);
       // get translation invariant representation
 
       auto ti_key = op_key_label(lattice_.TI_map_.at(key_dir_pos(nf)).first);
       //auto el = this->lattice_.variable_map_.at(ti_key);
 
-      if (std::abs(coeff.real()) > 1e-9)
-      {
-
-        As[ti_key][sign_sector_][0][0].add_values({0, i + 1+shift}, 1. / 2 * coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
-        As[ti_key][sign_sector_][0][0].add_values({i + 1+shift, 0}, 1. / 2 * coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
-        As[ti_key][sign_sector_][0][0].add_values({dim_0, i + 1 + dim_0+shift}, 1. / 2 * coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
-        As[ti_key][sign_sector_][0][0].add_values({i + 1 + dim_0+shift, dim_0}, 1. / 2 * coeff.real() * std::sqrt(lattice_.Lx_) * std::sqrt(lattice_.Ly_));
-      }
-      assert(std::abs(coeff.imag()) < 1e-9);
+      add_zero_block_state(ti_key, i + 1 + shift, coeff);
 
       i++;
     }
@@ -147,7 +156,10 @@ public:
     return;
   }
 
- void run_loop(std::vector<op_vec>& operator_1,std::vector<op_vec>& operator_2,std::map<std::string, symmetry_sector> &As, std::complex<double> fac_orig, std::pair<int,int> shift)
+ template <typename OperatorVector>
+ void run_loop(OperatorVector &operator_1, OperatorVector &operator_2,
+               std::map<std::string, symmetry_sector> &As,
+               std::complex<double> fac_orig, std::pair<int,int> shift)
  {
   const int Ly = lattice_.Ly_;
   const int Lx = lattice_.Lx_;
@@ -168,8 +180,6 @@ public:
           auto construct = lattice_.generate_G_element_sos_double(*it1, *it2, pos_x, pos_y);
           if (construct.op_ == "0")
             continue;
-
-          assert(std::abs((construct.prefac_ * fac_orig).imag()) < 1e-9);
 
           for (int mat_pos_y = 0; mat_pos_y < Ly; ++mat_pos_y)
           {
@@ -604,21 +614,32 @@ public:
 
   static int nrblocks_y_for(const Lattice &lattice)
   {
-    return (lattice.Ly_ % 2 == 0) ? (2 + lattice.Ly_ / 2 - 1) : (1 + lattice.Ly_ / 2);
+    return lattice.Ly_;
   }
 
   static int nrblocks_x_for(const Lattice &lattice)
   {
-    return (lattice.Lx_ % 2 == 0) ? (2 + lattice.Lx_ / 2 - 1) : (1 + lattice.Lx_ / 2);
+    return lattice.Lx_;
   }
 
-  static double matrix_trace(const Matrix::t &mat, int block_size)
+  static std::pair<int, int> conjugate_momentum(const Lattice &lattice,
+                                                int kx, int ky)
   {
-    auto data = mat->getDataAsArray();
-    double tr = 0.0;
-    for (int r = 0; r < block_size; ++r)
-      tr += (*data)[r * block_size + r];
-    return tr;
+    // Time reversal/complex conjugation maps a translation momentum block
+    // k=(kx,ky) to -k modulo the finite lattice periods.
+    return {(lattice.Lx_ - kx) % lattice.Lx_,
+            (lattice.Ly_ - ky) % lattice.Ly_};
+  }
+
+  static bool is_momentum_representative(const Lattice &lattice,
+                                         int kx, int ky)
+  {
+    const auto [cx, cy] = conjugate_momentum(lattice, kx, ky);
+    // Keep one lexicographic representative of each {k,-k} orbit.  For a
+    // 4x4 lattice this gives 10 momenta per sector: 4 self-conjugate points
+    // plus 6 two-point conjugate orbits.  The old rectangular 3x3 selection
+    // missed the (1,3)<->(3,1) orbit.
+    return std::tie(kx, ky) <= std::tie(cx, cy);
   }
 
   momentum_symmetry_solver_sos_double(Lattice &lattice, Model::t M, rdms_struct rdms, bool maximize = true, bool U1=false)
@@ -633,14 +654,6 @@ public:
     lower_box_multiplier_ = this->M_->variable(
         "lower box multipliers", number_of_moments,
         Domain::greaterThan(0.0));
-    for(int i=0; i<int(this->lattice_.Lx_/2); i++)
-    {
-      linear_constraints_for_block_equality_variable_.push_back({});
-      for(int j=0; j<int(this->lattice_.Ly_/2); j++)
-      {
-        linear_constraints_for_block_equality_variable_[i].push_back(this->M_->variable("block_equality_variable_"+std::to_string(i)+"_"+std::to_string(j)));
-      }
-    }
     const int nrblocks_x = nrblocks_x_for(this->lattice_);
     const int nrblocks_y = nrblocks_y_for(this->lattice_);
     for (auto sign_symm_sector : this->sectors_)
@@ -651,6 +664,13 @@ public:
         Xs_[sign_symm_sector.first].push_back({});
         for (int j = 0; j < nrblocks_y; j++)
         {
+          if (!is_momentum_representative(this->lattice_, i, j))
+          {
+            // Non-representative conjugate blocks are encoded by the
+            // representative block for their {k,-k} orbit.
+            Xs_[sign_symm_sector.first][i].push_back(nullptr);
+            continue;
+          }
           int matrix_dimension = 2 * sign_symm_sector.second.block_shifts[i][j];
           auto X = this->M_->variable("X_" + std::to_string(sign_symm_sector.first) + "_" +
                                            std::to_string(i) + std::to_string(j),
@@ -730,7 +750,18 @@ public:
       totalvec = Expr::add(
           totalvec, Expr::mul(zero_selector, zero_moment_multiplier_));
     }
-    final_constraint_->update(Expr::add(Expr::add(totalvec, epsilon_vec_flat), this->b_));
+    auto updated_expression =
+        Expr::add(Expr::add(totalvec, epsilon_vec_flat), this->b_);
+    if (this->lattice_.uses_1d_reflection())
+    {
+      final_constraint_->remove();
+      final_constraint_ = this->M_->constraint(
+          updated_expression, Domain::equalsTo(0.0));
+    }
+    else
+    {
+      final_constraint_->update(updated_expression);
+    }
   }
 
   void fix_constrains()
@@ -768,6 +799,8 @@ public:
       {
         for (int j = 0; j < nrblocks_y; j++)
         {
+          if (!is_momentum_representative(this->lattice_, i, j))
+            continue;
           int block_size = 2 * sign_symm_sector.second.block_shifts[i][j];
           if (block_size == 0)
             continue;
@@ -778,29 +811,38 @@ public:
           std::vector<int> rows_b, cols_b;
           std::vector<double> vals_b;
 
+          const auto add_block_entries =
+              [&](const Matrix::t &mat, int moment_index) {
+                auto data = mat->getDataAsArray();
+
+                for (int r = 0; r < block_size; r++)
+                  for (int c = 0; c < block_size; c++)
+                  {
+                    double v = (*data)[r * block_size + c];
+                    if (std::abs(v) > 1e-15)
+                    {
+                      rows_b.push_back(moment_index);
+                      cols_b.push_back(r * block_size + c);
+                      vals_b.push_back(v);
+                    }
+                  }
+              };
+
           for (auto &op : this->lattice_.variable_map_)
           {
             if (op.first == "0")
               continue;
-            auto &A_block = this->As_[op.first][sign_symm_sector.first][i][j];
-            if (!A_block.has_elements_)
-              continue;
-
             int el = op.second;
-            auto mat = A_block.make_matrix(block_size, block_size);
-            auto data = mat->getDataAsArray();
-
-            for (int r = 0; r < block_size; r++)
-              for (int c = 0; c < block_size; c++)
-              {
-                double v = (*data)[r * block_size + c];
-                if (std::abs(v) > 1e-15)
-                {
-                  rows_b.push_back(el);
-                  cols_b.push_back(r * block_size + c);
-                  vals_b.push_back(v);
-                }
-              }
+            auto &A_block = this->As_[op.first][sign_symm_sector.first][i][j];
+            if (A_block.has_elements_)
+            {
+              // Use only the representative momentum block.  The realified
+              // construction already packages the conjugate block into this
+              // real PSD variable; adding the mirror block a second time
+              // over-constrains the relaxation.
+              auto mat = A_block.make_matrix(block_size, block_size);
+              add_block_entries(mat, el);
+            }
           }
 
           if (vals_b.empty())
@@ -815,50 +857,6 @@ public:
             A_vector = contribution;
           else
             A_vector = Expr::add(A_vector, contribution);
-        }
-      }
-    }
-
-    for (auto &sign_symm_sector : this->sectors_)
-    {
-      for (int i = 1; i < int(this->lattice_.Lx_ / 2); i++)
-      {
-        for (int j = 1; j < int(this->lattice_.Ly_ / 2); j++)
-        {
-          int block_size = 2 * sign_symm_sector.second.block_shifts[i][j];
-          if (block_size == 0)
-            continue;
-
-          const int mir_x = this->lattice_.Lx_ - i;
-          const int mir_y = this->lattice_.Ly_ - j;
-          auto &eta_ij = linear_constraints_for_block_equality_variable_[i][j];
-
-          for (auto &op : this->lattice_.variable_map_)
-          {
-            if (op.first == "0")
-              continue;
-            auto &A_ij = this->As_[op.first][sign_symm_sector.first][i][j];
-            if (!A_ij.has_elements_)
-              continue;
-
-            int el = op.second;
-            auto mat_ij = A_ij.make_matrix(block_size, block_size);
-            auto mat_mir = this->As_[op.first][sign_symm_sector.first][mir_x][mir_y].make_matrix(
-                block_size, block_size);
-            double tr = matrix_trace(mat_ij, block_size) - matrix_trace(mat_mir, block_size);
-            if (std::abs(tr) < 1e-15)
-              continue;
-
-            auto e_vec = Matrix::sparse(
-                n_constraints, 1, monty::new_array_ptr(std::vector<int>{el}),
-                monty::new_array_ptr(std::vector<int>{0}),
-                monty::new_array_ptr(std::vector<double>{tr}));
-            auto term = Expr::mul(e_vec, eta_ij);
-            if (A_vector == nullptr)
-              A_vector = term;
-            else
-              A_vector = Expr::add(A_vector, term);
-          }
         }
       }
     }
