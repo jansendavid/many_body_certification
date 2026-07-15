@@ -273,9 +273,26 @@ shift={dim,0};
         operators.end(),
         lattice_.state_optimality_states_[sign_sector_][1].begin(),
         lattice_.state_optimality_states_[sign_sector_][1].end());
+    const auto phase_start = std::chrono::steady_clock::now();
+    const std::size_t progress_interval =
+        std::max<std::size_t>(1, operators.size() / 20);
+    std::cout << "State-optimality coefficients sector " << sign_sector_
+              << " start: basis=" << operators.size()
+              << ", upper-triangle pairs="
+              << operators.size() * (operators.size() + 1) / 2 << std::endl;
 
     for (std::size_t row = 0; row < operators.size(); ++row)
     {
+      if (row % progress_interval == 0)
+      {
+        const double elapsed = std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - phase_start).count();
+        std::cout << "State-optimality coefficients sector " << sign_sector_
+                  << ": row " << row << '/' << operators.size()
+                  << ", elapsed=" << elapsed << " s, entry_cache="
+                  << lattice_.state_optimality_entry_cache_.size()
+                  << std::endl;
+      }
       const std::complex<double> row_phase =
           row < static_cast<std::size_t>(even_dimension)
               ? std::complex<double>{1., 0.}
@@ -372,6 +389,12 @@ shift={dim,0};
       }
     }
     lattice_.clear_caches();
+    const double elapsed = std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - phase_start).count();
+    std::cout << "State-optimality coefficients sector " << sign_sector_
+              << " complete: elapsed=" << elapsed
+              << " s, entry_cache="
+              << lattice_.state_optimality_entry_cache_.size() << std::endl;
   }
 };
 template <typename Lattice>
@@ -468,11 +491,24 @@ public:
 	  for (auto &sector : sectors_)
 		sector.second.initialize_state_optimality_block_shifts();
 
+    std::cout << "Coefficient phase 1/2: ordinary moment blocks" << std::endl;
     for (auto it_2 = sectors_.begin(); it_2 != sectors_.end(); ++it_2)
+    {
+      const auto sector_start = std::chrono::steady_clock::now();
+      std::cout << "Ordinary coefficient sector " << it_2->first
+                << " start" << std::endl;
       it_2->second.generate_block(As_);
+      std::cout << "Ordinary coefficient sector " << it_2->first
+                << " complete: elapsed="
+                << std::chrono::duration<double>(
+                       std::chrono::steady_clock::now() - sector_start).count()
+                << " s" << std::endl;
+    }
 
 	if (enable_state_optimality_conditions_)
 	{
+	  std::cout << "Coefficient phase 2/2: state-optimality blocks"
+				<< std::endl;
 	  std::cout << "State-optimality basis maximum degree: "
 				<< lattice_.state_optimality_basis_degree_ << std::endl;
 	  for (const auto &[sector, block] : sectors_)
