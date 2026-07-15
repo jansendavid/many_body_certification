@@ -1,6 +1,8 @@
 #pragma once
+#include <algorithm>
 #include "fusion.h"
 #include "spins.hpp"
+#include <unordered_set>
 #include <unordered_map>
 #include <memory>
 #include <stdexcept>
@@ -166,6 +168,303 @@ public:
 	std::set<op_vec> extra_states_;
 	std::vector<int> offset_vec_;
 
+	// Fast TI construction.  The old check/flush routines below are retained as
+	// reference helpers, but generate_TI_map[_double]() now uses these compact
+	// key caches.  A stored relation means raw Pauli string = coefficient *
+	// representative Pauli string.
+	struct FastNormalizedImage
+	{
+		op_key raw_key;
+		op_key symmetry_key;
+		std::complex<double> phase{1.0, 0.0};
+		bool zero{false};
+	};
+	std::unordered_map<op_key, std::pair<op_key, std::complex<double>>,
+					   op_key_hash> fast_orbit_cache_;
+	std::set<op_key> fast_forced_zero_representatives_;
+
+	bool is_zero_by_sign_symmetry(const op_vec &normal_form) const
+	{
+		if (signsym_ == "xyz")
+			return is_zero_signsym_xyz(normal_form);
+		if (signsym_ == "xy")
+			return is_zero_signsym_xy(normal_form);
+		if (signsym_ == "y")
+			return is_zero_signsym_y(normal_form);
+		return false;
+	}
+
+	void insert_fast_relation(const op_key &raw_key,
+						  const op_key &representative,
+						  std::complex<double> coefficient,
+						  const char *source)
+	{
+		constexpr double tolerance = 1e-10;
+		auto [it, inserted] = TI_map_.insert(
+			{raw_key, {representative, coefficient}});
+		if (inserted)
+			return;
+		if (it->second.first == representative &&
+			std::abs(it->second.second - coefficient) <= tolerance)
+			return;
+
+		if (is_zero_key(representative))
+		{
+			if (!is_zero_key(it->second.first))
+				fast_forced_zero_representatives_.insert(it->second.first);
+			it->second = {op_key_zero(), {1.0, 0.0}};
+			return;
+		}
+		if (is_zero_key(it->second.first) ||
+			fast_forced_zero_representatives_.count(representative) != 0)
+		{
+			it->second = {op_key_zero(), {1.0, 0.0}};
+			return;
+		}
+		if (it->second.first == representative)
+		{
+			// Symmetry gives R=cR with c!=1, hence this moment must vanish.
+			fast_forced_zero_representatives_.insert(representative);
+			it->second = {op_key_zero(), {1.0, 0.0}};
+			return;
+		}
+
+		std::cerr << "TI_map contradiction from " << source << '\n'
+				  << op_key_label(raw_key) << " -> "
+				  << it->second.second << " * "
+				  << op_key_label(it->second.first) << " versus "
+				  << coefficient << " * "
+				  << op_key_label(representative) << '\n';
+		throw std::logic_error("incompatible fast TI-map relation");
+	}
+
+	void apply_fast_forced_zeros()
+	{
+		if (fast_forced_zero_representatives_.empty())
+			return;
+		for (auto &[raw, relation] : TI_map_)
+		{
+			(void)raw;
+			if (fast_forced_zero_representatives_.count(relation.first) != 0)
+				relation = {op_key_zero(), {1.0, 0.0}};
+		}
+	}
+
+	FastNormalizedImage normalize_fast_image(const op_vec &image,
+										 bool force_odd_zero = false)
+	{
+		auto [phase, normal_form] = get_nf_cached(image);
+		FastNormalizedImage result;
+		result.raw_key = key_dir_pos(normal_form);
+		result.phase = phase;
+		result.zero = is_zero_by_sign_symmetry(normal_form) ||
+			(force_odd_zero && ((normal_form.size() & 1u) != 0));
+		result.symmetry_key = result.zero ? op_key_zero() : result.raw_key;
+		return result;
+	}
+
+	template <typename Fn>
+	void for_each_fast_symmetry_image(const op_vec &op, Fn &&fn)
+	{
+		const auto emit_with_permutations = [&](const op_vec &spatial_image) {
+			fn(spatial_image, std::complex<double>{1.0, 0.0});
+			auto [phase, normal_form] = get_nf_cached(spatial_image);
+			std::set<op_vec> permutations;
+			if (permuts_ == "xyz" || permuts_ == "yxz" ||
+				permuts_ == "zxy" || permuts_ == "zyx")
+				permutations = generate_all_permutations_xyz(normal_form);
+			else if (permuts_ == "xy")
+				permutations = generate_all_permutations_xy(normal_form);
+			else
+				permutations.insert(normal_form);
+			for (const auto &permuted : permutations)
+			{
+				// Permutations are generated from the normalized spatial
+				// image, so retain the phase extracted from that image.
+				fn(permuted, phase);
+			}
+		};
+
+		const auto emit_spatial = [&](const op_vec &translated) {
+			const bool one_dimensional = (Lx_ == 1) != (Ly_ == 1);
+			if (square_ && one_dimensional)
+			{
+				for (const auto &reflected :
+					 generate_all_1d_reflections(translated, Lx_, Ly_))
+					emit_with_permutations(reflected);
+			}
+			else if (square_)
+			{
+				for (const auto &d8 : generate_all_d8(translated, Lx_))
+				{
+					emit_with_permutations(d8);
+					emit_with_permutations(mirror(d8));
+					if (bilayer_)
+					{
+						emit_with_permutations(flip_layer(d8));
+						emit_with_permutations(flip_layer(mirror(d8)));
+					}
+				}
+			}
+			else
+			{
+				emit_with_permutations(translated);
+				emit_with_permutations(mirror(translated));
+			}
+		};
+
+		if (op.empty())
+		{
+			emit_spatial(op);
+			return;
+		}
+		for (int dx = 0; dx < Lx_; ++dx)
+			for (int dy = 0; dy < Ly_; ++dy)
+			{
+				op_vec translated = op;
+				for (auto &factor : translated)
+				{
+					auto site = factor.get_site();
+					site[site.size() - 2] =
+						(site[site.size() - 2] + dx) % Lx_;
+					site[site.size() - 1] =
+						(site[site.size() - 1] + dy) % Ly_;
+					factor.set_site(site);
+				}
+				emit_spatial(translated);
+			}
+	}
+
+	void process_fast_orbit_candidate(const op_vec &op, const char *source,
+									 bool force_odd_zero = false)
+	{
+		const auto original = normalize_fast_image(op, force_odd_zero);
+		const auto orbit_cached = fast_orbit_cache_.find(original.raw_key);
+		if (orbit_cached != fast_orbit_cache_.end())
+		{
+			insert_fast_relation(original.raw_key, orbit_cached->second.first,
+							 orbit_cached->second.second, source);
+			return;
+		}
+		const auto ti_cached = TI_map_.find(original.raw_key);
+		if (ti_cached != TI_map_.end())
+		{
+			fast_orbit_cache_[original.raw_key] = ti_cached->second;
+			return;
+		}
+		if (original.zero)
+		{
+			insert_fast_relation(original.raw_key, op_key_zero(), {1.0, 0.0},
+							 source);
+			fast_orbit_cache_[original.raw_key] =
+				{op_key_zero(), {1.0, 0.0}};
+			return;
+		}
+
+		// Preserve the legacy representative convention: the first-discovered
+		// (original) normal form names a new orbit.  Scan lazily for an already
+		// known image before inserting the full new orbit; most later products
+		// therefore avoid a complete set of TI-map writes.
+		std::unordered_map<op_key, FastNormalizedImage, op_key_hash> pending;
+		bool found_known_image = false;
+		bool orbit_zero = false;
+		for_each_fast_symmetry_image(op, [&](const op_vec &image,
+											 std::complex<double> inherited_phase) {
+			if (found_known_image || orbit_zero)
+				return;
+			auto normalized = normalize_fast_image(image, force_odd_zero);
+			normalized.phase *= inherited_phase;
+
+			if (normalized.raw_key == original.raw_key)
+			{
+				if (std::abs(normalized.phase - original.phase) > 1e-10)
+					orbit_zero = true;
+				return;
+			}
+			if (normalized.zero)
+			{
+				orbit_zero = true;
+				return;
+			}
+
+			const auto cached_image = fast_orbit_cache_.find(normalized.raw_key);
+			const auto mapped_image = TI_map_.find(normalized.raw_key);
+			if (cached_image != fast_orbit_cache_.end() ||
+				mapped_image != TI_map_.end())
+			{
+				const auto &known = cached_image != fast_orbit_cache_.end()
+					? cached_image->second
+					: mapped_image->second;
+				if (is_zero_key(known.first) ||
+					fast_forced_zero_representatives_.count(known.first) != 0)
+				{
+					insert_fast_relation(original.raw_key, op_key_zero(),
+								 {1.0, 0.0}, source);
+					fast_orbit_cache_[original.raw_key] =
+						{op_key_zero(), {1.0, 0.0}};
+				}
+				else
+				{
+					const auto coefficient = std::conj(original.phase) *
+						normalized.phase * known.second;
+					insert_fast_relation(original.raw_key, known.first,
+								 coefficient, source);
+					fast_orbit_cache_[original.raw_key] =
+						{known.first, coefficient};
+				}
+				found_known_image = true;
+				return;
+			}
+
+			auto [it, inserted] = pending.emplace(normalized.raw_key, normalized);
+			if (!inserted &&
+				std::abs(it->second.phase - normalized.phase) > 1e-10)
+				orbit_zero = true;
+		});
+
+		if (found_known_image)
+			return;
+		if (orbit_zero)
+		{
+			fast_forced_zero_representatives_.insert(original.raw_key);
+			insert_fast_relation(original.raw_key, op_key_zero(), {1.0, 0.0},
+							 source);
+			fast_orbit_cache_[original.raw_key] =
+				{op_key_zero(), {1.0, 0.0}};
+			return;
+		}
+
+		insert_fast_relation(original.raw_key, original.raw_key, {1.0, 0.0},
+						 source);
+		fast_orbit_cache_[original.raw_key] =
+			{original.raw_key, {1.0, 0.0}};
+		for (const auto &[raw, image] : pending)
+		{
+			const std::complex<double> coefficient =
+				std::conj(image.phase) * original.phase;
+			insert_fast_relation(raw, original.raw_key, coefficient, source);
+			const auto inserted = TI_map_.find(raw);
+			if (inserted != TI_map_.end())
+			{
+				fast_orbit_cache_[raw] = inserted->second;
+			}
+		}
+	}
+
+	void append_translated_fast(op_vec &destination, const op_vec &source,
+							 int dx, int dy) const
+	{
+		for (const auto &factor : source)
+		{
+			auto translated = factor;
+			auto site = translated.get_site();
+			site[site.size() - 2] = (site[site.size() - 2] + dx) % Lx_;
+			site[site.size() - 1] = (site[site.size() - 1] + dy) % Ly_;
+			translated.set_site(site);
+			destination.push_back(std::move(translated));
+		}
+	}
+
 	static std::vector<int> extract_offset_vec(const Basis &states)
 	{
 		std::vector<int> offset_vec;
@@ -210,6 +509,11 @@ public:
 	std::vector<int> get_offset_vec() const
 	{
 		return offset_vec_;
+	}
+
+	bool uses_1d_reflection() const
+	{
+		return square_ && ((Lx_ == 1) != (Ly_ == 1));
 	}
 
 	SquareLattice(Basis &states, int Lx, int Ly, bool square, bool bilayer,
@@ -347,7 +651,30 @@ public:
 	{
 		auto [fac_org, nf_org] = get_nf_cached(op_org);
 		bool found = false;
-		if (square_)
+		const bool one_dimensional = (Lx_ == 1) != (Ly_ == 1);
+		if (square_ && one_dimensional)
+		{
+			auto reflections = generate_all_1d_reflections(op, Lx_, Ly_);
+			for (auto &reflected : reflections)
+			{
+				auto [fac, nf] = get_nf_cached(reflected);
+				auto it = TI_map_.find(key_dir_pos(nf));
+				if (it != TI_map_.end())
+				{
+					TI_map_.insert({key_dir_pos(nf_org),
+								{it->second.first, std::conj(fac_org) * fac * it->second.second}});
+					return true;
+				}
+
+				flush_vector.push_back(reflected);
+				found = check_permutation_symm(op_org, reflected);
+				if (found)
+				{
+					return true;
+				}
+			}
+		}
+		else if (square_)
 		{
 			auto dsvec = generate_all_d8(op, Lx_);
 			for (auto &d8s : dsvec)
@@ -510,133 +837,87 @@ public:
 	}
 	void generate_TI_map()
 	{
+		fast_orbit_cache_.clear();
+		fast_forced_zero_representatives_.clear();
+		TI_map_.reserve(std::max<std::size_t>(TI_map_.size(), 1024));
+		insert_fast_relation(op_key_identity(), op_key_identity(), 1.0,
+						 "identity base relation");
+		insert_fast_relation(op_key_zero(), op_key_zero(), 1.0,
+						 "zero base relation");
 
-		for (auto sector : states_)
+		for (const auto &sector : states_)
 		{
 			std::cout << "sector " << sector.first << std::endl;
-			auto operators = sector.second;
-			for (auto it1 = operators.begin(); it1 != operators.end(); ++it1)
+			const auto &operators = sector.second;
+			std::size_t maximum_size = 0;
+			for (const auto &op : operators)
+				maximum_size = std::max(maximum_size, op.size());
+			const std::size_t candidates = operators.size() +
+				(operators.size() * (operators.size() + 1) / 2) *
+				static_cast<std::size_t>(Lx_) * static_cast<std::size_t>(Ly_);
+			TI_map_.reserve(TI_map_.size() + candidates * 8);
+			fast_orbit_cache_.reserve(fast_orbit_cache_.size() + candidates * 8);
+
+			op_vec product;
+			product.reserve(2 * maximum_size);
+			for (auto left = operators.begin(); left != operators.end(); ++left)
 			{
-				auto op = *it1;
-			
-				for (auto it2 = operators.begin(); it2 != operators.end(); ++it2)
-				{
-					//std::cout << " op 2: " << print_op(*it1) << std::endl;
-					auto op_dagg_first = dagger_operator(op);
-					std::vector<op_vec> all_t;
-					if(it2->size()>0)
-					{
-						 all_t = all_translations(*it2, Lx_, Ly_);
-					}
-					else{
-						all_t.push_back(*it2);
-					}
-					for (auto &op_right : all_t)
-					{
-						flush_vector.clear();
-						auto v_x = op_dagg_first;
-
-						v_x.insert(v_x.end(), op_right.begin(), op_right.end());
-						auto [key, fac] = get_key(v_x);
-
-						auto [fac_, nf] = get_nf_cached(v_x);
-						if (is_zero_key(key))
+				process_fast_orbit_candidate(*left, "single basis operator");
+				const auto left_dagger = dagger_operator(*left);
+				for (auto right = left; right != operators.end(); ++right)
+					for (int dx = 0; dx < Lx_; ++dx)
+						for (int dy = 0; dy < Ly_; ++dy)
 						{
-							TI_map_.insert(
-								{key_dir_pos(nf), {op_key_zero(), 1.0}});
-							flush_vector.clear();
+							product.clear();
+							product.insert(product.end(), left_dagger.begin(),
+										   left_dagger.end());
+							append_translated_fast(product, *right, dx, dy);
+							process_fast_orbit_candidate(product,
+												 "moment-matrix product");
 						}
-						else
-						{
-							const bool found = check_operator_translation(v_x);
-							if (!found)
-							{
-								TI_map_.insert(
-									{key_dir_pos(nf), {key, 1}});
-								flush(v_x);
-							}
-						}
-					}
-				}
 			}
 			clear_caches();
 		}
-		std::cout<< "start generating initial states"<<std::endl;
-		for(auto &state: extra_states_)
-		{
-			auto [key, fac] = get_key(state);
-			auto [fac_, nf] = get_nf_cached(state);
-			if (is_zero_key(key))
-			{
-				TI_map_.insert({key_dir_pos(nf), {op_key_zero(), 1.0}});
-				flush_vector.clear();
-			}
-			else
-			{
-				const bool found = check_operator_translation(state);
-				if (!found)
-				{
-					TI_map_.insert({key_dir_pos(nf), {key, 1}});
-				}
-			}
-		}
-		std::cout<<"finished geneating initial state"<<std::endl;
+		for (const auto &state : extra_states_)
+			process_fast_orbit_candidate(state, "extra observable");
+		apply_fast_forced_zeros();
 		return;
 	}
 	void operator_run(std::vector<op_vec>& operators_1, std::vector<op_vec>& operators_2)
 	{
-		for (auto it1 = operators_1.begin(); it1 != operators_1.end(); ++it1)
-			{
-				auto op=*it1;
-			for (auto it2 = operators_2.begin(); it2 != operators_2.end(); ++it2)
-				{
-					auto op_dagg_first = dagger_operator(op);
-					std::vector<op_vec> all_t;
-					if(it2->size()>0)
+		std::size_t maximum_size = 0;
+		for (const auto &op : operators_1)
+			maximum_size = std::max(maximum_size, op.size());
+		for (const auto &op : operators_2)
+			maximum_size = std::max(maximum_size, op.size());
+		op_vec product;
+		product.reserve(2 * maximum_size);
+		for (const auto &left : operators_1)
+		{
+			const auto left_dagger = dagger_operator(left);
+			for (const auto &right : operators_2)
+				for (int dx = 0; dx < Lx_; ++dx)
+					for (int dy = 0; dy < Ly_; ++dy)
 					{
-						 all_t = all_translations(*it2, Lx_, Ly_);
+						product.clear();
+						product.insert(product.end(), left_dagger.begin(),
+									   left_dagger.end());
+						append_translated_fast(product, right, dx, dy);
+						process_fast_orbit_candidate(product,
+											 "double moment product", true);
 					}
-					else{
-						all_t.push_back(*it2);
-					}
-							for (auto &op_right : all_t)
-					{
-						flush_vector.clear();
-						auto v_x = op_dagg_first;
-
-						v_x.insert(v_x.end(), op_right.begin(), op_right.end());
-						auto [key, fac] = get_key(v_x);
-
-						auto [fac_, nf] = get_nf_cached(v_x);
-						if(nf.size()%2!=0)
-						{key = op_key_zero();}
-						if (is_zero_key(key))
-						{
-							TI_map_.insert(
-								{key_dir_pos(nf), {op_key_zero(), 1.0}});
-							flush_vector.clear();
-						}
-						else
-						{
-							const bool found = check_operator_translation(v_x);
-							if (!found)
-							{
-								TI_map_.insert(
-									{key_dir_pos(nf), {key, 1}});
-								flush(v_x);
-							}
-						}
-					}
-				}
-	
-				clear_caches();
-			}
-
+			clear_caches();
+		}
 		return;
 	}
 	void generate_TI_map_double()
 	{
-
+		fast_orbit_cache_.clear();
+		fast_forced_zero_representatives_.clear();
+		insert_fast_relation(op_key_identity(), op_key_identity(), 1.0,
+						 "identity base relation");
+		insert_fast_relation(op_key_zero(), op_key_zero(), 1.0,
+						 "zero base relation");
 		for (auto &sector : states_)
 		{
 			operator_run(sector.second.at(0), sector.second.at(0));
@@ -645,48 +926,25 @@ public:
 			operator_run(sector.second.at(1), sector.second.at(0));
 
 		}
-		std::cout<< "start generating initial states"<<std::endl;
-		for(auto &state: extra_states_)
-		{
-			auto [key, fac] = get_key(state);
-			auto [fac_, nf] = get_nf_cached(state);
-			if (is_zero_key(key))
-			{
-				TI_map_.insert({key_dir_pos(nf), {op_key_zero(), 1.0}});
-				flush_vector.clear();
-			}
-			else
-			{
-				const bool found = check_operator_translation(state);
-				if (!found)
-				{
-					TI_map_.insert({key_dir_pos(nf), {key, 1}});
-				}
-			}
-		}
-		std::cout<<"finished geneating initial state"<<std::endl;
-
+		for (const auto &state : extra_states_)
+			process_fast_orbit_candidate(state, "extra double observable", true);
+		apply_fast_forced_zeros();
 		return;
 	}
 	void make_map()
 	{
-
-		std::set<std::string> unique_values;
-
-		for (const auto &[k, v] : TI_map_)
+		std::unordered_set<op_key, op_key_hash> seen;
+		std::vector<std::string> labels;
+		labels.reserve(TI_map_.size());
+		for (const auto &[raw, relation] : TI_map_)
 		{
-
-			unique_values.insert(op_key_label(v.first));
+			(void)raw;
+			if (seen.insert(relation.first).second)
+				labels.push_back(op_key_label(relation.first));
 		}
-
-		int i = 0;
-		for (auto a : unique_values)
-		{
-
-			variable_map_.insert({a, i});
-			i += 1;
-		}
-
+		std::sort(labels.begin(), labels.end());
+		for (std::size_t index = 0; index < labels.size(); ++index)
+			variable_map_.insert({labels[index], static_cast<int>(index)});
 		return;
 	}
 
@@ -912,10 +1170,10 @@ public:
 		std::vector<std::vector<int>> vecs)
 	{
 		std::map<std::pair<int,int>, std::string> stringmap;
-		stringmap[{0,0}]="(n-1)";
-		stringmap[{1,1}]="n";
-		stringmap[{0,1}]="c";
-		stringmap[{1,0}]="cdag";
+		stringmap[{0,0}]="n";
+		stringmap[{1,1}]="(1-n)";
+		stringmap[{0,1}]="cdag";
+		stringmap[{1,0}]="c";
 		std::map<std::string, mat_type> rdms_eigen_;
 		auto M=mat_type::Zero(vecs.size(), vecs.size());
 		std::vector<U1rdm_element> results;
@@ -950,7 +1208,7 @@ public:
     if(s=="n")
     {
         res.push_back({1./2, {}});
-        res.push_back({-1./2, {spin_op("z", indices, offset)}});
+        res.push_back({1./2, {spin_op("z", indices, offset)}});
     }
     else if(s=="c")
     {
@@ -962,10 +1220,10 @@ public:
         res.push_back({1./2, {spin_op("x", indices, offset)}});
         res.push_back({std::complex<double>(0,1.)*1./2., {spin_op("y", indices, offset)}});
     }
-    else if(s=="(n-1)")
+    else if(s=="(1-n)")
     {
         res.push_back({1./2, {}});
-        res.push_back({1./2, {spin_op("z", indices, offset)}});
+        res.push_back({-1./2, {spin_op("z", indices, offset)}});
     }
     else{
         std::cout<< "error: "<<s<<std::endl;
@@ -997,10 +1255,10 @@ std::map<std::string, Matrix::t>  get_temp_sig(T& rdms_eigen_){
 		std::map<std::string, mat_type> sigma_map;
 		std::map<std::pair<int,int>, std::string> stringmap;
 		// double check convention
-		stringmap[{0,0}]="(n-1)";
-		stringmap[{1,1}]="n";
-		stringmap[{0,1}]="c";
-		stringmap[{1,0}]="cdag";
+		stringmap[{0,0}]="n";
+		stringmap[{1,1}]="(1-n)";
+		stringmap[{0,1}]="cdag";
+		stringmap[{1,0}]="c";
 		std::vector<std::vector<U1rdm_element>>  matrices;
 		for(int i=0; i<=sites.size(); i++)
 		{
