@@ -257,127 +257,121 @@ shift={dim,0};
     return;
   }
 
-  template <typename OperatorVector>
-  void run_state_optimality_loop(
-      const OperatorVector &operator_1, const OperatorVector &operator_2,
-      std::map<std::string, symmetry_sector> &state_optimality_As,
-      std::complex<double> sector_prefactor, std::pair<int, int> shift)
+  void generate_state_optimality_block(
+      std::map<std::string, symmetry_sector> &state_optimality_As)
   {
     if (!lattice_.state_optimality_hamiltonian_)
       return;
 
     const int Ly = lattice_.Ly_;
     const int Lx = lattice_.Lx_;
-	const int n_states = static_cast<int>(
-		lattice_.state_optimality_states_[sign_sector_][0].size() +
-		lattice_.state_optimality_states_[sign_sector_][1].size());
-    if (n_states == 0)
-      return;
+    const int even_dimension =
+		static_cast<int>(
+			lattice_.state_optimality_states_[sign_sector_][0].size());
+    auto operators = lattice_.state_optimality_states_[sign_sector_][0];
+    operators.insert(
+        operators.end(),
+        lattice_.state_optimality_states_[sign_sector_][1].begin(),
+        lattice_.state_optimality_states_[sign_sector_][1].end());
 
-    int row = 0;
-    for (const auto &v : operator_1)
+    for (std::size_t row = 0; row < operators.size(); ++row)
     {
-      int col = 0;
-      for (const auto &w : operator_2)
+      const std::complex<double> row_phase =
+          row < static_cast<std::size_t>(even_dimension)
+              ? std::complex<double>{1., 0.}
+              : std::complex<double>{0., 1.};
+      for (std::size_t col = row; col < operators.size(); ++col)
       {
+        const std::complex<double> col_phase =
+            col < static_cast<std::size_t>(even_dimension)
+                ? std::complex<double>{1., 0.}
+                : std::complex<double>{0., 1.};
+        const auto sector_prefactor = std::conj(row_phase) * col_phase;
+
         for (int pos_y = 0; pos_y < Ly; ++pos_y)
         {
           for (int pos_x = 0; pos_x < Lx; ++pos_x)
           {
             std::map<std::string, std::complex<double>> entry;
-			const auto &reduced_entry = lattice_.get_state_optimality_entry(
-				v, w, pos_x, pos_y);
-			for (const auto &[label, reduced_term] : reduced_entry.get_terms())
-			{
-			  (void)label;
-			  const auto normal_key = key_dir_pos(reduced_term.get_op());
-				  const auto relation = lattice_.TI_map_.find(normal_key);
-				  if (relation == lattice_.TI_map_.end())
-					throw std::logic_error(
-						"missing state-optimality TI-map entry in sector " +
-						std::to_string(sign_sector_) + ": " +
-						op_key_label(normal_key));
-				  const auto &ti_relation = relation->second;
-				  const std::string moment = op_key_label(ti_relation.first);
-				  if (moment == "0")
-				continue;
-			  entry[moment] += reduced_term.get_coeff() * ti_relation.second;
-			}
+            const auto &reduced_entry = lattice_.get_state_optimality_entry(
+                operators[row], operators[col], pos_x, pos_y);
+            for (const auto &[label, reduced_term] : reduced_entry.get_terms())
+            {
+              (void)label;
+              const auto normal_key = key_dir_pos(reduced_term.get_op());
+              const auto relation = lattice_.TI_map_.find(normal_key);
+              if (relation == lattice_.TI_map_.end())
+                throw std::logic_error(
+                    "missing state-optimality TI-map entry in sector " +
+                    std::to_string(sign_sector_) + ": " +
+                    op_key_label(normal_key));
+              const std::string moment =
+                  op_key_label(relation->second.first);
+              if (moment != "0")
+                entry[moment] += reduced_term.get_coeff() *
+                                 relation->second.second;
+            }
 
             for (int momentum_y = 0; momentum_y < Ly; ++momentum_y)
             {
               const auto fourier_y = FTy_(pos_y, momentum_y);
               for (int momentum_x = 0; momentum_x < Lx; ++momentum_x)
               {
-				const int shift_initial = 0;
-				const int dim =
-					state_optimality_block_shifts[momentum_x][momentum_y];
-                const auto fourier_x = FTx_(pos_x, momentum_x);
-
+                const int dim = state_optimality_block_shifts
+                    [momentum_x][momentum_y];
+                const auto fourier =
+                    FTx_(pos_x, momentum_x) * fourier_y;
                 for (const auto &[moment, moment_coefficient] : entry)
                 {
                   const auto total = moment_coefficient * sector_prefactor *
-                                     fourier_x * fourier_y;
-                  auto &matrix = state_optimality_As[moment][sign_sector_]
-                                                       [momentum_x][momentum_y];
-                  if (std::abs(total.real()) > 1e-9)
+                                     fourier;
+                  auto &cell = state_optimality_As[moment][sign_sector_]
+                                                     [momentum_x][momentum_y];
+                  const double re = 0.5 * total.real();
+                  if (std::abs(re) > 1e-9)
                   {
-                    matrix.add_values(
-                        {row + shift.first + shift_initial,
-                         col + shift.second + shift_initial},
-                        0.5 * total.real());
-                    matrix.add_values(
-                        {row + shift.first + dim + shift_initial,
-                         col + shift.second + dim + shift_initial},
-                        0.5 * total.real());
+                    cell.add_values(
+                        {static_cast<int>(row), static_cast<int>(col)}, re);
+                    cell.add_values(
+                        {static_cast<int>(row) + dim,
+                         static_cast<int>(col) + dim}, re);
+                    if (row != col)
+                    {
+                      cell.add_values(
+                          {static_cast<int>(col), static_cast<int>(row)}, re);
+                      cell.add_values(
+                          {static_cast<int>(col) + dim,
+                           static_cast<int>(row) + dim}, re);
+                    }
                   }
-                  if (std::abs(total.imag()) > 1e-9)
+
+                  const double im = 0.5 * total.imag();
+                  if (std::abs(im) > 1e-9)
                   {
-                    matrix.add_values(
-                        {row + shift.first + shift_initial,
-                         col + shift.second + dim + shift_initial},
-                        -0.5 * total.imag());
-                    matrix.add_values(
-                        {row + shift.first + dim + shift_initial,
-                         col + shift.second + shift_initial},
-                        0.5 * total.imag());
+                    cell.add_values(
+                        {static_cast<int>(row),
+                         static_cast<int>(col) + dim}, -im);
+                    cell.add_values(
+                        {static_cast<int>(col),
+                         static_cast<int>(row) + dim}, im);
+                    if (row != col)
+                    {
+                      cell.add_values(
+                          {static_cast<int>(row) + dim,
+                           static_cast<int>(col)}, im);
+                      cell.add_values(
+                          {static_cast<int>(col) + dim,
+                           static_cast<int>(row)}, -im);
+                    }
                   }
                 }
               }
             }
           }
         }
-        ++col;
       }
-      ++row;
     }
     lattice_.clear_caches();
-  }
-
-  void generate_state_optimality_block(
-      std::map<std::string, symmetry_sector> &state_optimality_As)
-  {
-    const int even_dimension =
-		static_cast<int>(
-			lattice_.state_optimality_states_[sign_sector_][0].size());
-
-    run_state_optimality_loop(
-		lattice_.state_optimality_states_[sign_sector_][0],
-		lattice_.state_optimality_states_[sign_sector_][0],
-		state_optimality_As, {1., 0.}, {0, 0});
-    run_state_optimality_loop(
-		lattice_.state_optimality_states_[sign_sector_][1],
-		lattice_.state_optimality_states_[sign_sector_][1],
-		state_optimality_As, {1., 0.},
-		{even_dimension, even_dimension});
-    run_state_optimality_loop(
-		lattice_.state_optimality_states_[sign_sector_][0],
-		lattice_.state_optimality_states_[sign_sector_][1],
-		state_optimality_As, {0., 1.}, {0, even_dimension});
-    run_state_optimality_loop(
-		lattice_.state_optimality_states_[sign_sector_][1],
-		lattice_.state_optimality_states_[sign_sector_][0],
-		state_optimality_As, {0., -1.}, {even_dimension, 0});
   }
 };
 template <typename Lattice>
