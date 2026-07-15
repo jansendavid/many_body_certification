@@ -5,8 +5,10 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <type_traits>
+#include "operator_operations.hpp"
 #include "symmetries.hpp"
 #include "reduced_dms.hpp"
 #include <cstdlib>
@@ -160,13 +162,52 @@ public:
 	// sign symmetry of the Hamiltonian
 	std::string signsym_;
 	Basis states_;
+	Basis state_optimality_states_;
+	int state_optimality_basis_degree_{3};
 	// vector in which all elements found while looking for translation invariance will be added and flushed (reset ) once an element is added
 	std::vector<op_vec> flush_vector;
 
 	bool bilayer_;
 	bool square_;
 	std::set<op_vec> extra_states_;
+	std::optional<SumOfOperators> state_optimality_hamiltonian_;
 	std::vector<int> offset_vec_;
+
+	struct StateOptimalityEntryKey
+	{
+		op_key v;
+		op_key w;
+		int dx{0};
+		int dy{0};
+
+		bool operator==(const StateOptimalityEntryKey &other) const
+		{
+			return v == other.v && w == other.w && dx == other.dx &&
+				   dy == other.dy;
+		}
+	};
+
+	struct StateOptimalityEntryKeyHash
+	{
+		std::size_t operator()(const StateOptimalityEntryKey &key) const noexcept
+		{
+			op_key_hash hash_op;
+			std::size_t hash = hash_op(key.v);
+			hash ^= hash_op(key.w) + 0x9e3779b97f4a7c15ull + (hash << 6) +
+					(hash >> 2);
+			hash ^= static_cast<std::size_t>(key.dx) +
+					0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2);
+			hash ^= static_cast<std::size_t>(key.dy) +
+					0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2);
+			return hash;
+		}
+	};
+
+	std::unordered_map<op_key, std::vector<std::string>, op_key_hash>
+		state_optimality_anticommuting_terms_cache_;
+	std::unordered_map<StateOptimalityEntryKey, SumOfOperators,
+					   StateOptimalityEntryKeyHash>
+		state_optimality_entry_cache_;
 
 	// Fast TI construction.  The old check/flush routines below are retained as
 	// reference helpers, but generate_TI_map[_double]() now uses these compact
@@ -506,6 +547,45 @@ public:
 		return offset_vec;
 	}
 
+	static Basis filter_state_optimality_states(const Basis &states,
+										   int maximum_degree)
+	{
+		Basis filtered = states;
+		if constexpr (std::is_same_v<Basis, basis_structure_with_sub>)
+		{
+			for (auto &[sector, subsectors] : filtered)
+			{
+				(void)sector;
+				for (auto &[subsector, operators] : subsectors)
+				{
+					(void)subsector;
+					operators.erase(
+						std::remove_if(
+							operators.begin(), operators.end(),
+							[maximum_degree](const op_vec &op) {
+								return static_cast<int>(op.size()) > maximum_degree;
+							}),
+						operators.end());
+				}
+			}
+		}
+		else if constexpr (std::is_same_v<Basis, basis_structure>)
+		{
+			for (auto &[sector, operators] : filtered)
+			{
+				(void)sector;
+				operators.erase(
+					std::remove_if(
+						operators.begin(), operators.end(),
+						[maximum_degree](const op_vec &op) {
+							return static_cast<int>(op.size()) > maximum_degree;
+						}),
+					operators.end());
+			}
+		}
+		return filtered;
+	}
+
 	std::vector<int> get_offset_vec() const
 	{
 		return offset_vec_;
@@ -518,10 +598,18 @@ public:
 
 	SquareLattice(Basis &states, int Lx, int Ly, bool square, bool bilayer,
 			  std::string permuts = "xyz", std::string signsym = "xyz",
-			  std::set<op_vec> extra_states = {})
+			  std::set<op_vec> extra_states = {},
+			  std::optional<SumOfOperators> state_optimality_hamiltonian = std::nullopt,
+			  int state_optimality_basis_degree = 3)
 		: LatticeBase(Lx, Ly), permuts_(permuts), signsym_(signsym),
-		  states_(states), bilayer_(bilayer), square_(square),
-		  extra_states_(extra_states), offset_vec_(extract_offset_vec(states))
+		  states_(states),
+		  state_optimality_states_(filter_state_optimality_states(
+			  states, state_optimality_basis_degree)),
+		  state_optimality_basis_degree_(state_optimality_basis_degree),
+		  bilayer_(bilayer), square_(square),
+		  extra_states_(extra_states),
+		  state_optimality_hamiltonian_(std::move(state_optimality_hamiltonian)),
+		  offset_vec_(extract_offset_vec(states))
 	{
 		// assert(Lx == Ly);
 		if (permuts != "xyz" and permuts != "yxz" and permuts != "zxy" and permuts != "xy" and permuts != "None")
@@ -828,6 +916,51 @@ public:
         nf_cache.clear();
 
     }
+	const std::vector<std::string> &state_optimality_anticommuting_terms(
+		const op_vec &op)
+	{
+		const auto key = key_dir_pos(op);
+		const auto cached = state_optimality_anticommuting_terms_cache_.find(key);
+		if (cached != state_optimality_anticommuting_terms_cache_.end())
+			return cached->second;
+
+		std::vector<std::string> labels;
+		if (state_optimality_hamiltonian_)
+		{
+			for (const auto &[label, term] :
+				 state_optimality_hamiltonian_->get_terms())
+				if (pauli_strings_anticommute(op, term.get_op()))
+					labels.push_back(label);
+		}
+		return state_optimality_anticommuting_terms_cache_
+			.emplace(key, std::move(labels)).first->second;
+	}
+
+	const SumOfOperators &get_state_optimality_entry(
+		const op_vec &v, const op_vec &w, int dx, int dy)
+	{
+		if (!state_optimality_hamiltonian_)
+			throw std::logic_error(
+				"state-optimality entry requested without a Hamiltonian");
+
+		StateOptimalityEntryKey key{key_dir_pos(v), key_dir_pos(w), dx, dy};
+		const auto cached = state_optimality_entry_cache_.find(key);
+		if (cached != state_optimality_entry_cache_.end())
+			return cached->second;
+
+		op_vec translated_w;
+		translated_w.reserve(w.size());
+		append_translated_fast(translated_w, w, dx, dy);
+		const auto translated_w_dagger = dagger_operator(translated_w);
+		const auto &v_terms = state_optimality_anticommuting_terms(v);
+		const auto &w_terms =
+			state_optimality_anticommuting_terms(translated_w_dagger);
+		auto entry = build_state_optimality_entry_from_anticommuting_terms(
+			v, translated_w_dagger, *state_optimality_hamiltonian_, v_terms,
+			w_terms);
+		return state_optimality_entry_cache_
+			.emplace(std::move(key), std::move(entry)).first->second;
+	}
 	bool see_if_state_exists(op_vec spin_op)
 	{
 		flush_vector.clear();
@@ -835,7 +968,7 @@ public:
 		found = check_operator_translation(spin_op);
 		return found;
 	}
-	void generate_TI_map()
+	void generate_TI_map(bool enable_state_optimality_conditions = false)
 	{
 		fast_orbit_cache_.clear();
 		fast_forced_zero_representatives_.clear();
@@ -878,6 +1011,14 @@ public:
 			}
 			clear_caches();
 		}
+		if (enable_state_optimality_conditions)
+		{
+			state_optimality_anticommuting_terms_cache_.clear();
+			state_optimality_entry_cache_.clear();
+			for (auto &sector : state_optimality_states_)
+				generate_TI_map_state_optimality_conditions_double(
+					sector.second, sector.second);
+		}
 		for (const auto &state : extra_states_)
 			process_fast_orbit_candidate(state, "extra observable");
 		apply_fast_forced_zeros();
@@ -910,10 +1051,43 @@ public:
 		}
 		return;
 	}
-	void generate_TI_map_double()
+	void generate_TI_map_state_optimality_conditions_double(
+		const std::vector<op_vec> &operators_1,
+		const std::vector<op_vec> &operators_2)
+	{
+		if (!state_optimality_hamiltonian_)
+			return;
+
+		for (const auto &v : operators_1)
+		{
+			for (const auto &w : operators_2)
+			{
+				for (int dx = 0; dx < Lx_; ++dx)
+				{
+					for (int dy = 0; dy < Ly_; ++dy)
+					{
+						const auto &reduced_entry =
+							get_state_optimality_entry(v, w, dx, dy);
+						for (const auto &[label, term] : reduced_entry.get_terms())
+						{
+							(void)label;
+							process_fast_orbit_candidate(
+								term.get_op(),
+								"reduced state-optimality entry", true);
+						}
+					}
+				}
+			}
+			clear_caches();
+		}
+		return;
+	}
+	void generate_TI_map_double(bool enable_state_optimality_conditions = false)
 	{
 		fast_orbit_cache_.clear();
 		fast_forced_zero_representatives_.clear();
+		state_optimality_anticommuting_terms_cache_.clear();
+		state_optimality_entry_cache_.clear();
 		insert_fast_relation(op_key_identity(), op_key_identity(), 1.0,
 						 "identity base relation");
 		insert_fast_relation(op_key_zero(), op_key_zero(), 1.0,
@@ -925,6 +1099,20 @@ public:
 			operator_run(sector.second.at(0), sector.second.at(1));
 			operator_run(sector.second.at(1), sector.second.at(0));
 
+		}
+		if (enable_state_optimality_conditions)
+		{
+			for (auto &sector : state_optimality_states_)
+			{
+				generate_TI_map_state_optimality_conditions_double(
+					sector.second.at(0), sector.second.at(0));
+				generate_TI_map_state_optimality_conditions_double(
+					sector.second.at(1), sector.second.at(1));
+				generate_TI_map_state_optimality_conditions_double(
+					sector.second.at(0), sector.second.at(1));
+				generate_TI_map_state_optimality_conditions_double(
+					sector.second.at(1), sector.second.at(0));
+			}
 		}
 		for (const auto &state : extra_states_)
 			process_fast_orbit_candidate(state, "extra double observable", true);

@@ -3,6 +3,7 @@
 #include <string>
 #include <iostream>
 #include <iomanip>
+#include <set>
 #include "spins.hpp"
 class operator_and_coeff
 {
@@ -35,6 +36,11 @@ public:
         return coeff_;
     }
 
+    std::complex<double> get_coeff() const
+    {
+        return coeff_;
+    }
+
 public:
     operator_and_coeff(std::complex<double> coeff, op_vec op) : coeff_(coeff), op_(op) {}
 
@@ -58,6 +64,10 @@ class SumOfOperators{
     {
         return terms_;
     }
+    const std::unordered_map<std::string, operator_and_coeff>& get_terms() const
+    {
+        return terms_;
+    }
     void merge(std::unordered_map<std::string, operator_and_coeff>& to_merge)
     {
         terms_.merge(to_merge);
@@ -77,8 +87,97 @@ class SumOfOperators{
          else{
             terms_.insert({key, term});
          }
-     }
+    }
 };
+
+bool pauli_strings_anticommute(const op_vec &left, const op_vec &right)
+{
+    int different_overlaps = 0;
+    for (const auto &left_factor : left)
+    {
+        for (const auto &right_factor : right)
+        {
+            if (left_factor.pos() == right_factor.pos() &&
+                left_factor.get_dir() != right_factor.get_dir())
+            {
+                ++different_overlaps;
+            }
+        }
+    }
+    return (different_overlaps % 2) != 0;
+}
+
+SumOfOperators build_state_optimality_entry(
+    const op_vec &v, const op_vec &w_dagger,
+    const SumOfOperators &hamiltonian)
+{
+    SumOfOperators result;
+    for (const auto &[label, hamiltonian_term] : hamiltonian.get_terms())
+    {
+        (void)label;
+        const auto h = hamiltonian_term.get_op();
+        const int multiplicity =
+            static_cast<int>(pauli_strings_anticommute(v, h)) +
+            static_cast<int>(pauli_strings_anticommute(w_dagger, h));
+        if (multiplicity == 0)
+            continue;
+
+        op_vec product = v;
+        product.insert(product.end(), h.begin(), h.end());
+        product.insert(product.end(), w_dagger.begin(), w_dagger.end());
+        auto [normal_phase, normal_form] = get_normal_form(std::move(product));
+        const auto coefficient = static_cast<double>(multiplicity) *
+                                 hamiltonian_term.get_coeff() * normal_phase;
+        if (std::abs(coefficient) > 1e-12)
+            result.insert(operator_and_coeff(coefficient, std::move(normal_form)));
+    }
+
+    std::vector<std::string> cancelled_terms;
+    for (const auto &[label, term] : result.get_terms())
+        if (std::abs(term.get_coeff()) <= 1e-12)
+            cancelled_terms.push_back(label);
+    for (const auto &label : cancelled_terms)
+        result.erase(label);
+
+    return result;
+}
+
+SumOfOperators build_state_optimality_entry_from_anticommuting_terms(
+    const op_vec &v, const op_vec &w_dagger,
+    const SumOfOperators &hamiltonian,
+    const std::vector<std::string> &anticommuting_with_v,
+    const std::vector<std::string> &anticommuting_with_w)
+{
+    std::unordered_map<std::string, int> multiplicities;
+    for (const auto &label : anticommuting_with_v)
+        ++multiplicities[label];
+    for (const auto &label : anticommuting_with_w)
+        ++multiplicities[label];
+
+    SumOfOperators result;
+    for (const auto &[label, multiplicity] : multiplicities)
+    {
+        const auto &hamiltonian_term = hamiltonian.get_terms().at(label);
+        const auto h = hamiltonian_term.get_op();
+        op_vec product = v;
+        product.insert(product.end(), h.begin(), h.end());
+        product.insert(product.end(), w_dagger.begin(), w_dagger.end());
+        auto [normal_phase, normal_form] = get_normal_form(std::move(product));
+        const auto coefficient = static_cast<double>(multiplicity) *
+                                 hamiltonian_term.get_coeff() * normal_phase;
+        if (std::abs(coefficient) > 1e-12)
+            result.insert(operator_and_coeff(coefficient, std::move(normal_form)));
+    }
+
+    std::vector<std::string> cancelled_terms;
+    for (const auto &[label, term] : result.get_terms())
+        if (std::abs(term.get_coeff()) <= 1e-12)
+            cancelled_terms.push_back(label);
+    for (const auto &label : cancelled_terms)
+        result.erase(label);
+    return result;
+}
+
 template<typename LattceType>
 std::vector<std::vector<double>> convert_linear_constraints(LattceType& lattice, std::vector<SumOfOperators>& elements)
 {

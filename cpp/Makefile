@@ -42,6 +42,9 @@ ND=-DNDEBUG
 test_spins: tests/test_spins.cpp
 	$(compiler) -std=c++11 tests/test_spins.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
 
+test_normal_form_fast: tests/test_normal_form_fast.cpp
+	clang++ -std=c++20 -stdlib=libc++ tests/test_normal_form_fast.cpp -o bin/$@ -O2 -I./include/
+
 test_ham_spins: tests/test_ham_spins.cpp
 	$(compiler) -std=c++11 tests/test_ham_spins.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-rpath-link,$(MOSEK)/bin/ -Wl,-rpath=$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
 
@@ -90,6 +93,9 @@ simple_2d_lattice: tests/simple_2d_lattice.cpp
 simple_2d_lattice_double: tests/simple_2d_lattice_double.cpp
 	clang++ -std=c++11 -stdlib=libc++ tests/simple_2d_lattice_double.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-headerpad,128 -Wl,-rpath,$(MOSEK)/bin/ -Wl,-rpath,$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
 	
+simple_2d_lattice_state_optimality: tests/simple_2d_lattice_state_optimality.cpp
+	clang++ -std=c++11 -stdlib=libc++ tests/simple_2d_lattice_state_optimality.cpp -o bin/$@ -I$(MOSEK)/h/ -L$(MOSEK)/bin/ -Wl,-headerpad,128 -Wl,-rpath,$(MOSEK)/bin/ -Wl,-rpath,$(MOSEK)/bin/ -lmosek64 -lfusion64 $(CCFLAGS)  $(INC)
+
 
 
 test: src/test.cpp

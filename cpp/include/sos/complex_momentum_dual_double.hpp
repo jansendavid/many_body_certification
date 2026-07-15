@@ -23,6 +23,7 @@ class momentum_block_double
 public:
   int sign_sector_{0};
   std::vector<std::vector<int>> block_shifts;
+	std::vector<std::vector<int>> state_optimality_block_shifts;
   Lattice &lattice_;
 
   Eigen::MatrixXcd &FTx_;
@@ -137,6 +138,15 @@ public:
     }
     return;
   }
+
+	void initialize_state_optimality_block_shifts()
+	{
+	  const int dimension = static_cast<int>(
+		  lattice_.state_optimality_states_[sign_sector_][0].size() +
+		  lattice_.state_optimality_states_[sign_sector_][1].size());
+	  state_optimality_block_shifts.assign(
+		  lattice_.Lx_, std::vector<int>(lattice_.Ly_, dimension));
+	}
   void initialize_blocks_general()
   {
 
@@ -246,6 +256,129 @@ shift={dim,0};
 
     return;
   }
+
+  template <typename OperatorVector>
+  void run_state_optimality_loop(
+      const OperatorVector &operator_1, const OperatorVector &operator_2,
+      std::map<std::string, symmetry_sector> &state_optimality_As,
+      std::complex<double> sector_prefactor, std::pair<int, int> shift)
+  {
+    if (!lattice_.state_optimality_hamiltonian_)
+      return;
+
+    const int Ly = lattice_.Ly_;
+    const int Lx = lattice_.Lx_;
+	const int n_states = static_cast<int>(
+		lattice_.state_optimality_states_[sign_sector_][0].size() +
+		lattice_.state_optimality_states_[sign_sector_][1].size());
+    if (n_states == 0)
+      return;
+
+    int row = 0;
+    for (const auto &v : operator_1)
+    {
+      int col = 0;
+      for (const auto &w : operator_2)
+      {
+        for (int pos_y = 0; pos_y < Ly; ++pos_y)
+        {
+          for (int pos_x = 0; pos_x < Lx; ++pos_x)
+          {
+            std::map<std::string, std::complex<double>> entry;
+			const auto &reduced_entry = lattice_.get_state_optimality_entry(
+				v, w, pos_x, pos_y);
+			for (const auto &[label, reduced_term] : reduced_entry.get_terms())
+			{
+			  (void)label;
+			  const auto normal_key = key_dir_pos(reduced_term.get_op());
+				  const auto relation = lattice_.TI_map_.find(normal_key);
+				  if (relation == lattice_.TI_map_.end())
+					throw std::logic_error(
+						"missing state-optimality TI-map entry in sector " +
+						std::to_string(sign_sector_) + ": " +
+						op_key_label(normal_key));
+				  const auto &ti_relation = relation->second;
+				  const std::string moment = op_key_label(ti_relation.first);
+				  if (moment == "0")
+				continue;
+			  entry[moment] += reduced_term.get_coeff() * ti_relation.second;
+			}
+
+            for (int momentum_y = 0; momentum_y < Ly; ++momentum_y)
+            {
+              const auto fourier_y = FTy_(pos_y, momentum_y);
+              for (int momentum_x = 0; momentum_x < Lx; ++momentum_x)
+              {
+				const int shift_initial = 0;
+				const int dim =
+					state_optimality_block_shifts[momentum_x][momentum_y];
+                const auto fourier_x = FTx_(pos_x, momentum_x);
+
+                for (const auto &[moment, moment_coefficient] : entry)
+                {
+                  const auto total = moment_coefficient * sector_prefactor *
+                                     fourier_x * fourier_y;
+                  auto &matrix = state_optimality_As[moment][sign_sector_]
+                                                       [momentum_x][momentum_y];
+                  if (std::abs(total.real()) > 1e-9)
+                  {
+                    matrix.add_values(
+                        {row + shift.first + shift_initial,
+                         col + shift.second + shift_initial},
+                        0.5 * total.real());
+                    matrix.add_values(
+                        {row + shift.first + dim + shift_initial,
+                         col + shift.second + dim + shift_initial},
+                        0.5 * total.real());
+                  }
+                  if (std::abs(total.imag()) > 1e-9)
+                  {
+                    matrix.add_values(
+                        {row + shift.first + shift_initial,
+                         col + shift.second + dim + shift_initial},
+                        -0.5 * total.imag());
+                    matrix.add_values(
+                        {row + shift.first + dim + shift_initial,
+                         col + shift.second + shift_initial},
+                        0.5 * total.imag());
+                  }
+                }
+              }
+            }
+          }
+        }
+        ++col;
+      }
+      ++row;
+    }
+    lattice_.clear_caches();
+  }
+
+  void generate_state_optimality_block(
+      std::map<std::string, symmetry_sector> &state_optimality_As)
+  {
+    const int even_dimension =
+		static_cast<int>(
+			lattice_.state_optimality_states_[sign_sector_][0].size());
+
+    run_state_optimality_loop(
+		lattice_.state_optimality_states_[sign_sector_][0],
+		lattice_.state_optimality_states_[sign_sector_][0],
+		state_optimality_As, {1., 0.}, {0, 0});
+    run_state_optimality_loop(
+		lattice_.state_optimality_states_[sign_sector_][1],
+		lattice_.state_optimality_states_[sign_sector_][1],
+		state_optimality_As, {1., 0.},
+		{even_dimension, even_dimension});
+    run_state_optimality_loop(
+		lattice_.state_optimality_states_[sign_sector_][0],
+		lattice_.state_optimality_states_[sign_sector_][1],
+		state_optimality_As, {0., 1.}, {0, even_dimension});
+    run_state_optimality_loop(
+		lattice_.state_optimality_states_[sign_sector_][1],
+		lattice_.state_optimality_states_[sign_sector_][0],
+		state_optimality_As, {0., -1.}, {even_dimension, 0});
+  }
 };
 template <typename Lattice>
 class momentum_basis_double
@@ -266,13 +399,18 @@ public:
   // enforcing constarans ye nergy_vec_<=E_upper
   // contains the matrices As, for each sign symmetrye we have LxL blocks
   std::map<std::string, symmetry_sector> As_;
+	std::map<std::string, symmetry_sector> state_optimality_As_;
   // for the reduced density matrix
   std::map<rdm_operator, std::vector<std::map<std::string, Matrix::t>>> sigmas_;
   Matrix::t Psp;
   int nr_of_linear_constraints{0};
   bool U1=false;
+	bool enable_state_optimality_conditions_{false};
 
-  momentum_basis_double(Lattice &lattice, Model::t M, rdms_struct rdms, bool U1) : lattice_(lattice), M_(M), U1(U1)
+  momentum_basis_double(Lattice &lattice, Model::t M, rdms_struct rdms,
+						bool U1, bool enable_state_optimality_conditions)
+		: lattice_(lattice), M_(M), U1(U1),
+		  enable_state_optimality_conditions_(enable_state_optimality_conditions)
   {
     FTx_ = Eigen::MatrixXcd(lattice_.Lx_, lattice_.Lx_);
     for (int i = 0; i < lattice_.Lx_; i++)
@@ -306,16 +444,25 @@ public:
     for (auto it = lattice.variable_map_.begin(); it != lattice.variable_map_.end(); it++)
     {
       As_.insert({it->first, symmetry_sector()});
+		if (enable_state_optimality_conditions_)
+		  state_optimality_As_.insert({it->first, symmetry_sector()});
       for (auto it_sign_sector = sectors_.begin(); it_sign_sector != sectors_.end(); ++it_sign_sector)
       {
         As_[it->first][it_sign_sector->first] = {};
+		if (enable_state_optimality_conditions_)
+		  state_optimality_As_[it->first][it_sign_sector->first] = {};
 
         for (int i = 0; i < lattice_.Lx_; i++)
         {
           As_[it->first][it_sign_sector->first].push_back({});
+		  if (enable_state_optimality_conditions_)
+			state_optimality_As_[it->first][it_sign_sector->first].push_back({});
           for (int j = 0; j < lattice_.Ly_; j++)
           {
             As_[it->first][it_sign_sector->first][i].push_back(matrix_organizer());
+			if (enable_state_optimality_conditions_)
+			  state_optimality_As_[it->first][it_sign_sector->first][i]
+				  .push_back(matrix_organizer());
           }
         }
       }
@@ -323,15 +470,84 @@ public:
 
     for (auto &sector : sectors_)
       sector.second.initialize_blocks(As_);
+	if (enable_state_optimality_conditions_)
+	  for (auto &sector : sectors_)
+		sector.second.initialize_state_optimality_block_shifts();
 
     for (auto it_2 = sectors_.begin(); it_2 != sectors_.end(); ++it_2)
       it_2->second.generate_block(As_);
 
+	if (enable_state_optimality_conditions_)
+	{
+	  std::cout << "State-optimality basis maximum degree: "
+				<< lattice_.state_optimality_basis_degree_ << std::endl;
+	  for (const auto &[sector, block] : sectors_)
+		std::cout << "State-optimality sector " << sector
+				  << " basis dimension: "
+				  << block.state_optimality_block_shifts[0][0] << std::endl;
+	  for (auto &sector : sectors_)
+		sector.second.generate_state_optimality_block(state_optimality_As_);
+	  report_state_optimality_matrix_diagnostics();
+	}
+
     return;
   };
+
+	void report_state_optimality_matrix_diagnostics() const
+	{
+	  std::size_t referenced_moments = 0;
+	  std::size_t nonzero_blocks = 0;
+	  std::size_t stored_entries = 0;
+	  double largest_symmetry_discrepancy = 0.;
+
+	  for (const auto &[moment, by_sector] : state_optimality_As_)
+	  {
+		(void)moment;
+		bool moment_referenced = false;
+		for (const auto &[sector, by_x] : by_sector)
+		{
+		  (void)sector;
+		  for (const auto &by_y : by_x)
+			for (const auto &matrix : by_y)
+			{
+			  if (!matrix.has_elements_)
+				continue;
+			  moment_referenced = true;
+			  ++nonzero_blocks;
+			  stored_entries += matrix.matrix_positions.size();
+
+			  std::map<int_pair, double> values;
+			  for (std::size_t i = 0; i < matrix.matrix_positions.size(); ++i)
+				values[matrix.matrix_positions[i]] += matrix.matrix_values[i];
+			  for (const auto &[position, value] : values)
+			  {
+				const auto transposed = values.find(
+					{position.second, position.first});
+				const double transposed_value =
+					transposed == values.end() ? 0. : transposed->second;
+				largest_symmetry_discrepancy = std::max(
+					largest_symmetry_discrepancy,
+					std::abs(value - transposed_value));
+			  }
+			}
+		}
+		if (moment_referenced)
+		  ++referenced_moments;
+	  }
+
+	  std::cout << "State-optimality coefficient matrices: moments="
+				<< referenced_moments << ", nonzero blocks=" << nonzero_blocks
+				<< ", stored entries=" << stored_entries
+				<< ", largest realified symmetry discrepancy="
+				<< largest_symmetry_discrepancy << std::endl;
+	  if (largest_symmetry_discrepancy > 1e-7)
+		throw std::logic_error(
+			"state-optimality coefficient matrix is not Hermitian");
+	}
   void initialize_all_maps(rdms_struct rdms)
   {
-    this->lattice_.generate_TI_map_double();
+		this->lattice_.generate_TI_map_double(
+			enable_state_optimality_conditions_);
     if (rdms.size() > 0)
     {
 
@@ -452,16 +668,12 @@ Psp=Matrix::t(Matrix::sparse(
     std::cout << "rdms size " << rdms.rdms.size() << std::endl;
     for (auto site : rdms.rdms)
     {
-      if(U1)
-      {
-        auto sigmas_temp = lattice_.generate_rdms_primal_U1(site, offset); 
-        sigmas_.insert({site, sigmas_temp});
-      }
-      else{
-        auto sigmas_temp = lattice_.generate_rdms_primal_cp(site, offset); 
-      
-        sigmas_.insert({site, sigmas_temp});
-      }
+      // Match the standard formulation: U1 selects fixed-number fermionic
+      // blocks, while false imposes the corrected full (CP) density matrix.
+      auto sigmas_temp = U1
+          ? lattice_.generate_rdms_primal_U1(site, offset)
+          : lattice_.generate_rdms_primal_cp(site, offset);
+      sigmas_.insert({site, std::move(sigmas_temp)});
     
     }
     return;
@@ -472,7 +684,11 @@ class momentum_symmetry_solver_dual_double : public momentum_basis_double<Lattic
 {
 public:
   Variable::t y_;
-  momentum_symmetry_solver_dual_double(Lattice &lattice, Model::t M, rdms_struct rdms, bool U1=false) : momentum_basis_double<Lattice>(lattice, M, rdms, U1)
+  momentum_symmetry_solver_dual_double(
+		Lattice &lattice, Model::t M, rdms_struct rdms, bool U1 = false,
+		bool enable_state_optimality_conditions = false)
+		: momentum_basis_double<Lattice>(
+			  lattice, M, rdms, U1, enable_state_optimality_conditions)
   {
     y_ = this->M_->variable("T", this->lattice_.variable_map_.size());
     this->M_->constraint(y_, Domain::lessThan(1.0));
@@ -527,6 +743,49 @@ public:
       }
     }
     std::cout << "Finished generating the PSD constraints" << std::endl;
+
+	if (this->enable_state_optimality_conditions_)
+	{
+	  std::size_t state_optimality_psd_blocks = 0;
+	  for (auto &sign_symm_sector : this->sectors_)
+	  {
+		for (int i = 0; i < this->lattice_.Lx_; ++i)
+		{
+		  for (int j = 0; j < this->lattice_.Ly_; ++j)
+		  {
+			const int matrix_dimension = 2 *
+				sign_symm_sector.second.state_optimality_block_shifts[i][j];
+			std::vector<Expression::t> matrices;
+			for (const auto &op : this->lattice_.variable_map_)
+			{
+			  if (op.first == "0")
+				continue;
+			  auto &coefficient_matrix =
+				  this->state_optimality_As_[op.first]
+					  [sign_symm_sector.first][i][j];
+			  if (coefficient_matrix.has_elements_)
+				matrices.push_back(Expr::mul(
+					y_->index(op.second),
+					coefficient_matrix.make_matrix(
+						matrix_dimension, matrix_dimension)));
+			}
+			if (matrices.empty())
+			  continue;
+
+			Expression::t state_optimality_matrix = matrices.front();
+			for (std::size_t n = 1; n < matrices.size(); ++n)
+			  state_optimality_matrix =
+				  Expr::add(state_optimality_matrix, matrices[n]);
+			this->M_->constraint(
+				state_optimality_matrix, Domain::inPSDCone());
+			++state_optimality_psd_blocks;
+		  }
+		}
+	  }
+	  std::cout << "Finished generating " << state_optimality_psd_blocks
+				<< " state-optimality PSD constraints" << std::endl;
+	}
+
     for(auto& psd_mat:this->sigmas_ )
     {
       for(auto& elements: psd_mat.second)
@@ -596,6 +855,8 @@ class momentum_symmetry_solver_sos_double : public momentum_basis_double<Lattice
 {
 public:
   std::map<int, std::vector<std::vector<Expression::t>>> Xs_;
+	std::map<int, std::vector<std::vector<Expression::t>>>
+		state_optimality_Xs_;
   std::map<rdm_operator, std::vector<Expression::t>> Lambdas_;
 
   std::vector<Variable::t> energy_bouding_variables_;
@@ -608,6 +869,7 @@ public:
   std::vector<std::vector<Variable::t>> linear_constraints_for_block_equality_variable_;
   Constraint::t final_constraint_;
   Expression::t A_vector = nullptr;
+	Expression::t state_optimality_A_vector = nullptr;
   Expression::t Lamba_vector = nullptr;
   Expression::t LC_vector = nullptr;
   Expression::t epsilon_vec_flat = nullptr;
@@ -642,8 +904,12 @@ public:
     return std::tie(kx, ky) <= std::tie(cx, cy);
   }
 
-  momentum_symmetry_solver_sos_double(Lattice &lattice, Model::t M, rdms_struct rdms, bool maximize = true, bool U1=false)
-      : maximize_(maximize), momentum_basis_double<Lattice>(lattice, M, rdms, U1)
+  momentum_symmetry_solver_sos_double(
+		Lattice &lattice, Model::t M, rdms_struct rdms,
+		bool maximize = true, bool U1 = false,
+		bool enable_state_optimality_conditions = false)
+      : maximize_(maximize), momentum_basis_double<Lattice>(
+			lattice, M, rdms, U1, enable_state_optimality_conditions)
   {
     epsilon = this->M_->variable("epsilon");
     const int number_of_moments =
@@ -659,9 +925,13 @@ public:
     for (auto sign_symm_sector : this->sectors_)
     {
       Xs_[sign_symm_sector.first] = {};
+	  if (this->enable_state_optimality_conditions_)
+		state_optimality_Xs_[sign_symm_sector.first] = {};
       for (int i = 0; i < nrblocks_x; i++)
       {
         Xs_[sign_symm_sector.first].push_back({});
+		if (this->enable_state_optimality_conditions_)
+		  state_optimality_Xs_[sign_symm_sector.first].push_back({});
         for (int j = 0; j < nrblocks_y; j++)
         {
           if (!is_momentum_representative(this->lattice_, i, j))
@@ -669,6 +939,9 @@ public:
             // Non-representative conjugate blocks are encoded by the
             // representative block for their {k,-k} orbit.
             Xs_[sign_symm_sector.first][i].push_back(nullptr);
+			if (this->enable_state_optimality_conditions_)
+			  state_optimality_Xs_[sign_symm_sector.first][i]
+				  .push_back(nullptr);
             continue;
           }
           int matrix_dimension = 2 * sign_symm_sector.second.block_shifts[i][j];
@@ -679,6 +952,23 @@ public:
             Xs_[sign_symm_sector.first][i].push_back(Expr::neg(X));
           else
             Xs_[sign_symm_sector.first][i].push_back(X);
+
+		  if (this->enable_state_optimality_conditions_)
+		  {
+			const int state_optimality_matrix_dimension = 2 *
+				sign_symm_sector.second.state_optimality_block_shifts[i][j];
+			auto state_optimality_X = this->M_->variable(
+				"state_optimality_X_" +
+					std::to_string(sign_symm_sector.first) + "_" +
+					std::to_string(i) + "_" + std::to_string(j),
+				Domain::inPSDCone(state_optimality_matrix_dimension));
+			if (maximize_)
+			  state_optimality_Xs_[sign_symm_sector.first][i].push_back(
+				  Expr::neg(state_optimality_X));
+			else
+			  state_optimality_Xs_[sign_symm_sector.first][i].push_back(
+				  state_optimality_X);
+		  }
         }
       }
     }
@@ -723,7 +1013,11 @@ public:
 
   void update_constrains()
   {
-    auto totalvec = Expr::add(A_vector, Lamba_vector);
+	Expression::t totalvec = A_vector;
+	if (state_optimality_A_vector.get() != nullptr)
+	  totalvec = Expr::add(totalvec, state_optimality_A_vector);
+	if (Lamba_vector.get() != nullptr)
+	  totalvec = Expr::add(totalvec, Lamba_vector);
     if (this->nr_of_linear_constraints > 0)
     {
       LC_vector = Expr::mul(this->Psp, linear_constraints_variable2_);
@@ -861,6 +1155,71 @@ public:
       }
     }
 
+	if (this->enable_state_optimality_conditions_)
+	{
+	  for (auto &sign_symm_sector : this->sectors_)
+	  {
+		for (int i = 0; i < nrblocks_x; ++i)
+		{
+		  for (int j = 0; j < nrblocks_y; ++j)
+		  {
+			if (!is_momentum_representative(this->lattice_, i, j))
+			  continue;
+			const int block_size = 2 *
+				sign_symm_sector.second.state_optimality_block_shifts[i][j];
+			if (block_size == 0)
+			  continue;
+
+			const int n_vars_block = block_size * block_size;
+			auto x_block = Expr::reshape(
+				state_optimality_Xs_[sign_symm_sector.first][i][j],
+				n_vars_block);
+			std::vector<int> rows, cols;
+			std::vector<double> values;
+
+			for (const auto &op : this->lattice_.variable_map_)
+			{
+			  if (op.first == "0")
+				continue;
+			  auto &coefficient_matrix =
+				  this->state_optimality_As_[op.first]
+					  [sign_symm_sector.first][i][j];
+			  if (!coefficient_matrix.has_elements_)
+				continue;
+
+			  auto matrix = coefficient_matrix.make_matrix(
+				  block_size, block_size);
+			  auto data = matrix->getDataAsArray();
+			  for (int row = 0; row < block_size; ++row)
+				for (int col = 0; col < block_size; ++col)
+				{
+				  const double value = (*data)[row * block_size + col];
+				  if (std::abs(value) > 1e-15)
+				  {
+					rows.push_back(op.second);
+					cols.push_back(row * block_size + col);
+					values.push_back(value);
+				  }
+				}
+			}
+
+			if (values.empty())
+			  continue;
+			auto coefficient_map = Matrix::sparse(
+				n_constraints, n_vars_block,
+				monty::new_array_ptr(rows), monty::new_array_ptr(cols),
+				monty::new_array_ptr(values));
+			auto contribution = Expr::mul(coefficient_map, x_block);
+			if (state_optimality_A_vector.get() == nullptr)
+			  state_optimality_A_vector = contribution;
+			else
+			  state_optimality_A_vector =
+				  Expr::add(state_optimality_A_vector, contribution);
+		  }
+		}
+	  }
+	}
+
     int i=0;
 
     for (auto &[key, lambda_vec] : Lambdas_)
@@ -868,6 +1227,7 @@ public:
   int ll=0;
 for(auto& lambda_expr: lambda_vec)
 {
+    const int sigma_index = ll++;
     int block_size = (int)std::round(std::sqrt(lambda_expr->getSize()));
     int n_vars_block = block_size * block_size;
     auto l_block = Expr::reshape(lambda_expr, n_vars_block);
@@ -875,7 +1235,7 @@ for(auto& lambda_expr: lambda_vec)
     std::vector<int>    rows_b, cols_b;
     std::vector<double> vals_b;
 //for(auto& elements: this->sigmas_[key])
-auto elements= this->sigmas_[key][ll];
+auto elements= this->sigmas_[key][sigma_index];
 
     for (auto& [op_string, mat] : elements)
     {
@@ -913,8 +1273,6 @@ i++;
       Lamba_vector = contribution;
     else
       Lamba_vector = Expr::add(Lamba_vector, contribution);
-
-ll++;
     }
 }
     int el = this->lattice_.variable_map_.at("1");
@@ -925,9 +1283,11 @@ ll++;
     auto epsilon_vec = Expr::mul(e_vec, epsilon);
     epsilon_vec_flat = Expr::reshape(epsilon_vec, n_constraints);
 
-    auto totalvec=A_vector;
+	Expression::t totalvec = A_vector;
+	if (state_optimality_A_vector.get() != nullptr)
+	  totalvec = Expr::add(totalvec, state_optimality_A_vector);
     if (Lamba_vector.get() != nullptr)
-    { totalvec = Expr::add(A_vector, Lamba_vector);}
+	{ totalvec = Expr::add(totalvec, Lamba_vector);}
     if (this->nr_of_linear_constraints > 0)
     {
       std::cout<< "apply linear constarints "<<std::endl;
