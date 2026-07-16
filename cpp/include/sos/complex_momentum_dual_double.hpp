@@ -387,8 +387,9 @@ shift={dim,0};
           }
         }
       }
+      lattice_.state_optimality_entry_cache_.clear();
+      lattice_.clear_caches();
     }
-    lattice_.clear_caches();
     const double elapsed = std::chrono::duration<double>(
         std::chrono::steady_clock::now() - phase_start).count();
     std::cout << "State-optimality coefficients sector " << sign_sector_
