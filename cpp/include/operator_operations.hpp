@@ -203,7 +203,7 @@ std::vector<std::vector<double>> convert_linear_constraints(LattceType& lattice,
             {
 
                 imag_part[el]+=total_coeff.imag();
-                include_real=true;
+                include_imag=true;
             }
          
 
